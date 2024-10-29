@@ -6,9 +6,17 @@ from peewee import *
 
 db = SqliteDatabase('people.db')
 
-class Swing(Model):
+class BaseModel(Model):
+    class Meta:
+        database = db
+
+class Swing(BaseModel):
     name = CharField()
     sdate = DateField()
 
-    class Meta:
-        database = db # This model uses the "people.db" database.
+
+
+class Session(BaseModel):
+    sdate = DateField()
+    name = CharField()
+    swing = ForeignKeyField(Swing, backref='swings')
