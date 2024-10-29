@@ -14,12 +14,13 @@ from PySide6.QtGui import QIcon, QStandardItemModel, QStandardItem
 from PySide6.QtWidgets import QListView
 from flask import Flask, request,jsonify
 import logging
+from swingdb import Swing
+from peewee import *
+from wlog import QtWindowHandler
 
 app2 = Flask(__name__)
-logger = logging.getLogger(__name__)
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)
-logger.addHandler(console_handler)
+
+db = SqliteDatabase('people.db')
 
 class MessageReceivedSignal(QtCore.QObject):
     messageReceived = QtCore.Signal(str)
@@ -79,17 +80,30 @@ class SBW(QWidget):
 
 
         self.flask_thread = FlaskThread()
+        self.logger =  logging.getLogger("__main__")
 
         self.find_swings()
         self.ui.play_btn.clicked.connect(self.foo)
         self.flask_thread.start()
+        db.connect()
+        tables = db.get_tables()
+        self.logger.debug(f" tables: {tables}")
+        if "swing" in tables:
+            self.logger.debug("found swing table")
+            self.foo("swings")
+        else:
+            self.foo("no swings")
+            db.create_tables([Swing])
+            self.foo("made seings")
+        print(f"tables: {tables}")
+        self.logger.debug("end of widget init")
 
     def find_swings(self):
         # Create a model to hold the items
         model = QStandardItemModel()
 
         # Add items to the model
-        items = ["Item 1", "Item 2", "Item 3"]
+        items = ["Swing 1", "swing 2", "Item 3"]
         for item in items:
             model.appendRow(QStandardItem(item))
 
@@ -110,6 +124,18 @@ class SBW(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    f = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(message)s')
+    window_handler = QtWindowHandler()
+    window_handler.setFormatter(f)
+    logger.addHandler(window_handler)
+
+    logger = logging.getLogger(__name__)
+    logger.debug("test debug")
+    logger.info("test info")
+    logger.warning("test warn")
+
     widget = SBW()
     widget.show()
     sys.exit(app.exec())

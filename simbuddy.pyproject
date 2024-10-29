@@ -1,6 +1,8 @@
 {
     "files": [
         "sbw.py",
-        "form.ui"
+        "form.ui",
+        "swingdb.py",
+        "wlog.py"
     ]
 }
