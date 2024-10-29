@@ -3,6 +3,7 @@
         "sbw.py",
         "form.ui",
         "swingdb.py",
-        "wlog.py"
+        "wlog.py",
+        "util.py"
     ]
 }

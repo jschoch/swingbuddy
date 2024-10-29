@@ -14,7 +14,7 @@ from PySide6.QtGui import QIcon, QStandardItemModel, QStandardItem
 from PySide6.QtWidgets import QListView
 from flask import Flask, request,jsonify
 import logging
-from swingdb import Swing
+from swingdb import Swing, Session,Config
 from peewee import *
 from wlog import QtWindowHandler
 
@@ -84,6 +84,8 @@ class SBW(QWidget):
 
         self.find_swings()
         self.ui.play_btn.clicked.connect(self.foo)
+        self.ui.create_db_btn.clicked.connect(self.create_db)
+        self.ui.pop_btn.clicked.connect(self.populate_test_data)
         self.flask_thread.start()
         db.connect()
         tables = db.get_tables()
@@ -93,22 +95,47 @@ class SBW(QWidget):
             self.foo("swings")
         else:
             self.foo("no swings")
-            db.create_tables([Swing])
+
             self.foo("made seings")
         print(f"tables: {tables}")
         self.logger.debug("end of widget init")
 
     def find_swings(self):
+        items = Swing.select().limit(10)
         # Create a model to hold the items
         model = QStandardItemModel()
 
         # Add items to the model
-        items = ["Swing 1", "swing 2", "Item 3"]
+        #items = ["Swing 1", "swing 2", "Item 3"]
         for item in items:
-            model.appendRow(QStandardItem(item))
+            model.appendRow(QStandardItem(item.name))
 
         # Set the model to the list view
         self.ui.swings_lv.setModel(model)
+
+    def create_db(self):
+        db.create_tables([Swing,Config,Session])
+        config = "n"
+        try:
+            #config,created = Config.get_or_create(Config.id = 1)
+            config = Config.get_by_id(1)
+            self.logger.debug(f" the config was: {config}")
+        except DoesNotExist:
+            config = Config.create()
+
+        self.populate_config(config)
+        find_swings()
+
+    def populate_config(self,config):
+        self.ui.vid_dir_le.setText(config.vidDir)
+        #self.ui.vid_dir_le.setText("fuck fuck me")
+
+    def populate_test_data(self):
+        #names = "abcdefg".split()
+        names = list("abcdefg")
+        for n in names:
+            Swing.create(name = n)
+        find_swings()
 
     @QtCore.Slot()
     def unf(self):
