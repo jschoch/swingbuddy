@@ -171,7 +171,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QListView" name="listView"/>
+      <widget class="QListView" name="LM_data_lv"/>
      </item>
      <item>
       <widget class="QLabel" name="label">
@@ -181,7 +181,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QListWidget" name="listWidget"/>
+      <widget class="QListView" name="swings_lv"/>
      </item>
     </layout>
    </widget>

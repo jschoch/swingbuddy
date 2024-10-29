@@ -9,7 +9,9 @@ from PySide6.QtWidgets import QApplication, QWidget
 #     pyside2-uic form.ui -o ui_form.py
 from ui_form import Ui_SBW
 from PySide6 import QtCore
-#from PySide6.QtCore import QApplication, QWidget, Qt, Signal
+#from PySide6.QtCore import QObject, Signal, QStandardItemModel, QStandardItem
+from PySide6.QtGui import QIcon, QStandardItemModel, QStandardItem
+from PySide6.QtWidgets import QListView
 from flask import Flask, request,jsonify
 import logging
 
@@ -52,10 +54,7 @@ class FlaskThread(QtCore.QThread):
         shared_object.message_signal.messageReceived.emit("i hate you")
         return "bar"
 
-    @app2.route('/bar')
-    def ham2():
-        #message = request.form['message']
-        return "message"
+
 
 class MyReceiver(QtCore.QObject):
     def receive_signal(self, message):
@@ -63,23 +62,39 @@ class MyReceiver(QtCore.QObject):
         print("Received signal:", message)
 
 
+
+
 class SBW(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.ui = Ui_SBW()
         self.ui.setupUi(self)
-        # In your main window or other appropriate class:
+
+
+        # Setup share obj for flask messages
         self.message_signal = MessageReceivedSignal()
         self.message_signal.messageReceived.connect(self.foo, QtCore.Qt.QueuedConnection)
         self.shared_object = shared_object
         self.shared_object.message_signal.messageReceived.connect(self.foo, QtCore.Qt.QueuedConnection)
-        #receiver = MyReceiver()
+
 
         self.flask_thread = FlaskThread()
-        self.ui.play_btn.clicked.connect(self.foo)
 
-        logger.debug("from qt")
+        self.find_swings()
+        self.ui.play_btn.clicked.connect(self.foo)
         self.flask_thread.start()
+
+    def find_swings(self):
+        # Create a model to hold the items
+        model = QStandardItemModel()
+
+        # Add items to the model
+        items = ["Item 1", "Item 2", "Item 3"]
+        for item in items:
+            model.appendRow(QStandardItem(item))
+
+        # Set the model to the list view
+        self.ui.swings_lv.setModel(model)
 
     @QtCore.Slot()
     def unf(self):
