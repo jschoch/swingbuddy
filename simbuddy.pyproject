@@ -4,6 +4,7 @@
         "form.ui",
         "swingdb.py",
         "wlog.py",
-        "util.py"
+        "util.py",
+        "test.py"
     ]
 }
