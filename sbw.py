@@ -207,15 +207,39 @@ class SBW(QMainWindow):
             self.ui.out_msg.setText("you are the worst programmer ever")
             print("shit out of luck")
 
+    import cv2
 
+    def get_rotation_code(video_file_path: str):
+        rotation = get_rotation(video_file_path)
+        rotation_code = None
+        if rotation == 180:
+            rotation_code = cv2.ROTATE_180
+        if rotation == 90:
+            rotation_code = cv2.ROTATE_90_CLOCKWISE
+        if rotation == 270:
+            rotation_code = cv2.ROTATE_90_COUNTERCLOCKWISE
+        return rotation_code
 
+    def orient_clip(self,file_path):
+        rotation = get_rotation(file_path)
+        rotation = get_rotation(file_path)
+        if rotation == 90:  # If video is in portrait
+            clip = vfx.rotate(clip, -90)
+        elif rotation == 270:  # Moviepy can only cope with 90, -90, and 180 degree turns
+            clip = vfx.rotate(clip, 90)  # Moviepy can only cope with 90, -90, and 180 degree turns
+        elif rotation == 180:
+            clip = vfx.rotate(clip, 180)
+
+        clip = clip.resize(height=720)  # You may want this line, but it is not necessary
+        return clip
 
     # Function to open a video file
     def open_file(self):
        file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
        self.logger.debug(f"file path: {file_path}")
        if file_path:
-           self.video_clip = VideoFileClip(file_path)
+           #self.video_clip = VideoFileClip(file_path)
+           self.video_clip = self.orient_clip(file_path)
            self.video_playback = VideoPlayBack(self.video_playback_Ui, self.video_clip)
            self.video_playback.logger = self.logger
            self.logger.debug("trying to load the frame")
@@ -336,6 +360,7 @@ class VideoPlayBack:
     def load_frame(self,lr):
 
         parent_size = self.video_playback_ui.parent().size()
+
         video_clip = None
         if(lr):
             self.qimage_frames2 = []
@@ -348,9 +373,14 @@ class VideoPlayBack:
             self.logger.debug("class: VideoPlayBack, fun: load_frame: video_clip is Null")
         for frame in video_clip.iter_frames():
             height, width, channels = frame.shape
+            #if width > height:
+            #    h = height
+            #    height = width
+            #    width = h
+            self.logger.debug(f" parent size: {parent_size} frame: h: {height} w: {width}")
             bytes_per_line = channels * width
             q_image = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888)
-            scaled_image = q_image.scaledToHeight(parent_size.height(),Qt.SmoothTransformation)
+            scaled_image = q_image.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
             if(lr):
                 self.qimage_frames2.append(scaled_image)
             else:
@@ -386,6 +416,8 @@ class VideoPlayBack:
         else:
             self.current_frame_index = 0
             #self.timer.stop()
+        #self.slider_label = QLabel("Frame Slider:")
+        self.video_playback_ui.slider_label.setText(f"Fame: {self.current_frame_index}")
 
     # Function to reverse the frame
     def reverse_frame(self):
@@ -437,6 +469,7 @@ class VideoPlayBackUi(QWidget):
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setEnabled(False)
         self.slider_label = QLabel("Frame Slider:")
+        self.slider.setSingleStep(1)
         self.speed_slider = QSlider(Qt.Horizontal)
         self.speed_slider.setMinimum(50)
         self.speed_slider.setMaximum(200)
@@ -466,12 +499,25 @@ class VideoPlayBackUi(QWidget):
         self.video_label2 = QLabel()
         self.video_label2.setAlignment(Qt.AlignmentFlag.AlignRight)
         # Add widgets to layout
-        main_layout = QHBoxLayout()
-        main_layout.addWidget(self.video_label)
-        main_layout.addWidget(self.video_label2)
-        main_layout.addWidget(self.overlay_widget)
-        main_layout.addLayout(video_button_layout)
-        self.setLayout(main_layout)
+        self.main_layout = QVBoxLayout()
+        self.setLayout(self.main_layout)
+        self.vid_layout = QHBoxLayout()
+        self.vid_layout1 = QVBoxLayout()
+        self.vid_layout2 = QVBoxLayout()
+        self.vid1_fname = QLabel("Load a Video")
+        self.vid1_fname.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.vid2_fname = QLabel("Load another Video")
+        self.main_layout.addChildLayout(self.vid_layout)
+        self.vid_layout.addChildLayout(self.vid_layout1)
+        self.vid_layout.addChildLayout(self.vid_layout2)
+        self.vid_layout1.addWidget(self.vid1_fname)
+        self.vid_layout1.addWidget(self.video_label)
+        self.vid_layout2.addWidget(self.video_label2)
+        self.vid_layout2.addWidget(self.vid2_fname)
+
+        self.main_layout.addWidget(self.overlay_widget)
+        self.main_layout.addLayout(video_button_layout)
+
 
         # Set size policy
         self.setSizePolicy(
