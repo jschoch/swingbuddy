@@ -17,9 +17,9 @@
    <property name="geometry">
     <rect>
      <x>290</x>
-     <y>610</y>
+     <y>650</y>
      <width>1081</width>
-     <height>291</height>
+     <height>251</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -105,8 +105,8 @@
   <widget class="QTabWidget" name="tabWidget">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>630</y>
+     <x>0</x>
+     <y>640</y>
      <width>271</width>
      <height>261</height>
     </rect>
@@ -168,8 +168,8 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>0</y>
-     <width>1391</width>
+     <y>30</y>
+     <width>1401</width>
      <height>601</height>
     </rect>
    </property>
@@ -221,7 +221,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="tab_3">
      <attribute name="title">

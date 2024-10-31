@@ -32,7 +32,7 @@ class Config(BaseModel):
     vidDir = CharField(default=r"c:\files\swingvids")
     screenDir = CharField(default="c:\files\swingscreens")
     ocrServer = CharField(default="not done yet")
-    poseServer = CharField(default="not done yet")
+    poseServer = CharField(default="http://localhost:5000/gettrc")
     enableScreen = BooleanField(default=True)
     enableTRC = BooleanField(default=True)
     enablePose = BooleanField(default=True)

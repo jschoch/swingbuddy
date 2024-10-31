@@ -4,7 +4,7 @@
 #     pass
 
 import unittest
-from util import find_swing,gen_screenshot,proc_screenshot,testdb
+from util import find_swing,gen_screenshot,proc_screenshot,testdb,test_fetch_trc
 from swingdb import Swing, Session,Config
 
 
@@ -27,6 +27,17 @@ class TestFindSwing(unittest.TestCase):
         fname = "./test_data/test.png"
         r = proc_screenshot(fname)
         self.assertIsNotNone(r)
+    def test_fetch_trc(self):
+        global db,config
+        contents = test_fetch_trc(config)
+        print(f"contents: {contents}")
+        self.assertIsNotNone(contents)
+        self.assertEqual(contents.status_code, 200)
+        self.assertNotEqual(contents.text,"ERROR")
+        self.assertNotEqual(contents.text,"Bad file path")
+        #print(contents.text)
+        #print(contents.json())
+
 
 if __name__ == '__main__':
     unittest.main()

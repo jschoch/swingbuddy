@@ -61,4 +61,11 @@ def testdb():
     Config.get_or_create(id=1, vidDir="./test_data/swings")
     return db
 
+def test_fetch_trc(config):
+    import requests
+    url = config.poseServer + "?path="+ requests.utils.quote('c:/Files/test_small.mp4')
+    print(f" url: {url}")
+    contents = requests.get(url)
+    return contents
+
 
