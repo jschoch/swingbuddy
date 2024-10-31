@@ -21,7 +21,6 @@ def get_files_with_extension(directory, extension):
 
 
 def sort_by_creation_time(files):
-    #sorted_files = sorted(files, key=lambda x: datetime.fromtimestamp(os.path.getctime(x)))
     sorted_files = sorted(files, key=lambda x: os.path.getctime(x))
     return sorted_files
 
@@ -36,8 +35,8 @@ def find_swing(directory_path,extension):
     print(f" files: {files}")
     sorted_files = sort_by_creation_time(files)
     if(len(sorted_files) > 0):
-        print(sorted_files[-1])
-        return(sorted_files[-1])
+        print(sorted_files[-2:])
+        return(sorted_files[-2:])
 
     #return vid
 

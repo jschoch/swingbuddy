@@ -17,9 +17,9 @@
    <property name="geometry">
     <rect>
      <x>290</x>
-     <y>650</y>
+     <y>690</y>
      <width>1081</width>
-     <height>251</height>
+     <height>171</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -42,7 +42,7 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>0</y>
+         <y>150</y>
          <width>1081</width>
          <height>80</height>
         </rect>
@@ -167,10 +167,10 @@
   <widget class="QFrame" name="frame">
    <property name="geometry">
     <rect>
-     <x>10</x>
+     <x>0</x>
      <y>30</y>
-     <width>1401</width>
-     <height>601</height>
+     <width>1451</width>
+     <height>611</height>
     </rect>
    </property>
    <property name="frameShape">
@@ -214,10 +214,10 @@
    <widget class="QTabWidget" name="tabWidget_2">
     <property name="geometry">
      <rect>
-      <x>240</x>
+      <x>210</x>
       <y>0</y>
-      <width>1081</width>
-      <height>591</height>
+      <width>1241</width>
+      <height>611</height>
      </rect>
     </property>
     <property name="currentIndex">
@@ -230,74 +230,13 @@
      <widget class="QWidget" name="horizontalLayoutWidget">
       <property name="geometry">
        <rect>
-        <x>20</x>
-        <y>30</y>
-        <width>1011</width>
-        <height>501</height>
+        <x>-30</x>
+        <y>0</y>
+        <width>1241</width>
+        <height>581</height>
        </rect>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <item>
-        <layout class="QVBoxLayout" name="verticalLayout_3">
-         <property name="spacing">
-          <number>45</number>
-         </property>
-         <item>
-          <widget class="QFrame" name="left_vid_frame">
-           <property name="frameShape">
-            <enum>QFrame::StyledPanel</enum>
-           </property>
-           <property name="frameShadow">
-            <enum>QFrame::Raised</enum>
-           </property>
-           <widget class="QLabel" name="label_2">
-            <property name="geometry">
-             <rect>
-              <x>0</x>
-              <y>0</y>
-              <width>111</width>
-              <height>16</height>
-             </rect>
-            </property>
-            <property name="text">
-             <string>Left Video</string>
-            </property>
-           </widget>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QVBoxLayout" name="verticalLayout_2">
-         <property name="spacing">
-          <number>33</number>
-         </property>
-         <item>
-          <widget class="QFrame" name="right_vid_frame">
-           <property name="frameShape">
-            <enum>QFrame::StyledPanel</enum>
-           </property>
-           <property name="frameShadow">
-            <enum>QFrame::Raised</enum>
-           </property>
-           <widget class="QLabel" name="label_3">
-            <property name="geometry">
-             <rect>
-              <x>20</x>
-              <y>0</y>
-              <width>131</width>
-              <height>16</height>
-             </rect>
-            </property>
-            <property name="text">
-             <string>Right Video</string>
-            </property>
-           </widget>
-          </widget>
-         </item>
-        </layout>
-       </item>
-      </layout>
+      <layout class="QHBoxLayout" name="horizontalLayout"/>
      </widget>
     </widget>
     <widget class="QWidget" name="tab_4">

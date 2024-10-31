@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QApplication, QWidget
 from ui_form import Ui_SBW
 #from PySide6 import QtCore
 from PySide6.QtCore import QObject, QThread, Signal,  Qt,QPoint, Slot,QTimer
-from PySide6.QtGui import QAction,QIcon, QStandardItemModel, QStandardItem,QImage, QPixmap,QPainter
+from PySide6.QtGui import QAction,QIcon, QStandardItemModel, QStandardItem,QImage, QPixmap,QPainter,QTransform
 from PySide6.QtWidgets import (QMainWindow, QListView, QPushButton, QTextEdit,QSlider,QFileDialog,
     QHBoxLayout, QWidget, QVBoxLayout, QLabel,
     QSizePolicy, QMessageBox,QDialog, QGridLayout, QTextEdit)
@@ -19,8 +19,9 @@ import logging
 from swingdb import Swing, Session,Config
 from peewee import *
 from wlog import QtWindowHandler
-from moviepy.video.io.VideoFileClip import VideoFileClip
-
+#from moviepy.video.io.VideoFileClip import VideoFileClip
+import av
+from util import find_swing
 
 app2 = Flask(__name__)
 
@@ -80,7 +81,7 @@ class SBW(QMainWindow):
         self.video_playback_Ui = VideoPlayBackUi()
         self.video_playback = None
         #player = VideoPlayBackUi()
-        self.ui.verticalLayout_2.addWidget(self.video_playback_Ui)
+        self.ui.horizontalLayout.addWidget(self.video_playback_Ui)
 
         # Adding MenuBar with File, Tool, and Help menus
         self.menu_bar = self.menuBar()
@@ -132,7 +133,7 @@ class SBW(QMainWindow):
         self.video_playback_Ui.video_label.mousePressEvent = self.overlay_mouse_press
         self.video_playback_Ui.video_label.mouseMoveEvent = self.overlay_mouse_move
         self.video_playback_Ui.speed_slider.valueChanged.connect(self.set_playback_speed)
-        self.video_playback_Ui.save_frame_button.clicked.connect(self.save_frame)
+
 
         #  Flask stuff
 
@@ -201,45 +202,30 @@ class SBW(QMainWindow):
 
     Slot(str)
     def foo(self,s):
+        self.logger.debug(f" s was: {s}")
         if isinstance(s,str):
             self.ui.out_msg.setText(s)
+            swings = find_swing("c:/Files/test_swings","mp4")
+            self.logger.debug(f"swings found: {swings}")
+            self.open_file(swings[0])
+            self.open_file2(swings[1])
+
         else:
             self.ui.out_msg.setText("you are the worst programmer ever")
+
             print("shit out of luck")
 
-    import cv2
 
-    def get_rotation_code(video_file_path: str):
-        rotation = get_rotation(video_file_path)
-        rotation_code = None
-        if rotation == 180:
-            rotation_code = cv2.ROTATE_180
-        if rotation == 90:
-            rotation_code = cv2.ROTATE_90_CLOCKWISE
-        if rotation == 270:
-            rotation_code = cv2.ROTATE_90_COUNTERCLOCKWISE
-        return rotation_code
-
-    def orient_clip(self,file_path):
-        rotation = get_rotation(file_path)
-        rotation = get_rotation(file_path)
-        if rotation == 90:  # If video is in portrait
-            clip = vfx.rotate(clip, -90)
-        elif rotation == 270:  # Moviepy can only cope with 90, -90, and 180 degree turns
-            clip = vfx.rotate(clip, 90)  # Moviepy can only cope with 90, -90, and 180 degree turns
-        elif rotation == 180:
-            clip = vfx.rotate(clip, 180)
-
-        clip = clip.resize(height=720)  # You may want this line, but it is not necessary
-        return clip
 
     # Function to open a video file
-    def open_file(self):
-       file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
+    def open_file(self,file_path):
+       if file_path == None or file_path == False:
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
        self.logger.debug(f"file path: {file_path}")
        if file_path:
            #self.video_clip = VideoFileClip(file_path)
-           self.video_clip = self.orient_clip(file_path)
+           #self.video_clip = self.orient_clip(file_path)
+           self.video_clip = av.open(file_path)
            self.video_playback = VideoPlayBack(self.video_playback_Ui, self.video_clip)
            self.video_playback.logger = self.logger
            self.logger.debug("trying to load the frame")
@@ -253,29 +239,21 @@ class SBW(QMainWindow):
            self.video_playback_Ui.speed_slider.setRange(50, 200)
            self.video_playback_Ui.speed_slider.setValue(100)
            self.video_playback_Ui.speed_slider.setEnabled(True)
-           self.video_playback_Ui.save_frame_button.setEnabled(True)
+
            self.logger.debug("done open file")
-    def open_file2(self):
-      file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
+
+    def open_file2(self,file_path):
+      if file_path == None or file_path == False:
+         file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
       self.logger.debug(f"file path2: {file_path}")
       if file_path:
-          self.video_clip2 = VideoFileClip(file_path)
-          #self.video_playback = VideoPlayBack(self.video_playback_Ui, self.video_clip2,1)
+          self.video_clip2 = av.open(file_path)
           self.video_playback.video_clip2 = self.video_clip2
-          #self.video_playback.logger = self.logger
           self.logger.debug("trying to load the frame2")
           self.video_playback.load_frame(1)
           self.video_playback.update_frame(1)
           self.logger.debug("done loading frame2")
-          #self.video_playback_Ui.play_button.setEnabled(True)
-          #self.video_playback_Ui.pause_button.setEnabled(True)
-          #self.video_playback_Ui.slider.setRange(0, len(self.video_playback.qimage_frames) - 1)
-          #self.video_playback_Ui.slider.setEnabled(True)
-          #self.video_playback_Ui.speed_slider.setRange(50, 200)
-          #self.video_playback_Ui.speed_slider.setValue(100)
-          #self.video_playback_Ui.speed_slider.setEnabled(True)
-          #self.video_playback_Ui.save_frame_button.setEnabled(True)
-          #self.logger.debug("done open file2")
+
     # Function to play the video
     def play(self):
         self.video_playback.toggle_play_pause()
@@ -329,17 +307,6 @@ class SBW(QMainWindow):
     def set_playback_speed(self, value):
         self.video_playback.set_playback_speed(value)
 
-    # Function to save the current frame
-    def save_frame(self):
-        if (hasattr(self, 'video_playback') and self.video_playback is not None and
-                self.video_playback.current_frame_index < len(self.video_playback.qimage_frames)):
-            frame_index = self.video_playback.current_frame_index
-            frame_image = self.video_playback.qimage_frames[frame_index]
-            file_path, _ = QFileDialog.getSaveFileName(self, "Save Frame", "", "PNG Files (*.png);;JPEG Files (*.jpg)")
-            if file_path:
-                frame_image.save(file_path)
-        else:
-            QMessageBox.warning(self, "Error", "No frame to save.")
 
 
 # Video playback class responsible for managing the actual playback of the video.
@@ -371,16 +338,34 @@ class VideoPlayBack:
 
         if video_clip is None:
             self.logger.debug("class: VideoPlayBack, fun: load_frame: video_clip is Null")
-        for frame in video_clip.iter_frames():
-            height, width, channels = frame.shape
-            #if width > height:
-            #    h = height
-            #    height = width
-            #    width = h
+
+        video_stream = video_clip.streams.video[0]
+        print(f" meta:\n {video_stream.metadata}")
+        #rotateCode = check_rotation(video_clip.streams.video[0].metadata)
+        rotateCode = "UNF"
+        print("rotate code = ", rotateCode)
+
+        for frame in video_clip.decode(video=0):
+            width = frame.width
+            height = frame.height
+            #bytes_per_line = frame.planes[0].line_size if frame.format.is_planar else frame.linesize[0]
+            #frame_np = frame.to_ndarray(format='rgb24')
             self.logger.debug(f" parent size: {parent_size} frame: h: {height} w: {width}")
-            bytes_per_line = channels * width
-            q_image = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888)
+            #height, width, channel = frame_np.shape
+            #bytes_per_line = 3 * width
+
+            #q_image = QImage(frame_np.data, width, height, bytes_per_line, QImage.Format_RGB888)
+            img = frame.to_image()
+            q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
+            my_transform = QTransform()
+            my_transform.rotate(-90)
+            q_image = q_image.transformed(my_transform)
+            if rotateCode is None:
+                q_image = image.transpose(method=rotateCode)
+
             scaled_image = q_image.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
+
+
             if(lr):
                 self.qimage_frames2.append(scaled_image)
             else:
@@ -432,29 +417,34 @@ class VideoPlayBack:
 
     # Function to toggle play/pause
     def toggle_play_pause(self):
+        stream = self.video_clip.streams.video[0]
+        fps = int(stream.average_rate)
+
         if self.is_playing:
             self.timer.stop()
         else:
             self.timer.timeout.connect(self.update_all_frames)
-            self.timer.start(1000 / (self.video_clip.fps * self.playback_speed))
+            self.timer.start(1000 / (fps * self.playback_speed))
         self.is_playing = not self.is_playing
 
     # Function to play video in reverse
     def reverse_play(self):
+        stream = self.video_clip.streams.video[0]
+        fps = int(stream.average_rate)
         if self.video_clip is None:
             QMessageBox.warning(self.video_playback_ui, "File not found", "Load the video file first")
             return
         self.timer.timeout.connect(self.reverse_frame)
-        self.timer.start(1000 / (self.video_clip.fps * self.playback_speed))
+        self.timer.start(1000 / (fps * self.playback_speed))
 
     # Function to set playback speed
     def set_playback_speed(self, value):
         self.playback_speed = value / 100.0
 
     # Function to set overlay position
-    def set_overlay_position(self, position):
-        self.video_playback_ui.overlay_widget.position = position
-        self.video_playback_ui.overlay_widget.update()
+    #def set_overlay_position(self, position):
+        #self.video_playback_ui.overlay_widget.position = position
+        #self.video_playback_ui.overlay_widget.update()
 
 # Video playback UI class responsible for managing the user interface elements related to video playback.
 class VideoPlayBackUi(QWidget):
@@ -475,9 +465,6 @@ class VideoPlayBackUi(QWidget):
         self.speed_slider.setMaximum(200)
         self.speed_slider.setValue(100)
         self.speed_slider_label = QLabel("Playback Speed:")
-        self.overlay_widget = OverlayWidget()
-        self.save_frame_button = QPushButton("Save Frame")
-        self.save_frame_button.setEnabled(False)
 
         # Create layout and add widgets
         video_button_layout = QHBoxLayout()
@@ -488,7 +475,7 @@ class VideoPlayBackUi(QWidget):
         video_button_layout.addWidget(self.slider, 5)
         video_button_layout.addWidget(self.speed_slider_label)
         video_button_layout.addWidget(self.speed_slider, 3)
-        video_button_layout.addWidget(self.save_frame_button)
+
         video_button_layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
 
         # Create video label
@@ -508,14 +495,17 @@ class VideoPlayBackUi(QWidget):
         self.vid1_fname.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.vid2_fname = QLabel("Load another Video")
         self.main_layout.addChildLayout(self.vid_layout)
-        self.vid_layout.addChildLayout(self.vid_layout1)
-        self.vid_layout.addChildLayout(self.vid_layout2)
-        self.vid_layout1.addWidget(self.vid1_fname)
-        self.vid_layout1.addWidget(self.video_label)
-        self.vid_layout2.addWidget(self.video_label2)
-        self.vid_layout2.addWidget(self.vid2_fname)
 
-        self.main_layout.addWidget(self.overlay_widget)
+        self.vid_layout.addChildLayout(self.vid_layout1)
+        self.vid_layout1.addWidget(self.vid1_fname, alignment=Qt.AlignLeft)
+        self.vid_layout1.addWidget(self.video_label, alignment=Qt.AlignLeft)
+
+
+        self.vid_layout2.addWidget(self.vid2_fname, alignment=Qt.AlignRight)
+        self.vid_layout2.addWidget(self.video_label2, alignment=Qt.AlignRight)
+        self.vid_layout.addChildLayout(self.vid_layout2)
+
+        #self.main_layout.addWidget(self.overlay_widget)
         self.main_layout.addLayout(video_button_layout)
 
 
