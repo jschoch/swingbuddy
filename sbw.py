@@ -121,17 +121,15 @@ class SBW(QMainWindow):
         self.shortcut_help_action.triggered.connect(self.show_shortcut_help)
         self.help_menu.addAction(self.shortcut_help_action)
 
-        # Set the central widget to the video playback UI
-        #self.setCentralWidget(self.video_playback_Ui)
-        #self.setCentralWidget(self.ui.tabWidget_2)
+
         # Connect signals to slots
         self.video_playback_Ui.play_button.clicked.connect(self.play)
         self.video_playback_Ui.pause_button.clicked.connect(self.pause)
         self.play_rev_action.triggered.connect(self.play_reverse)
         self.video_playback_Ui.play_reverse_button.clicked.connect(self.play_reverse)
         self.video_playback_Ui.slider.sliderMoved.connect(self.slider_moved)
-        self.video_playback_Ui.video_label.mousePressEvent = self.overlay_mouse_press
-        self.video_playback_Ui.video_label.mouseMoveEvent = self.overlay_mouse_move
+        #self.video_playback_Ui.video_label.mousePressEvent = self.overlay_mouse_press
+        #self.video_playback_Ui.video_label.mouseMoveEvent = self.overlay_mouse_move
         self.video_playback_Ui.speed_slider.valueChanged.connect(self.set_playback_speed)
 
 
@@ -150,11 +148,12 @@ class SBW(QMainWindow):
         self.logger.debug(f" tables: {tables}")
         if "swing" in tables:
             self.logger.debug("found swing table")
-            self.foo("swings")
+            #self.foo("swings")
         else:
-            self.foo("no swings")
+            None
+            #self.foo("no swings")
 
-            self.foo("made seings")
+            #self.foo("made seings")
         print(f"tables: {tables}")
 
         self.logger.debug("end of widget init")
@@ -271,6 +270,7 @@ class SBW(QMainWindow):
 
     # Function to handle slider movement
     def slider_moved(self, position):
+        self.logger.debug(f"pos: {position}")
         self.video_playback.current_frame_index = position
         self.video_playback.update_frame(0)
         self.video_playback.update_frame(1)
@@ -341,28 +341,13 @@ class VideoPlayBack:
 
         video_stream = video_clip.streams.video[0]
         print(f" meta:\n {video_stream.metadata}")
-        #rotateCode = check_rotation(video_clip.streams.video[0].metadata)
-        rotateCode = "UNF"
-        print("rotate code = ", rotateCode)
 
         for frame in video_clip.decode(video=0):
-            width = frame.width
-            height = frame.height
-            #bytes_per_line = frame.planes[0].line_size if frame.format.is_planar else frame.linesize[0]
-            #frame_np = frame.to_ndarray(format='rgb24')
-            self.logger.debug(f" parent size: {parent_size} frame: h: {height} w: {width}")
-            #height, width, channel = frame_np.shape
-            #bytes_per_line = 3 * width
-
-            #q_image = QImage(frame_np.data, width, height, bytes_per_line, QImage.Format_RGB888)
             img = frame.to_image()
             q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
             my_transform = QTransform()
             my_transform.rotate(-90)
             q_image = q_image.transformed(my_transform)
-            if rotateCode is None:
-                q_image = image.transpose(method=rotateCode)
-
             scaled_image = q_image.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
 
 
@@ -370,8 +355,6 @@ class VideoPlayBack:
                 self.qimage_frames2.append(scaled_image)
             else:
                 self.qimage_frames.append(scaled_image)
-        #self.logger.debug(f"frames found a:{len(self.qimage_frames)} b: {len(self.qimage_frames2)}")
-        #return self.qimage_frames
         return
 
     # Function to update the frame
@@ -396,12 +379,11 @@ class VideoPlayBack:
             else:
                 self.video_playback_ui.video_label.setPixmap(pixmap)
                 self.video_playback_ui.video_label.setAlignment(Qt.AlignRight)
-            self.video_playback_ui.slider.setValue(self.current_frame_index)
+            #self.video_playback_ui.slider.setValue(self.current_frame_index)
             self.current_frame_index += 1
         else:
             self.current_frame_index = 0
-            #self.timer.stop()
-        #self.slider_label = QLabel("Frame Slider:")
+
         self.video_playback_ui.slider_label.setText(f"Fame: {self.current_frame_index}")
 
     # Function to reverse the frame
