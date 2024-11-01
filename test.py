@@ -4,7 +4,7 @@
 #     pass
 
 import unittest
-from util import find_swing,gen_screenshot,proc_screenshot,testdb,test_fetch_trc
+from util import find_swing,gen_screenshot,proc_screenshot,testdb,test_fetch_trc,fFUCKYOU
 from swingdb import Swing, Session,Config
 
 
@@ -35,8 +35,10 @@ class TestFindSwing(unittest.TestCase):
         self.assertEqual(contents.status_code, 200)
         self.assertNotEqual(contents.text,"ERROR")
         self.assertNotEqual(contents.text,"Bad file path")
-        #print(contents.text)
+        print(contents.text)
         #print(contents.json())
+    def test_fu(self):
+        fFUCKYOU()
 
 
 if __name__ == '__main__':

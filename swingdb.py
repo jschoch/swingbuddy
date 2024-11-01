@@ -17,7 +17,7 @@ class Swing(BaseModel):
     screen = CharField(default="no Screen")
     leftVid = CharField(default="no leftVid")
     rightVid = CharField(default="no right vid")
-    trc = CharField(default="no trc")
+    trc = TextField(default="no trc")
     trcVid = CharField(default="no trc vid")
 
 
