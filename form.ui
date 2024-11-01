@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1468</width>
-    <height>901</height>
+    <height>1016</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,10 +16,10 @@
   <widget class="QWidget" name="verticalLayoutWidget_2">
    <property name="geometry">
     <rect>
-     <x>290</x>
-     <y>690</y>
+     <x>300</x>
+     <y>640</y>
      <width>1081</width>
-     <height>171</height>
+     <height>301</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -42,9 +42,9 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>150</y>
+         <y>20</y>
          <width>1081</width>
-         <height>80</height>
+         <height>31</height>
         </rect>
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -98,6 +98,17 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="gridLayoutWidget">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>59</y>
+         <width>1081</width>
+         <height>241</height>
+        </rect>
+       </property>
+       <layout class="QGridLayout" name="gridLayout"/>
+      </widget>
      </widget>
     </item>
    </layout>
@@ -112,7 +123,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>1</number>
    </property>
    <widget class="QWidget" name="tab">
     <attribute name="title">

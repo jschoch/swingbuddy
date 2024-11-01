@@ -1,4 +1,5 @@
-1.  Find and display Screenshots
+1.  Dummie Chart and cursor
+     Find and display Screenshots
 2.  Timer, config for, and gen Screenshots
 3.  Btn to request TRC below vid
 4.  Btn to request OCR

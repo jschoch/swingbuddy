@@ -22,6 +22,8 @@ from wlog import QtWindowHandler
 #from moviepy.video.io.VideoFileClip import VideoFileClip
 import av
 from util import find_swing
+import pyqtgraph as pg
+import numpy as np
 
 app2 = Flask(__name__)
 
@@ -158,6 +160,19 @@ class SBW(QMainWindow):
 
         self.logger.debug("end of widget init")
 
+        # graph stuff
+
+        #self.plot_graph = pg.PlotWidget()
+        #self.ui.gridLayout.addWidget(self.plot_graph)
+        #time = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        #temperature = [30, 32, 34, 32, 33, 31, 29, 32, 35, 30]
+        #self.plot_graph.plot(time, temperature)
+        self.plot = SineWavePlot(self.logger,self)
+        self.ui.gridLayout.addWidget(self.plot)
+
+        #self.slider.valueChanged.connect(self.update_vline)
+        self.video_playback_Ui.slider.valueChanged.connect(self.plot.update_vline)
+
     def find_swings(self):
         items = Swing.select().limit(10)
         # Create a model to hold the items
@@ -275,6 +290,10 @@ class SBW(QMainWindow):
         self.video_playback.update_frame(0)
         self.video_playback.update_frame(1)
 
+    def slider_update(self,position):
+        self.logger.debug(f"pos: {position}")
+        self.video_playback_Ui.slider.setValue(position)
+
     # Function to handle overlay mouse press event
     def overlay_mouse_press(self, event):
         if event.buttons() == Qt.LeftButton:
@@ -308,6 +327,65 @@ class SBW(QMainWindow):
         self.video_playback.set_playback_speed(value)
 
 
+class SineWavePlot(QWidget):
+    def __init__(self,logger,parent):
+        super().__init__()
+
+        # Create a sine wave data
+        x = np.arange(241)  # x-axis values from 0 to 240
+        y = np.sin(x * 2 * np.pi / 240)  # Adjust frequency for 241 points
+
+        self.sin_data = y
+        self.logger = logger
+        self.parent = parent
+        logger.debug(f" x was:\n{x}")
+
+        # Create a plot widget
+        self.plot_widget = pg.PlotWidget()
+        self.plot_item = self.plot_widget.plot(x, y, pen='b')
+
+        # Create a vertical line item
+        self.vline = pg.InfiniteLine(angle=90, movable=False)
+        self.plot_widget.addItem(self.vline)
+
+        # Create a slider
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setRange(0, 240)
+        self.slider.setSingleStep(1)
+        self.slider.setValue(120)  # Initial position
+
+        # Connect the slider's valueChanged signal to a slot
+        self.slider.valueChanged.connect(self.update_vline)
+        self.slabel = QLabel("V:")
+        # Create the layout
+        layout = QVBoxLayout()
+        layout.addWidget(self.plot_widget)
+        layout.addWidget(self.slabel)
+        layout.addWidget(self.slider)
+        self.y_value_label = QLabel()
+        layout.addWidget(self.y_value_label)
+
+        self.setLayout(layout)
+        self.plot_item.sigMouseMoved.connect(self.mouse_moved)
+
+    def update_vline(self, value):
+        # Update the position of the vertical line based on the slider value
+        self.slabel.setText(f"v:{value}")
+        self.vline.setPos(value)
+    def mouse_moved(self, evt):
+            pos = evt[0]  # Get the mouse position
+
+            if self.plot_item.sceneBoundingRect().contains(pos):
+                mouse_point = self.plot_item.vb.mapSceneToView(pos)
+                x_mouse = mouse_point.x()
+
+                # Find the closest x value in the data
+                closest_x_index = np.argmin(np.abs(self.x - x_mouse))
+                y_value = self.y[closest_x_index]
+
+                self.y_value_label.setText(f"Y value: {y_value:.2f}")
+            else:
+                self.y_value_label.setText("")
 
 # Video playback class responsible for managing the actual playback of the video.
 class VideoPlayBack:
@@ -379,12 +457,16 @@ class VideoPlayBack:
             else:
                 self.video_playback_ui.video_label.setPixmap(pixmap)
                 self.video_playback_ui.video_label.setAlignment(Qt.AlignRight)
-            #self.video_playback_ui.slider.setValue(self.current_frame_index)
-            self.current_frame_index += 1
+            self.video_playback_ui.slider.setValue(self.current_frame_index)
+            #self.current_frame_index += 1
         else:
             self.current_frame_index = 0
 
         self.video_playback_ui.slider_label.setText(f"Fame: {self.current_frame_index}")
+        if(self.video_playback_ui.slider.value() != self.current_frame_index):
+            self.logger.debug(f"mis match in values: fi: {self.current_frame_index} v: {self.video_playback_ui.slider.value()}")
+        else:
+            self.logger.debug("values matched")
 
     # Function to reverse the frame
     def reverse_frame(self):
@@ -394,6 +476,7 @@ class VideoPlayBack:
         self.current_frame_index -= 1
 
     def update_all_frames(self):
+        self.current_frame_index += 1
         self.update_frame(0)
         self.update_frame(1)
 
