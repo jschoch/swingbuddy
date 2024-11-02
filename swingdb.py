@@ -29,7 +29,7 @@ class Session(BaseModel):
 
 
 class Config(BaseModel):
-    vidDir = CharField(default=r"c:\files\swingvids")
+    vidDir = CharField(default=r"./test_data/swings")
     screenDir = CharField(default="c:\files\swingscreens")
     ocrServer = CharField(default="not done yet")
     poseServer = CharField(default="http://localhost:5000/gettrc")

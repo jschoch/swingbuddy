@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QApplication, QWidget
 #     pyside2-uic form.ui -o ui_form.py
 from ui_form import Ui_SBW
 #from PySide6 import QtCore
-from PySide6.QtCore import QObject, QThread, Signal,  Qt,QPoint, Slot,QTimer
+from PySide6.QtCore import QObject, QThread, Signal,  Qt,QPoint, Slot,QTimer,QThreadPool,QRunnable
 from PySide6.QtGui import QAction,QIcon,QMovie, QStandardItemModel, QStandardItem,QImage, QPixmap,QPainter,QTransform
 from PySide6.QtWidgets import (QMainWindow, QListView, QPushButton, QTextEdit,QSlider,QFileDialog,
     QHBoxLayout, QWidget, QVBoxLayout, QLabel,
@@ -29,7 +29,9 @@ import pandas as pd
 from io import StringIO,TextIOWrapper
 import chardet
 import difflib
-
+import time
+import traceback
+from playhouse.shortcuts import model_to_dict, dict_to_model
 
 
 app2 = Flask(__name__)
@@ -85,6 +87,7 @@ class SBW(QMainWindow):
         self.ui = Ui_SBW()
         self.ui.setupUi(self)
         self.logger =  logging.getLogger("__main__")
+        self.threadpool = QThreadPool()
 
         self.video_clip = None
         self.video_playback_Ui = VideoPlayBackUi()
@@ -148,7 +151,8 @@ class SBW(QMainWindow):
 
 
         self.find_swings()
-        self.ui.play_btn.clicked.connect(self.foo)
+        #self.ui.play_btn.clicked.connect(self.foo)
+        self.ui.del_swing_btn.clicked.connect(self.del_swing)
         self.ui.create_db_btn.clicked.connect(self.create_db)
 
         self.flask_thread.start()
@@ -167,7 +171,8 @@ class SBW(QMainWindow):
             #self.foo("made seings")
         print(f"tables: {tables}")
         self.ui.pop_btn.clicked.connect(self.populate_test_data)
-        self.ui.run_a_btn.clicked.connect(self.request_trc)
+        self.ui.sw_btn.clicked.connect(self.start_get_screen)
+        self.ui.run_a_btn.clicked.connect(self.start_request_trc)
         self.config = self.create_db()
         self.logger.debug("end of widget init")
 
@@ -185,6 +190,9 @@ class SBW(QMainWindow):
         self.video_playback_Ui.slider.valueChanged.connect(self.plot.update_vline)
         self.loading_widget = LoadingWidget(self.logger)
 
+    def start_request_trc(self):
+        w = Worker(self.request_trc)
+        self.threadpool.start(w)
 
     def request_trc(self):
 
@@ -203,8 +211,19 @@ class SBW(QMainWindow):
         self.logger.debug(f"columns: {df.head()}")
         self.plot.update_data(df['Speed'].to_list())
 
+    def print_output(self,s):
+        self.logger.debug(f"output: {s}")
 
+    def get_screen(self,progress_callback):
+        self.logger.debug("in get_screen")
+        time.sleep(1)
+        return "Done"
 
+    def start_get_screen(self):
+        self.logger.debug("Get Screen Clicked")
+        w = Worker(self.get_screen)
+        w.signals.result.connect(self.print_output)
+        self.threadpool.start(w)
 
     def start_loading(self):
         self.prev_cw = self.centralWidget()
@@ -215,10 +234,21 @@ class SBW(QMainWindow):
         # Start background task here (e.g., loading data, processing files)
         # ...
 
+    def del_swing(self):
+        self.logger.debug(f" current swing: {model_to_dict(self.current_swing)}")
+        self.current_swing.delete_instance()
+        self.find_swings()
+
     def stop_loading(self):
         # When the task is finished:
         self.logger.debug("stop loading screen")
         self.setCentralWidget(self.prev_cw)
+
+    def add_swing_to_model(self,item):
+        i = QStandardItem(f"item.name {item.id}")
+        i.setData(item.id,Qt.UserRole)
+        self.fuckyoumodel.appendRow(i)
+
 
     def find_swings(self):
         items = Swing.select().limit(15)
@@ -227,11 +257,9 @@ class SBW(QMainWindow):
         self.fuckyoumodel = model
 
         # Add items to the model
-        #items = ["Swing 1", "swing 2", "Item 3"]
+
         for item in items:
-            i = QStandardItem(f"item.name {item.id}")
-            i.setData(item.id,Qt.UserRole)
-            model.appendRow(i)
+            self.add_swing_to_model(item)
 
         # Set the model to the list view
 
@@ -242,10 +270,12 @@ class SBW(QMainWindow):
 
         self.logger.debug(f" row: {index.row()}")
         item = self.fuckyoumodel.itemFromIndex(index)
-        #item = model.itemFromIndex(index)
+
         item_id = item.data(Qt.UserRole)
         self.logger.debug(f"item {item} id: {item_id}")
-        self.load_swing(item_id)
+        w = Worker(self.load_swing,item_id)
+        self.threadpool.start(w)
+
 
     def load_swing(self,id):
         swing = Swing.get_by_id(id)
@@ -256,14 +286,15 @@ class SBW(QMainWindow):
         maybe_trc = swing.trc
         self.logger.debug(f" peewee type: {type(swing.trc)}")
         self.current_swing = swing
+
+        self.open_file(right)
+        self.open_file2(left)
+
         if(maybe_trc != "no trc"):
             self.logger.debug(f"found trc")
         else:
             self.logger.error("no trc data")
             return
-        self.open_file(right)
-        self.open_file2(left)
-
         df = pd.read_csv(StringIO(maybe_trc))
 
         self.logger.debug(f"info: {df.info()}")
@@ -308,23 +339,24 @@ class SBW(QMainWindow):
     Slot(str)
     def foo(self,s):
         self.current_swing = Swing.create()
-        self.start_loading()
+
         self.logger.debug(f" s was: {s}")
         if isinstance(s,str):
             self.ui.out_msg.setText(s)
             swings = find_swing("c:/Files/test_swings","mp4")
             self.logger.debug(f"swings found: {swings}")
-            self.open_file(swings[0])
-            self.open_file2(swings[1])
             self.current_swing.leftVid = swings[0]
             self.current_swing.rightVid = swings[1]
             self.current_swing.save()
+            self.add_swing_to_model(self.current_swing)
+            w = Worker(self.load_swing,self.current_swing.id)
+            self.threadpool.start(w)
 
         else:
             self.ui.out_msg.setText("you are the worst programmer ever")
 
             print("shit out of luck")
-        self.stop_loading()
+
 
 
     # Function to open a video file
@@ -421,6 +453,74 @@ class SBW(QMainWindow):
     # Function to set the playback speed
     def set_playback_speed(self, value):
         self.video_playback.set_playback_speed(value)
+
+class WorkerSignals(QObject):
+    '''
+    Defines the signals available from a running worker thread.
+
+    Supported signals are:
+
+    finished
+        No data
+
+    error
+        tuple (exctype, value, traceback.format_exc() )
+
+    result
+        object data returned from processing, anything
+
+    progress
+        int indicating % progress
+
+    '''
+    finished = Signal()
+    error = Signal(tuple)
+    result = Signal(object)
+    progress = Signal(int)
+
+class Worker(QRunnable):
+    '''
+    Worker thread
+
+    Inherits from QRunnable to handler worker thread setup, signals and wrap-up.
+
+    :param callback: The function callback to run on this worker thread. Supplied args and
+                     kwargs will be passed through to the runner.
+    :type callback: function
+    :param args: Arguments to pass to the callback function
+    :param kwargs: Keywords to pass to the callback function
+
+    '''
+
+    def __init__(self, fn, *args, **kwargs):
+        super(Worker, self).__init__()
+
+        # Store constructor arguments (re-used for processing)
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+        self.signals = WorkerSignals()
+
+        # Add the callback to our kwargs
+        #self.kwargs['progress_callback'] = self.signals.progress
+
+    @Slot()  # QtCore.Slot
+    def run(self):
+        '''
+        Initialise the runner function with passed args, kwargs.
+        '''
+
+        # Retrieve args/kwargs here; and fire processing using them
+        try:
+            result = self.fn(*self.args, **self.kwargs)
+        except:
+            traceback.print_exc()
+            exctype, value = sys.exc_info()[:2]
+            self.signals.error.emit((exctype, value, traceback.format_exc()))
+        else:
+            self.signals.result.emit(result)  # Return the result of the processing
+        finally:
+            self.signals.finished.emit()  # Done
 
 class LoadingThread(QThread):
     status_update = Signal(str)
@@ -522,11 +622,9 @@ class SineWavePlot(QWidget):
         else:
             self.y_value_label.setText("")
     def update_data(self, new_y_data):
-            self.y = new_y_data
-            self.x = list(range(len(new_y_data)))
-            self.logger.debug(f"FUCK YOU {self.y}")
-            #self.plot_item.setData(self.x, self.y)
-            self.plot_item.setData(self.x, self.y, pen='b')
+        self.y = new_y_data
+        self.x = list(range(len(new_y_data)))
+        self.plot_item.setData(self.x, self.y, pen='b')
 
 # Video playback class responsible for managing the actual playback of the video.
 class VideoPlayBack:

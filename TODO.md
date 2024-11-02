@@ -7,6 +7,8 @@
 7.  fix open file (it clobbers everything if ran twice)
 8.  Fix which file gets sent for analysis, how to enforce correct
     orientation left vs right?
+9.  Add auto analysis bool checkbox
+10. threads for requests and queue for long running requests
 
 
 done:

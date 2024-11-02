@@ -63,16 +63,16 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="play_btn">
+         <widget class="QPushButton" name="del_swing_btn">
           <property name="text">
-           <string>Play</string>
+           <string>Delete Swing </string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="pushButton_4">
+         <widget class="QPushButton" name="sw_btn">
           <property name="text">
-           <string>Next Frame</string>
+           <string>Test Screenshot</string>
           </property>
          </widget>
         </item>
