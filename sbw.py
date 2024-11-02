@@ -32,6 +32,8 @@ import difflib
 import time
 import traceback
 from playhouse.shortcuts import model_to_dict, dict_to_model
+import pyautogui
+from datetime import datetime
 
 
 app2 = Flask(__name__)
@@ -195,11 +197,29 @@ class SBW(QMainWindow):
 
         # test add image for screenshot
         pixmap_big = QPixmap("c:/Files/test_swings/20241025-140527-left_screen.png")
-        max_width = 400
-        pixmap = pixmap_big.scaled(max_width, pixmap_big.height() * (max_width / pixmap_big.width()), Qt.KeepAspectRatio)
+        self.max_width = 400
+        pixmap = pixmap_big.scaled(self.max_width, pixmap_big.height() * (self.max_width / pixmap_big.width()), Qt.KeepAspectRatio)
         self.screenlabel = QLabel()
         self.screenlabel.setPixmap(pixmap)
         self.ui.horizontalLayout.addWidget(self.screenlabel)
+        self.ui.stop_btn.clicked.connect(self.take_screen)
+
+    @Slot()
+    def take_screen(self):
+        # Get the current date and time
+        now = datetime.now()
+
+        fname = f"c:/Files/test_swings/{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}_screen.png"
+
+        #fname = "c:/Files/test_swings/ss.png"
+        ss = pyautogui.screenshot(fname, region=(0,0,300,400))
+        self.logger.debug(f"screenshot: {fname}")
+        self.current_swing.screen = fname
+
+        self.current_swing.save
+        qimage = QImage(ss.tobytes(), ss.width, ss.height, QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(qimage)
+        self.screenlabel.setPixmap(pixmap)
 
     def add_swing_clicked(self, s):
             print("click", s)
@@ -359,9 +379,11 @@ class SBW(QMainWindow):
         self.threadpool.start(w2)
         #image_path = f"c:/Files/test_swings/{swing.screen}"  # Replace with the path to your PNG file
         image_path = swing.screen
+        if image_path == "no Screen":
+            return
         self.logger.debug(f"Screenshot path {image_path}")
-        pixmap = QPixmap(image_path)
-
+        pixmap_big = QPixmap(image_path)
+        pixmap = pixmap_big.scaled(self.max_width, pixmap_big.height() * (self.max_width / pixmap_big.width()), Qt.KeepAspectRatio)
         self.screenlabel.setPixmap(pixmap)
 
 
@@ -521,6 +543,9 @@ class SBW(QMainWindow):
     # Function to set the playback speed
     def set_playback_speed(self, value):
         self.video_playback.set_playback_speed(value)
+
+
+
 
 class WorkerSignals(QObject):
     '''
