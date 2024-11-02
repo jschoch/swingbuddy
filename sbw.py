@@ -9,10 +9,10 @@ from PySide6.QtWidgets import QApplication, QWidget
 #     pyside2-uic form.ui -o ui_form.py
 from ui_form import Ui_SBW
 #from PySide6 import QtCore
-from PySide6.QtCore import QObject, QThread, Signal,  Qt,QPoint, Slot,QTimer,QThreadPool,QRunnable
+from PySide6.QtCore import QObject, QThread, Signal,  Qt,QPoint, Slot,QTimer,QThreadPool,QRunnable,QStringListModel
 from PySide6.QtGui import QAction,QIcon,QMovie, QStandardItemModel, QStandardItem,QImage, QPixmap,QPainter,QTransform
 from PySide6.QtWidgets import (QMainWindow, QListView, QPushButton, QTextEdit,QSlider,QFileDialog,
-    QHBoxLayout, QWidget, QVBoxLayout, QLabel,
+    QHBoxLayout, QWidget, QVBoxLayout, QLabel,QDialog,QDialogButtonBox,
     QSizePolicy, QMessageBox,QDialog, QGridLayout, QTextEdit)
 from flask import Flask, request,jsonify
 import logging
@@ -21,7 +21,7 @@ from peewee import *
 from wlog import QtWindowHandler
 #from moviepy.video.io.VideoFileClip import VideoFileClip
 import av
-from util import find_swing, test_fetch_trc, fetch_trc
+from util import find_swing, test_fetch_trc, fetch_trc,get_pairs
 import pyqtgraph as pg
 import numpy as np
 import json
@@ -170,9 +170,12 @@ class SBW(QMainWindow):
 
             #self.foo("made seings")
         print(f"tables: {tables}")
+
+        self.pairs = []
         self.ui.pop_btn.clicked.connect(self.populate_test_data)
         self.ui.sw_btn.clicked.connect(self.start_get_screen)
         self.ui.run_a_btn.clicked.connect(self.start_request_trc)
+        self.ui.add_btn.clicked.connect(self.add_swing_clicked)
         self.config = self.create_db()
         self.logger.debug("end of widget init")
 
@@ -189,6 +192,39 @@ class SBW(QMainWindow):
         #self.slider.valueChanged.connect(self.update_vline)
         self.video_playback_Ui.slider.valueChanged.connect(self.plot.update_vline)
         self.loading_widget = LoadingWidget(self.logger)
+
+    def add_swing_clicked(self, s):
+            print("click", s)
+
+            dlg = AddDialog(self)
+            dlg.sfiles.connect(self.manual_add_swing)
+            if dlg.exec():
+
+                print(f"Success! {dlg.files}")
+                self.manual_add_swing(dlg.files)
+            else:
+                print("Cancel!")
+
+    @Slot()
+    def manual_add_swing(self,files):
+        self.logger.debug(f" got files {files}")
+        self.current_swing = Swing.create()
+        lv = [file for file in files if 'left.mp4' in file]
+        rv = [file for file in files if 'right.mp4' in file]
+        screen = [file for file in files if 'left.png' in file]
+
+        # TODO: unhardcode this
+        bd = "c:/Files/test_swings/"
+        if len(lv) > 0:
+            self.current_swing.leftVid = bd + lv[0]
+        if len(rv) > 0:
+            self.current_swing.rightVid = bd + rv[0]
+        if len(screen) > 0:
+            self.current_swing.screen = bd + screen[0]
+        self.current_swing.save()
+        self.add_swing_to_model(self.current_swing)
+        self.load_swing(self.current_swing.id)
+
 
     def start_request_trc(self):
         w = Worker(self.request_trc)
@@ -276,25 +312,7 @@ class SBW(QMainWindow):
         w = Worker(self.load_swing,item_id)
         self.threadpool.start(w)
 
-
-    def load_swing(self,id):
-        swing = Swing.get_by_id(id)
-        self.logger.debug(f"swing date: {swing.sdate}")
-        right =  swing.rightVid
-        left = swing.leftVid
-
-        maybe_trc = swing.trc
-        self.logger.debug(f" peewee type: {type(swing.trc)}")
-        self.current_swing = swing
-
-        self.open_file(right)
-        self.open_file2(left)
-
-        if(maybe_trc != "no trc"):
-            self.logger.debug(f"found trc")
-        else:
-            self.logger.error("no trc data")
-            return
+    def parse_csv(self,maybe_trc):
         df = pd.read_csv(StringIO(maybe_trc))
 
         self.logger.debug(f"info: {df.info()}")
@@ -306,6 +324,31 @@ class SBW(QMainWindow):
         self.trc_data = df
         self.logger.debug(f"columns: {df.head()}")
         self.plot.update_data(df['Speed_filtered'].to_list())
+
+
+    def load_swing(self,id):
+        swing = Swing.get_by_id(id)
+        self.logger.debug(f"swing date: {swing.sdate}")
+        right =  swing.rightVid
+        left = swing.leftVid
+
+        maybe_trc = swing.trc
+
+        self.current_swing = swing
+
+        w = Worker(self.open_file,right)
+        self.threadpool.start(w)
+        w2 = Worker(self.open_file2,left)
+        self.threadpool.start(w2)
+
+
+        if(maybe_trc != "no trc"):
+            self.logger.debug(f"found trc")
+        else:
+            self.logger.error("no trc data")
+            return
+        w3 = Worker(self.parse_csv,maybe_trc)
+        self.threadpool.start(w3)
 
     def create_db(self):
         db.create_tables([Swing,Config,Session])
@@ -349,8 +392,8 @@ class SBW(QMainWindow):
             self.current_swing.rightVid = swings[1]
             self.current_swing.save()
             self.add_swing_to_model(self.current_swing)
-            w = Worker(self.load_swing,self.current_swing.id)
-            self.threadpool.start(w)
+            self.load_swing(current_swing.id)
+
 
         else:
             self.ui.out_msg.setText("you are the worst programmer ever")
@@ -413,13 +456,13 @@ class SBW(QMainWindow):
 
     # Function to handle slider movement
     def slider_moved(self, position):
-        self.logger.debug(f"pos: {position}")
+        #self.logger.debug(f"pos: {position}")
         self.video_playback.current_frame_index = position
         self.video_playback.update_frame(0)
         self.video_playback.update_frame(1)
 
     def slider_update(self,position):
-        self.logger.debug(f"pos: {position}")
+        #self.logger.debug(f"pos: {position}")
         self.video_playback_Ui.slider.setValue(position)
 
     # Function to handle overlay mouse press event
@@ -573,7 +616,7 @@ class SineWavePlot(QWidget):
         self.x = x
         self.logger = logger
         self.parent = parent
-        logger.debug(f" x was:\n{x}")
+
 
         # Create a plot widget
         self.plot_widget = pg.PlotWidget()
@@ -702,10 +745,7 @@ class VideoPlayBack:
             self.current_frame_index = 0
 
         self.video_playback_ui.slider_label.setText(f"Fame: {self.current_frame_index}")
-        if(self.video_playback_ui.slider.value() != self.current_frame_index):
-            self.logger.debug(f"mis match in values: fi: {self.current_frame_index} v: {self.video_playback_ui.slider.value()}")
-        else:
-            self.logger.debug("values matched")
+
 
     # Function to reverse the frame
     def reverse_frame(self):
@@ -843,6 +883,48 @@ class OverlayWidget(QWidget):
         if event.buttons() == Qt.LeftButton:
             self.position = event.pos()
             self.update()
+
+class AddDialog(QDialog):
+    sfiles = Signal(list)
+    def __init__(self,parent=None):
+        super().__init__(parent)
+
+        self.setWindowTitle("Select a swing to add")
+
+        QBtn = (
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        )
+        self.files = []
+        #self.sfiles = Signal()
+        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+        layout = QVBoxLayout()
+        message = QLabel("Select the swing to add and click ok")
+        layout.addWidget(message)
+        layout.addWidget(self.buttonBox)
+        # Create the QListView
+        self.list_view = QListView()
+        layout.addWidget(self.list_view)
+        data_dict = get_pairs("c:/Files/test_swings")
+        self.data_dict = data_dict
+        # Populate the QListView with keys from the dictionary
+        key_list = list(sorted(data_dict.keys(),reverse=True))
+        self.model = QStringListModel(key_list)
+        self.list_view.setModel(self.model)
+
+        # Connect selection changed signal to slot
+        self.list_view.selectionModel().selectionChanged.connect(self.on_selection_changed)
+        self.setLayout(layout)
+    def on_selection_changed(self, selected, deselected):
+        for index in selected.indexes():
+            key = self.model.data(index)
+            print(f"Selected key: {key}")
+            self.files = self.data_dict[key]
+            #self.sfiles.emit(self.files)
+
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

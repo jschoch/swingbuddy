@@ -43,6 +43,29 @@ def find_swing(directory_path,extension):
 
     #return vid
 
+def get_pairs(directory_path):
+    file_pairs = {}
+    files = os.listdir(directory_path)
+
+    for file_name in files:
+        # Extract the prefix (everything before the second underscore)
+        parts = file_name.split('-')
+        if len(parts) < 3:  # Ensure there is a second hyphen
+            continue
+
+        prefix = '-'.join(parts[:2])
+
+        if prefix not in file_pairs:
+            file_pairs[prefix] = []
+
+        file_pairs[prefix].append(file_name)
+
+    # Filter out pairs with only one file
+    file_pairs = {prefix: files for prefix, files in file_pairs.items() if len(files) > 1}
+
+    print(file_pairs.keys())
+    return file_pairs
+
 def gen_trc():
     print('gen trc')
 

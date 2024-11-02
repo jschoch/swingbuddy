@@ -4,7 +4,7 @@
 #     pass
 
 import unittest
-from util import find_swing,gen_screenshot,proc_screenshot,testdb,test_fetch_trc,fFUCKYOU
+from util import find_swing,gen_screenshot,proc_screenshot,testdb,test_fetch_trc,fFUCKYOU,get_pairs
 from swingdb import Swing, Session,Config
 
 
@@ -38,7 +38,8 @@ class TestFindSwing(unittest.TestCase):
         print(contents.text)
         #print(contents.json())
     def test_fu(self):
-        fFUCKYOU()
+        #fFUCKYOU()
+        get_pairs("c:/Files/test_swings")
 
 
 if __name__ == '__main__':
