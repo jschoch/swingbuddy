@@ -193,6 +193,14 @@ class SBW(QMainWindow):
         self.video_playback_Ui.slider.valueChanged.connect(self.plot.update_vline)
         self.loading_widget = LoadingWidget(self.logger)
 
+        # test add image for screenshot
+        pixmap_big = QPixmap("c:/Files/test_swings/20241025-140527-left_screen.png")
+        max_width = 400
+        pixmap = pixmap_big.scaled(max_width, pixmap_big.height() * (max_width / pixmap_big.width()), Qt.KeepAspectRatio)
+        self.screenlabel = QLabel()
+        self.screenlabel.setPixmap(pixmap)
+        self.ui.horizontalLayout.addWidget(self.screenlabel)
+
     def add_swing_clicked(self, s):
             print("click", s)
 
@@ -211,16 +219,22 @@ class SBW(QMainWindow):
         self.current_swing = Swing.create()
         lv = [file for file in files if 'left.mp4' in file]
         rv = [file for file in files if 'right.mp4' in file]
-        screen = [file for file in files if 'left.png' in file]
+        screen = [file for file in files if 'screen.png' in file]
 
         # TODO: unhardcode this
         bd = "c:/Files/test_swings/"
         if len(lv) > 0:
             self.current_swing.leftVid = bd + lv[0]
+        else:
+            self.logger.error("no right vid found")
         if len(rv) > 0:
             self.current_swing.rightVid = bd + rv[0]
+        else:
+            self.logger.error("no left vid found")
         if len(screen) > 0:
             self.current_swing.screen = bd + screen[0]
+        else:
+            self.logger.error(f"no screen found {files}")
         self.current_swing.save()
         self.add_swing_to_model(self.current_swing)
         self.load_swing(self.current_swing.id)
@@ -281,7 +295,10 @@ class SBW(QMainWindow):
         self.setCentralWidget(self.prev_cw)
 
     def add_swing_to_model(self,item):
-        i = QStandardItem(f"item.name {item.id}")
+        b = 0
+        if item.screen != "no Screen":
+            b = 1
+        i = QStandardItem(f"{item.name} {item.id} {item.sdate} {b}")
         i.setData(item.id,Qt.UserRole)
         self.fuckyoumodel.appendRow(i)
 
@@ -340,6 +357,12 @@ class SBW(QMainWindow):
         self.threadpool.start(w)
         w2 = Worker(self.open_file2,left)
         self.threadpool.start(w2)
+        #image_path = f"c:/Files/test_swings/{swing.screen}"  # Replace with the path to your PNG file
+        image_path = swing.screen
+        self.logger.debug(f"Screenshot path {image_path}")
+        pixmap = QPixmap(image_path)
+
+        self.screenlabel.setPixmap(pixmap)
 
 
         if(maybe_trc != "no trc"):
@@ -349,6 +372,8 @@ class SBW(QMainWindow):
             return
         w3 = Worker(self.parse_csv,maybe_trc)
         self.threadpool.start(w3)
+
+
 
     def create_db(self):
         db.create_tables([Swing,Config,Session])
