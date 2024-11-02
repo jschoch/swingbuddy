@@ -259,10 +259,15 @@ class SBW(QMainWindow):
         self.add_swing_to_model(self.current_swing)
         self.load_swing(self.current_swing.id)
 
-
+    @Slot()
     def start_request_trc(self):
-        w = Worker(self.request_trc)
-        self.threadpool.start(w)
+        if not hasattr(self, 'trc_w') or not self.trc_w.isRunning():
+            self.trc_w = Worker(self.request_trc)
+            self.trc_w.signals.result.connect(self.trc_result)
+            self.trc_w.signals.finished.connect(self.on_request_trc_finished)
+            self.threadpool.start(self.trc_w)
+        else:
+            self.logger.debug("already running trc request")
 
     def request_trc(self):
 
@@ -271,14 +276,22 @@ class SBW(QMainWindow):
 
         sio = StringIO(clean)
         df = pd.read_csv(sio)
-        self.logger.debug(f"df info: {df.info()}")
 
+        self.logger.debug(f"df info: {df.info()}")
+        obj = (df,clean)
+        self.trc_w.signals.result.emit(obj)
+
+    @Slot()
+    def on_request_trc_finished(self):
+        self.logger.debug("got fnishied, why do i need this?")
+
+    @Slot()
+    def trc_result(self,obj):
+        df,clean = obj
+
+        self.logger.debug(f"got a result: \n{df.head()}")
         self.current_swing.trc = clean
-        #self.logger.debug(repr(clean))
-        #self.logger.debug(clean)
         self.current_swing.save()
-        self.logger.error("Add teh swing to the list view")
-        self.logger.debug(f"columns: {df.head()}")
         self.plot.update_data(df['Speed'].to_list())
 
     def print_output(self,s):
@@ -346,8 +359,7 @@ class SBW(QMainWindow):
 
         item_id = item.data(Qt.UserRole)
         self.logger.debug(f"item {item} id: {item_id}")
-        w = Worker(self.load_swing,item_id)
-        self.threadpool.start(w)
+        self.load_swing(item_id)
 
     def parse_csv(self,maybe_trc):
         df = pd.read_csv(StringIO(maybe_trc))
@@ -373,8 +385,12 @@ class SBW(QMainWindow):
 
         self.current_swing = swing
 
-        w = Worker(self.open_file,right)
-        self.threadpool.start(w)
+        if not hasattr(self, 'of1w') or not self.of1w.isRunning():
+            self.of1w = Worker(self.open_file,right)
+            self.of1w.signals.result.connect(self.of1wdone)
+            self.threadpool.start(self.of1w)
+        else:
+            self.logger.debug("already loading file 1")
         w2 = Worker(self.open_file2,left)
         self.threadpool.start(w2)
         #image_path = f"c:/Files/test_swings/{swing.screen}"  # Replace with the path to your PNG file
@@ -395,7 +411,8 @@ class SBW(QMainWindow):
         w3 = Worker(self.parse_csv,maybe_trc)
         self.threadpool.start(w3)
 
-
+    def of1wdone(self,result):
+        self.logger.debug("UFCK of1 done {result}")
 
     def create_db(self):
         db.create_tables([Swing,Config,Session])
@@ -593,6 +610,7 @@ class Worker(QRunnable):
         self.args = args
         self.kwargs = kwargs
         self.signals = WorkerSignals()
+        self.running = False
 
         # Add the callback to our kwargs
         #self.kwargs['progress_callback'] = self.signals.progress
@@ -605,6 +623,7 @@ class Worker(QRunnable):
 
         # Retrieve args/kwargs here; and fire processing using them
         try:
+            self.running = True
             result = self.fn(*self.args, **self.kwargs)
         except:
             traceback.print_exc()
@@ -613,7 +632,11 @@ class Worker(QRunnable):
         else:
             self.signals.result.emit(result)  # Return the result of the processing
         finally:
+            self.running = False
             self.signals.finished.emit()  # Done
+    @Slot()
+    def isRunning(self):
+        return self.running
 
 class LoadingThread(QThread):
     status_update = Signal(str)
@@ -714,6 +737,7 @@ class SineWavePlot(QWidget):
             self.y_value_label.setText(f"Y value: {y_value:.2f}")
         else:
             self.y_value_label.setText("")
+    @Slot()
     def update_data(self, new_y_data):
         self.y = new_y_data
         self.x = list(range(len(new_y_data)))
