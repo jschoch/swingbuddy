@@ -385,22 +385,40 @@ class SBW(QMainWindow):
 
         self.current_swing = swing
 
+        self.video_clip = None
+        self.video_playback = VideoPlayBack(self.video_playback_Ui, self.video_clip)
+        self.video_playback.logger = self.logger
+        self.video_playback_Ui.play_button.setEnabled(True)
+        self.video_playback_Ui.pause_button.setEnabled(True)
+        self.video_playback_Ui.slider.setEnabled(True)
+        self.video_playback_Ui.speed_slider.setRange(50, 200)
+        self.video_playback_Ui.speed_slider.setValue(100)
+        self.video_playback_Ui.speed_slider.setEnabled(True)
+
         if not hasattr(self, 'of1w') or not self.of1w.isRunning():
             self.of1w = Worker(self.open_file,right)
             self.of1w.signals.result.connect(self.of1wdone)
             self.threadpool.start(self.of1w)
         else:
             self.logger.debug("already loading file 1")
-        w2 = Worker(self.open_file2,left)
-        self.threadpool.start(w2)
+
+        if not hasattr(self, 'of2w') or not self.of2w.isRunning():
+            self.of2w = Worker(self.open_file2,left)
+            self.of2w.signals.result.connect(self.of1wdone)
+            self.threadpool.start(self.of2w)
+        else:
+            self.logger.debug("already loading file 2")
+
         #image_path = f"c:/Files/test_swings/{swing.screen}"  # Replace with the path to your PNG file
         image_path = swing.screen
         if image_path == "no Screen":
-            return
-        self.logger.debug(f"Screenshot path {image_path}")
-        pixmap_big = QPixmap(image_path)
-        pixmap = pixmap_big.scaled(self.max_width, pixmap_big.height() * (self.max_width / pixmap_big.width()), Qt.KeepAspectRatio)
-        self.screenlabel.setPixmap(pixmap)
+            self.logger.debug("no screen")
+
+        else:
+            self.logger.debug(f"Screenshot path {image_path}")
+            pixmap_big = QPixmap(image_path)
+            pixmap = pixmap_big.scaled(self.max_width, pixmap_big.height() * (self.max_width / pixmap_big.width()), Qt.KeepAspectRatio)
+            self.screenlabel.setPixmap(pixmap)
 
 
         if(maybe_trc != "no trc"):
@@ -472,24 +490,14 @@ class SBW(QMainWindow):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
        self.logger.debug(f"file path: {file_path}")
        if file_path:
-           #self.video_clip = VideoFileClip(file_path)
-           #self.video_clip = self.orient_clip(file_path)
            self.video_clip = av.open(file_path)
-           self.video_playback = VideoPlayBack(self.video_playback_Ui, self.video_clip)
-           self.video_playback.logger = self.logger
+           self.video_playback.video_clip = self.video_clip
            self.logger.debug("trying to load the frame")
            self.video_playback.load_frame(0)
            self.video_playback.update_frame(0)
+           self.video_playback_Ui.slider.setRange(0, len(self.video_playback.qimage_frames) )
            self.logger.debug("done loading frame")
-           self.video_playback_Ui.play_button.setEnabled(True)
-           self.video_playback_Ui.pause_button.setEnabled(True)
-           self.video_playback_Ui.slider.setRange(0, len(self.video_playback.qimage_frames) - 1)
-           self.video_playback_Ui.slider.setEnabled(True)
-           self.video_playback_Ui.speed_slider.setRange(50, 200)
-           self.video_playback_Ui.speed_slider.setValue(100)
-           self.video_playback_Ui.speed_slider.setEnabled(True)
 
-           self.logger.debug("done open file")
 
     def open_file2(self,file_path):
       if file_path == None or file_path == False:
