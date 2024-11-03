@@ -38,7 +38,8 @@ from vplayer import OverlayWidget, VideoPlayBackUi,VideoPlayBack
 from cfg import ConfigWindow
 from showswing import SwingWidget
 import os
-
+from qwid import QwStatusWidget
+from trcqm import TrcQueueWorker
 
 app2 = Flask(__name__)
 
@@ -102,6 +103,10 @@ class SBW(QMainWindow):
         self.ui.cw.logger = self.logger
         self.ui.verticalLayout_5.addWidget(self.ui.cw)
         self.config = self.ui.cw.load_config()
+
+        # queue for trc jobs
+        #self.trc_queue_worker = TrcQueueWorker(tasks=[1])
+        #self.ui.qs = QwStatusWidget()
 
 
         self.ui.sw = SwingWidget()
@@ -229,6 +234,42 @@ class SBW(QMainWindow):
         self.ui.pop_btn.clicked.connect(self.populate_test_data)
         self.ui.cw.reload_signal.connect(self.reload_config)
 
+
+        self.trc_queue_worker = TrcQueueWorker(self.logger,tasks=[])
+        self.ui.qs = QwStatusWidget(self.logger, queue_worker=self.trc_queue_worker)
+        self.ui.verticalLayout_5.addWidget(self.ui.qs)
+        #self.status_widget.logger = self.logger
+        self.trc_thread = QThread()
+
+        self.trc_queue_worker.moveToThread(self.trc_thread)
+        self.trc_thread.started.connect(self.trc_queue_worker.run)
+        self.trc_queue_worker.complete.connect(self.stop_queue)
+        self.trc_queue_worker.progress_s.connect(self.update_status)
+        self.trc_queue_worker.complete_trc.connect(self.trc_result)
+        self.start_queue()
+
+    def start_queue(self):
+
+        if not self.trc_queue_worker.is_running:
+            self.trc_queue_worker.is_running = True
+            self.trc_thread.start()
+
+    def stop_queue(self):
+        self.trc_queue_worker.is_running = False
+
+    #@Slot(int)
+    #def add_task(self):
+    def add_task(self, id):
+        try:
+            #task_value = int(self.task_input.text())
+            self.trc_queue_worker.add_task(id)
+            #self.task_list.addItem(id)
+        except ValueError:
+            print("Invalid input. Please enter a valid integer.")
+
+    @Slot(int)
+    def update_status(self, progress):
+        self.ui.status_label.setText(progress)
     @Slot()
     def reload_config(self,id):
         self.logger.debug(f"reloading config: id: {id} old config \n{model_to_dict(self.config)}")
@@ -325,12 +366,15 @@ class SBW(QMainWindow):
         if obj == None:
             self.logger.error("trc_result obj was None")
             return
-        df,clean = obj
+        df,clean,id = obj
 
-        self.logger.debug(f"got a result: \n{df.head()}")
-        self.current_swing.trc = clean
-        self.current_swing.save()
-        self.plot.update_data(df['Speed'].to_list())
+        swing = Swing.get_by_id(id)
+        swing.trc = clean
+        swing.save()
+
+        if(swing.id == self.current_swing.id):
+            self.current_swing = swing
+            self.plot.update_data(df['Speed'].to_list())
 
     def print_output(self,s):
         self.logger.debug(f"output: {s}")
@@ -505,7 +549,8 @@ class SBW(QMainWindow):
             self.logger.error("no trc data")
             if(self.config.enableTRC):
                 self.logger.debug("auto trc, fetching")
-                self.start_request_trc()
+                self.add_task(self.current_swing.id)
+                #self.start_request_trc()
             return
         w3 = Worker(self.parse_csv,maybe_trc)
         self.threadpool.start(w3)

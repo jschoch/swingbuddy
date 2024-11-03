@@ -25,13 +25,13 @@
    <layout class="QVBoxLayout" name="verticalLayout_4">
     <item>
      <widget class="QWidget" name="widget" native="true">
-      <widget class="QLabel" name="label_4">
+      <widget class="QLabel" name="status_label">
        <property name="geometry">
         <rect>
          <x>10</x>
          <y>0</y>
-         <width>271</width>
-         <height>16</height>
+         <width>1081</width>
+         <height>21</height>
         </rect>
        </property>
        <property name="text">

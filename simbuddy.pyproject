@@ -9,6 +9,8 @@
         "vplayer.py",
         "cfg.py",
         "showswing.py",
-        "trcc.py"
+        "trcc.py",
+        "trcqm.py",
+        "qwid.py"
     ]
 }
