@@ -5,11 +5,17 @@
 from peewee import *
 import datetime
 
-db = SqliteDatabase('people.db')
+db = SqliteDatabase('swingbuddy.db')
 
 class BaseModel(Model):
     class Meta:
         database = db
+
+class Session(BaseModel):
+    sdate = DateField(default=datetime.datetime.now)
+    name = CharField()
+    comment = TextField(default="none")
+    #swing = ForeignKeyField(Swing, backref='swings')
 
 class Swing(BaseModel):
     name = CharField(default="none")
@@ -19,22 +25,24 @@ class Swing(BaseModel):
     rightVid = CharField(default="no right vid")
     trc = TextField(default="no trc")
     trcVid = CharField(default="no trc vid")
+    club = CharField(default="na")
+    comment = TextField(default="none")
+    session = ForeignKeyField(Session, backref="swings")
 
 
 
-class Session(BaseModel):
-    sdate = DateField()
-    name = CharField()
-    swing = ForeignKeyField(Swing, backref='swings')
+
 
 
 class Config(BaseModel):
-    vidDir = CharField(default=r"./test_data/swings")
-    screenDir = CharField(default="c:\files\swingscreens")
+    vidDir = CharField(default=r"c:/files/test_swings")
+    screenDir = CharField(default="c:/files/test_swings")
     ocrServer = CharField(default="not done yet")
     poseServer = CharField(default="http://localhost:5000/gettrc")
     enableScreen = BooleanField(default=True)
     enableTRC = BooleanField(default=True)
     enablePose = BooleanField(default=True)
+    autoplay = BooleanField(default=True)
+
     #enable
     #how do you do defaults?

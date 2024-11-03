@@ -19,7 +19,7 @@
      <x>300</x>
      <y>640</y>
      <width>1081</width>
-     <height>301</height>
+     <height>371</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -51,7 +51,7 @@
         <item>
          <widget class="QPushButton" name="stop_btn">
           <property name="text">
-           <string>Stop</string>
+           <string>?</string>
           </property>
          </widget>
         </item>
@@ -104,7 +104,7 @@
          <x>0</x>
          <y>59</y>
          <width>1081</width>
-         <height>241</height>
+         <height>311</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout"/>

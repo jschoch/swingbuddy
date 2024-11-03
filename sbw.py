@@ -34,11 +34,12 @@ import traceback
 from playhouse.shortcuts import model_to_dict, dict_to_model
 import pyautogui
 from datetime import datetime
+from vplayer import OverlayWidget, VideoPlayBackUi,VideoPlayBack
 
 
 app2 = Flask(__name__)
 
-db = SqliteDatabase('people.db')
+db = SqliteDatabase('swingbuddy.db')
 
 class MessageReceivedSignal(QObject):
     messageReceived = Signal(str)
@@ -152,7 +153,12 @@ class SBW(QMainWindow):
         self.flask_thread = FlaskThread()
 
 
+        # setup db
+        self.config = self.create_db()
         self.find_swings()
+        self.session = Session(name="Default Session")
+        self.session.save()
+
         #self.ui.play_btn.clicked.connect(self.foo)
         self.ui.del_swing_btn.clicked.connect(self.del_swing)
         self.ui.create_db_btn.clicked.connect(self.create_db)
@@ -178,7 +184,7 @@ class SBW(QMainWindow):
         self.ui.sw_btn.clicked.connect(self.start_get_screen)
         self.ui.run_a_btn.clicked.connect(self.start_request_trc)
         self.ui.add_btn.clicked.connect(self.add_swing_clicked)
-        self.config = self.create_db()
+
         self.logger.debug("end of widget init")
 
         # graph stuff
@@ -236,7 +242,7 @@ class SBW(QMainWindow):
     @Slot()
     def manual_add_swing(self,files):
         self.logger.debug(f" got files {files}")
-        self.current_swing = Swing.create()
+        self.current_swing = Swing.create(session = self.session)
         lv = [file for file in files if 'left.mp4' in file]
         rv = [file for file in files if 'right.mp4' in file]
         screen = [file for file in files if 'screen.png' in file]
@@ -463,8 +469,7 @@ class SBW(QMainWindow):
 
     Slot(str)
     def foo(self,s):
-        self.current_swing = Swing.create()
-
+        self.current_swing = Swing.create(session = self.session)
         self.logger.debug(f" s was: {s}")
         if isinstance(s,str):
             self.ui.out_msg.setText(s)
@@ -512,14 +517,18 @@ class SBW(QMainWindow):
           self.logger.debug("done loading frame2")
 
     # Function to play the video
+    @Slot()
     def play(self):
+        self.logger.debug("Like WTF!")
         self.video_playback.toggle_play_pause()
 
     # Function to pause the video
+    @Slot()
     def pause(self):
         self.video_playback.toggle_play_pause()
 
     # Function to play the video in reverse
+    @Slot()
     def play_reverse(self):
         if self.video_clip is None:
             QMessageBox.warning(self, "File not found", "Load the video file first")
@@ -751,220 +760,6 @@ class SineWavePlot(QWidget):
         self.x = list(range(len(new_y_data)))
         self.plot_item.setData(self.x, self.y, pen='b')
 
-# Video playback class responsible for managing the actual playback of the video.
-class VideoPlayBack:
-    def __init__(self, video_playback_ui, video_clip):
-        self.video_playback_ui = video_playback_ui
-        self.video_clip = video_clip
-        self.video_clip2 = None
-        self.qimage_frames = None
-        self.qimage_frames2 = None
-        self.current_frame_index = 0
-        self.is_playing = False
-        self.playback_speed = 1.0
-        #self.lr = lr
-        self.timer = QTimer()
-
-    # Function to load frames from the video clip
-    def load_frame(self,lr):
-
-        parent_size = self.video_playback_ui.parent().size()
-
-        video_clip = None
-        if(lr):
-            self.qimage_frames2 = []
-            video_clip = self.video_clip2
-        else:
-            self.qimage_frames = []
-            video_clip = self.video_clip
-
-        if video_clip is None:
-            self.logger.debug("class: VideoPlayBack, fun: load_frame: video_clip is Null")
-
-        video_stream = video_clip.streams.video[0]
-        print(f" meta:\n {video_stream.metadata}")
-
-        for frame in video_clip.decode(video=0):
-            img = frame.to_image()
-            q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
-            my_transform = QTransform()
-            my_transform.rotate(-90)
-            q_image = q_image.transformed(my_transform)
-            scaled_image = q_image.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
-
-
-            if(lr):
-                self.qimage_frames2.append(scaled_image)
-            else:
-                self.qimage_frames.append(scaled_image)
-        return
-
-    # Function to update the frame
-    def update_frame(self,lr):
-        qimage_frames = None
-        if(lr):
-            qimage_frames = self.qimage_frames2
-        else:
-            qimage_frames = self.qimage_frames
-
-        if qimage_frames == None:
-            return
-        if self.current_frame_index < 0:
-            self.current_frame_index = 0
-        if self.current_frame_index < len(qimage_frames):
-            qimage_frame = qimage_frames[self.current_frame_index]
-            pixmap = QPixmap.fromImage(qimage_frame)
-
-            if(lr):
-                self.video_playback_ui.video_label2.setPixmap(pixmap)
-                self.video_playback_ui.video_label2.setAlignment(Qt.AlignLeft)
-            else:
-                self.video_playback_ui.video_label.setPixmap(pixmap)
-                self.video_playback_ui.video_label.setAlignment(Qt.AlignRight)
-            self.video_playback_ui.slider.setValue(self.current_frame_index)
-            #self.current_frame_index += 1
-        else:
-            self.current_frame_index = 0
-
-        self.video_playback_ui.slider_label.setText(f"Fame: {self.current_frame_index}")
-
-
-    # Function to reverse the frame
-    def reverse_frame(self):
-        self.current_frame_index -= 1
-        self.update_frame(0)
-        self.update_frame(1)
-        self.current_frame_index -= 1
-
-    def update_all_frames(self):
-        self.current_frame_index += 1
-        self.update_frame(0)
-        self.update_frame(1)
-
-    # Function to toggle play/pause
-    def toggle_play_pause(self):
-        stream = self.video_clip.streams.video[0]
-        fps = int(stream.average_rate)
-
-        if self.is_playing:
-            self.timer.stop()
-        else:
-            self.timer.timeout.connect(self.update_all_frames)
-            self.timer.start(1000 / (fps * self.playback_speed))
-        self.is_playing = not self.is_playing
-
-    # Function to play video in reverse
-    def reverse_play(self):
-        stream = self.video_clip.streams.video[0]
-        fps = int(stream.average_rate)
-        if self.video_clip is None:
-            QMessageBox.warning(self.video_playback_ui, "File not found", "Load the video file first")
-            return
-        self.timer.timeout.connect(self.reverse_frame)
-        self.timer.start(1000 / (fps * self.playback_speed))
-
-    # Function to set playback speed
-    def set_playback_speed(self, value):
-        self.playback_speed = value / 100.0
-
-    # Function to set overlay position
-    #def set_overlay_position(self, position):
-        #self.video_playback_ui.overlay_widget.position = position
-        #self.video_playback_ui.overlay_widget.update()
-
-# Video playback UI class responsible for managing the user interface elements related to video playback.
-class VideoPlayBackUi(QWidget):
-    def __init__(self):
-        super().__init__()
-
-        # Create play, pause, slider, speed slider, overlay, and save frame button
-        self.play_button = QPushButton("Play")
-        self.play_button.setEnabled(False)
-        self.pause_button = QPushButton("Pause")
-        self.play_reverse_button = QPushButton("Play Reverse")
-        self.slider = QSlider(Qt.Horizontal)
-        self.slider.setEnabled(False)
-        self.slider_label = QLabel("Frame Slider:")
-        self.slider.setSingleStep(1)
-        self.speed_slider = QSlider(Qt.Horizontal)
-        self.speed_slider.setMinimum(50)
-        self.speed_slider.setMaximum(200)
-        self.speed_slider.setValue(100)
-        self.speed_slider_label = QLabel("Playback Speed:")
-
-        # Create layout and add widgets
-        video_button_layout = QHBoxLayout()
-        video_button_layout.addWidget(self.play_button, 1)
-        video_button_layout.addWidget(self.pause_button, 1)
-        video_button_layout.addWidget(self.play_reverse_button, 1)
-        video_button_layout.addWidget(self.slider_label)
-        video_button_layout.addWidget(self.slider, 5)
-        video_button_layout.addWidget(self.speed_slider_label)
-        video_button_layout.addWidget(self.speed_slider, 3)
-
-        video_button_layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
-
-        # Create video label
-        self.video_label = QLabel()
-        self.video_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-
-        # Create video label
-        self.video_label2 = QLabel()
-        self.video_label2.setAlignment(Qt.AlignmentFlag.AlignRight)
-        # Add widgets to layout
-        self.main_layout = QVBoxLayout()
-        self.setLayout(self.main_layout)
-        self.vid_layout = QHBoxLayout()
-        self.vid_layout1 = QVBoxLayout()
-        self.vid_layout2 = QVBoxLayout()
-        self.vid1_fname = QLabel("Load a Video")
-        self.vid1_fname.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.vid2_fname = QLabel("Load another Video")
-        self.main_layout.addChildLayout(self.vid_layout)
-
-        self.vid_layout.addChildLayout(self.vid_layout1)
-        self.vid_layout1.addWidget(self.vid1_fname, alignment=Qt.AlignLeft)
-        self.vid_layout1.addWidget(self.video_label, alignment=Qt.AlignLeft)
-
-
-        self.vid_layout2.addWidget(self.vid2_fname, alignment=Qt.AlignRight)
-        self.vid_layout2.addWidget(self.video_label2, alignment=Qt.AlignRight)
-        self.vid_layout.addChildLayout(self.vid_layout2)
-
-        #self.main_layout.addWidget(self.overlay_widget)
-        self.main_layout.addLayout(video_button_layout)
-
-
-        # Set size policy
-        self.setSizePolicy(
-            QSizePolicy.MinimumExpanding,
-            QSizePolicy.MinimumExpanding
-        )
-
-class OverlayWidget(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setMouseTracking(True)
-        self.position = QPoint(10, 10)
-        self.overlay_image = QImage("Overlay.PNG")
-        self.overlay_image = self.overlay_image.scaledToWidth(100)
-        self.setFixedSize(self.overlay_image.size())
-
-    # Function to paint the overlay image
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.drawImage(self.rect(), self.overlay_image)
-
-    # Function to handle mouse press event
-    def mousePressEvent(self, event):
-        self.position = event.pos()
-        self.update()
-
-    # Function to handle mouse move event
-    def mouseMoveEvent(self, event):
-        if event.buttons() == Qt.LeftButton:
-            self.position = event.pos()
-            self.update()
 
 class AddDialog(QDialog):
     sfiles = Signal(list)

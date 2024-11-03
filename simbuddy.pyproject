@@ -5,6 +5,7 @@
         "swingdb.py",
         "wlog.py",
         "util.py",
-        "test.py"
+        "test.py",
+        "vplayer.py"
     ]
 }

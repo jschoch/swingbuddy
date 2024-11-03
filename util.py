@@ -14,7 +14,7 @@ import requests
 from io import StringIO
 import pandas as pd
 
-db = SqliteDatabase('test.db')
+testdb = SqliteDatabase('test.db')
 
 def get_files_with_extension(directory, extension):
     return [os.path.join(directory, f) for f in os.listdir(directory) if
