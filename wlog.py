@@ -26,7 +26,7 @@ class Window(QWidget):
         self.setWindowTitle("Debugger")
 
         # setting  the geometry of window
-        self.setGeometry(0, 0, 500, 500)
+        self.setGeometry(0, 0, 1500, 500)
 
         # Layout
         self.textEdit = QTextEdit()

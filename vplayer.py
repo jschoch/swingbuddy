@@ -125,6 +125,15 @@ class VideoPlayBack:
             self.timer.start(1000 / (fps * self.playback_speed))
         self.is_playing = not self.is_playing
 
+    def stop(self):
+        if self.is_playing:
+            self.timer.stop()
+
+    def start(self):
+        if not self.is_playing:
+            self.timer.timeout.connect(self.update_all_frames)
+            self.timer.start(1000/60)
+
     # Function to play video in reverse
     def reverse_play(self):
         stream = self.video_clip.streams.video[0]
@@ -137,7 +146,8 @@ class VideoPlayBack:
 
     # Function to set playback speed
     def set_playback_speed(self, value):
-        self.playback_speed = value / 100.0
+        self.speed_slider_label.setText(f"Speeed: {value}")
+        self.playback_speed = value
 
     # Function to set overlay position
     #def set_overlay_position(self, position):

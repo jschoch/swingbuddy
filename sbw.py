@@ -37,6 +37,8 @@ from datetime import datetime
 from vplayer import OverlayWidget, VideoPlayBackUi,VideoPlayBack
 from cfg import ConfigWindow
 from showswing import SwingWidget
+import os
+
 
 app2 = Flask(__name__)
 
@@ -131,6 +133,8 @@ class SBW(QMainWindow):
         self.quit_action.setShortcut("Ctrl+Q")
         self.quit_action.triggered.connect(self.quit_application)
         self.file_menu.addAction(self.quit_action)
+
+        self.timer = QTimer()
 
         # Setup share obj for flask messages
         self.message_signal = MessageReceivedSignal()
@@ -229,7 +233,7 @@ class SBW(QMainWindow):
         # Get the current date and time
         now = datetime.now()
 
-        fname = f"c:/Files/test_swings/{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}_screen.png"
+        fname = f"{self.config.screenDir}/{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}_screen.png"
 
         #fname = "c:/Files/test_swings/ss.png"
         ss = pyautogui.screenshot(fname, region=(0,0,300,400))
@@ -240,18 +244,19 @@ class SBW(QMainWindow):
         qimage = QImage(ss.tobytes(), ss.width, ss.height, QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(qimage)
         self.screenlabel.setPixmap(pixmap)
+        return fname
 
     def add_swing_clicked(self, s):
-            print("click", s)
+        print("click", s)
 
-            dlg = AddDialog(self)
-            dlg.sfiles.connect(self.manual_add_swing)
-            if dlg.exec():
+        dlg = AddDialog(self)
+        dlg.sfiles.connect(self.manual_add_swing)
+        if dlg.exec():
 
-                print(f"Success! {dlg.files}")
-                self.manual_add_swing(dlg.files)
-            else:
-                print("Cancel!")
+            print(f"Success! {dlg.files}")
+            self.manual_add_swing(dlg.files)
+        else:
+            print("Cancel!")
 
     @Slot()
     def manual_add_swing(self,files):
@@ -307,6 +312,9 @@ class SBW(QMainWindow):
 
     @Slot()
     def trc_result(self,obj):
+        if obj == None:
+            self.logger.error("trc_result obj was None")
+            return
         df,clean = obj
 
         self.logger.debug(f"got a result: \n{df.head()}")
@@ -316,6 +324,25 @@ class SBW(QMainWindow):
 
     def print_output(self,s):
         self.logger.debug(f"output: {s}")
+
+    def do_screen_timer(self):
+        self.logger.debug(f"starting timer for screenshot {self.config.screen_timeout} seconds")
+        self.timer = QTimer()
+        #self.timer.timeout.connect(self.dst_done,self.current_swing.id)
+        self.timer.timeout.connect(lambda: self.dst_done( self.current_swing.id))
+        self.timer.start(self.config.screen_timeout * 1000)
+
+    @Slot()
+    def dst_done(self,id):
+
+        #TODO: this screams for some sort of locking
+        fname = self.take_screen()
+        self.timer.stop()
+        self.logger.debug(f"done screen timer: id was {id}")
+        swing = Swing.get_by_id(id)
+        swing.screen = fname
+        swing.save()
+
 
     def get_screen(self,progress_callback):
         self.logger.debug("in get_screen")
@@ -357,7 +384,7 @@ class SBW(QMainWindow):
 
 
     def find_swings(self):
-        items = Swing.select().limit(15)
+        items = Swing.select().order_by(-Swing.id).limit(30)
         # Create a model to hold the items
         model = QStandardItemModel()
         self.fuckyoumodel = model
@@ -397,8 +424,24 @@ class SBW(QMainWindow):
 
     def load_swing(self,id):
         swing = Swing.get_by_id(id)
+        if self.video_playback != None:
+            self.video_playback.stop()
+        if swing == None:
+            self.logger.error(f"cant' find the swing id {id}")
+            return
 
+        # reset stuff
+        self.video_clip = None
+        self.video_clip2 = None
+
+        self.qimage_frames = []
+        self.qimage_frames2 = []
+        self.video_playback_Ui.video_label2.setPixmap(QPixmap())
+        self.video_playback_Ui.video_label1.setPixmap(QPixmap())
         self.logger.debug(f"swing date: {swing.sdate}")
+        self.plot.reset_data()
+
+        # grabbie
         right =  swing.rightVid
         left = swing.leftVid
 
@@ -431,6 +474,9 @@ class SBW(QMainWindow):
         else:
             self.logger.debug("already loading file 2")
 
+        if(self.config.autoplay):
+            self.video_playback.start()
+
         #image_path = f"c:/Files/test_swings/{swing.screen}"  # Replace with the path to your PNG file
         image_path = swing.screen
         if image_path == "no Screen":
@@ -452,7 +498,7 @@ class SBW(QMainWindow):
         self.threadpool.start(w3)
 
     def of1wdone(self,result):
-        self.logger.debug("UFCK of1 done {result}")
+        self.logger.debug("of1wdone done {result}")
 
     def create_db(self):
         db.create_tables([Swing,Config,Session])
@@ -479,48 +525,66 @@ class SBW(QMainWindow):
         self.logger.debug(f" s was: {s}")
         if isinstance(s,str):
             self.ui.out_msg.setText(s)
-            swings = find_swing("c:/Files/test_swings","mp4")
+            swings = find_swing(self.config.vidDir,"mp4")
             self.logger.debug(f"swings found: {swings}")
             self.current_swing.leftVid = swings[0]
             self.current_swing.rightVid = swings[1]
             self.current_swing.save()
             self.add_swing_to_model(self.current_swing)
-            self.load_swing(current_swing.id)
+            self.load_swing(self.current_swing.id)
 
 
         else:
             self.ui.out_msg.setText("you are the worst programmer ever")
 
             print("shit out of luck")
-
+        if(self.config.enableScreen):
+            self.do_screen_timer()
 
 
     # Function to open a video file
     def open_file(self,file_path):
-       if file_path == None or file_path == False:
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
-       self.logger.debug(f"file path: {file_path}")
-       if file_path:
+        #if  os.path.exists(file_path):
+        if file_path == None or file_path == False:
+            file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
+        else:
+           self.logger.error(f"OF1: can't find file {file_path}")
+           #return "this is suck"
+        if file_path == "no right vid":
+            return "suck"
+
+        self.logger.debug(f"file path: {file_path}")
+        if file_path:
            self.video_clip = av.open(file_path)
            self.video_playback.video_clip = self.video_clip
            self.logger.debug("trying to load the frame")
            self.video_playback.load_frame(0)
            self.video_playback.update_frame(0)
+           if self.video_playback.qimage_frames == None:
+               self.logger.error("no quimageframes in open_file() return")
+               return
            self.video_playback_Ui.slider.setRange(0, len(self.video_playback.qimage_frames) )
            self.logger.debug("done loading frame")
 
 
     def open_file2(self,file_path):
-      if file_path == None or file_path == False:
-         file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
-      self.logger.debug(f"file path2: {file_path}")
-      if file_path:
-          self.video_clip2 = av.open(file_path)
-          self.video_playback.video_clip2 = self.video_clip2
-          self.logger.debug("trying to load the frame2")
-          self.video_playback.load_frame(1)
-          self.video_playback.update_frame(1)
-          self.logger.debug("done loading frame2")
+        if file_path == None or file_path == False:
+        #if  os.path.exists(file_path):
+             file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
+        else:
+             self.logger.error(f"OF2: can't find file {file_path}")
+             #return "this is bad, but no workie"
+
+        if file_path == "no left vid":
+            return "suck2"
+        self.logger.debug(f"file path2: {file_path}")
+        if file_path:
+              self.video_clip2 = av.open(file_path)
+              self.video_playback.video_clip2 = self.video_clip2
+              self.logger.debug("trying to load the frame2")
+              self.video_playback.load_frame(1)
+              self.video_playback.update_frame(1)
+              self.logger.debug("done loading frame2")
 
     # Function to play the video
     @Slot()
@@ -705,19 +769,21 @@ class SineWavePlot(QWidget):
         super().__init__()
 
         # Create a sine wave data
-        x = np.arange(241)  # x-axis values from 0 to 240
-        y = np.sin(x * 2 * np.pi / 240)  # Adjust frequency for 241 points
+        self.ox = np.arange(241)  # x-axis values from 0 to 240
+        self.oy = np.sin(self.ox * 2 * np.pi / 240)  # Adjust frequency for 241 points
 
-        self.y = y
-        self.x = x
+        self.y = self.oy
+        self.x = self.ox
+        self.y1 = self.x
+        self.x1 = self.y
         self.logger = logger
         self.parent = parent
 
 
         # Create a plot widget
         self.plot_widget = pg.PlotWidget()
-        self.plot_item = self.plot_widget.plot(x, y, pen='b')
-
+        self.plot_item = self.plot_widget.plot(self.x, self.y, pen='b')
+        #self.plot_item = self.plot_widget.plot(x1, y1, pen='r')
         # Create a vertical line item
         self.vline = pg.InfiniteLine(angle=90, movable=False)
         self.plot_widget.addItem(self.vline)
@@ -761,6 +827,11 @@ class SineWavePlot(QWidget):
         else:
             self.y_value_label.setText("")
     @Slot()
+    def reset_data(self):
+        self.y = self.oy
+        self.x = self.ox
+        self.plot_item.setData(self.x, self.y, pen='r')
+    @Slot()
     def update_data(self, new_y_data):
         self.y = new_y_data
         self.x = list(range(len(new_y_data)))
@@ -800,10 +871,11 @@ class AddDialog(QDialog):
         # Connect selection changed signal to slot
         self.list_view.selectionModel().selectionChanged.connect(self.on_selection_changed)
         self.setLayout(layout)
+        print("AddDialog init done")
     def on_selection_changed(self, selected, deselected):
         for index in selected.indexes():
             key = self.model.data(index)
-            print(f"Selected key: {key}")
+            print(f"Selected key: {key}, files: {self.data_dict[key]}")
             self.files = self.data_dict[key]
             #self.sfiles.emit(self.files)
 
