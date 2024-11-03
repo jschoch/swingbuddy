@@ -227,6 +227,16 @@ class SBW(QMainWindow):
         self.ui.stop_btn.clicked.connect(self.take_screen)
 
         self.ui.pop_btn.clicked.connect(self.populate_test_data)
+        self.ui.cw.reload_signal.connect(self.reload_config)
+
+    @Slot()
+    def reload_config(self,id):
+        self.logger.debug(f"reloading config: id: {id} old config \n{model_to_dict(self.config)}")
+        try:
+            self.config = Config.get_by_id(1)
+        except DoesNotExist:
+            print("fuck you peewee")
+        self.logger.debug(f"reloading config:  new config \n{model_to_dict(self.config)}")
 
     @Slot()
     def take_screen(self):
@@ -493,6 +503,9 @@ class SBW(QMainWindow):
             self.logger.debug(f"found trc")
         else:
             self.logger.error("no trc data")
+            if(self.config.enableTRC):
+                self.logger.debug("auto trc, fetching")
+                self.start_request_trc()
             return
         w3 = Worker(self.parse_csv,maybe_trc)
         self.threadpool.start(w3)

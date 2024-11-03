@@ -6,6 +6,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 from PySide6.QtWidgets import QWidget, QTextEdit, QPushButton, QVBoxLayout
+from PySide6.QtGui import QTextCursor
+
 
 class QtWindowHandler(logging.Handler):
 
@@ -16,6 +18,7 @@ class QtWindowHandler(logging.Handler):
 
     def emit(self, record):
         self.window.textEdit.append(self.format(record))
+        self.window.textEdit.moveCursor(QTextCursor.End)
 
 
 class Window(QWidget):

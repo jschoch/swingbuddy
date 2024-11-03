@@ -3,7 +3,7 @@
 # if __name__ == "__main__":
 #     pass
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QCheckBox, QSpinBox
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt,Signal
 from swingdb import Config, Swing
 # Import Peewee
 import peewee as pw
@@ -11,6 +11,7 @@ from playhouse.shortcuts import model_to_dict, dict_to_model
 db = pw.SqliteDatabase('swingbuddy.db')
 
 class ConfigWindow(QWidget):
+    reload_signal = Signal(int)
     def __init__(self):
         super().__init__()
 
@@ -57,7 +58,7 @@ class ConfigWindow(QWidget):
 
     def load_config(self):
         try:
-            config = Config.get()
+            config = Config.get_by_id(1)
             for field_name, (label, edit) in self.fields.items():
                 value = getattr(config, field_name)
                 if isinstance(edit, QCheckBox):
@@ -88,6 +89,8 @@ class ConfigWindow(QWidget):
         self.logger.debug(f"config : {model_to_dict(config)}")
         try:
             config.save(force_insert=False)
+            self.logger.debug(f"deep deep: {config.id}  type: {type(config.id)}")
+            self.reload_signal.emit(config.id)
             QMessageBox.information(self, "Success", "Configuration saved successfully.")
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to save configuration: {str(e)}")
