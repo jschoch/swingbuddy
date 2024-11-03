@@ -250,6 +250,22 @@
       <layout class="QHBoxLayout" name="horizontalLayout"/>
      </widget>
     </widget>
+    <widget class="QWidget" name="tab_5">
+     <attribute name="title">
+      <string>Swing</string>
+     </attribute>
+     <widget class="QWidget" name="verticalLayoutWidget_4">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>1221</width>
+        <height>581</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_6"/>
+     </widget>
+    </widget>
     <widget class="QWidget" name="tab_4">
      <attribute name="title">
       <string>Configuration</string>
@@ -268,38 +284,9 @@
     </widget>
    </widget>
   </widget>
-  <widget class="QPushButton" name="close_me_btn">
-   <property name="geometry">
-    <rect>
-     <x>1380</x>
-     <y>0</y>
-     <width>75</width>
-     <height>24</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>X</string>
-   </property>
-  </widget>
  </widget>
  <resources/>
  <connections>
-  <connection>
-   <sender>close_me_btn</sender>
-   <signal>clicked()</signal>
-   <receiver>SBW</receiver>
-   <slot>close()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>1417</x>
-     <y>11</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>733</x>
-     <y>450</y>
-    </hint>
-   </hints>
-  </connection>
   <connection>
    <sender>stop_btn</sender>
    <signal>clicked()</signal>

@@ -36,6 +36,7 @@ import pyautogui
 from datetime import datetime
 from vplayer import OverlayWidget, VideoPlayBackUi,VideoPlayBack
 from cfg import ConfigWindow
+from showswing import SwingWidget
 
 app2 = Flask(__name__)
 
@@ -92,6 +93,17 @@ class SBW(QMainWindow):
         self.logger =  logging.getLogger("__main__")
         self.threadpool = QThreadPool()
 
+
+        # setup db
+        self.create_db()
+        self.ui.cw = ConfigWindow()
+        self.ui.cw.logger = self.logger
+        self.ui.verticalLayout_5.addWidget(self.ui.cw)
+        self.config = self.ui.cw.load_config()
+
+
+        self.ui.sw = SwingWidget()
+        self.ui.verticalLayout_6.addWidget(self.ui.sw)
         self.video_clip = None
         self.video_playback_Ui = VideoPlayBackUi()
         self.video_playback = None
@@ -153,8 +165,8 @@ class SBW(QMainWindow):
         self.flask_thread = FlaskThread()
 
 
-        # setup db
-        self.config = self.create_db()
+
+
         self.find_swings()
         self.session = Session(name="Default Session")
         self.session.save()
@@ -209,9 +221,7 @@ class SBW(QMainWindow):
         self.screenlabel.setPixmap(pixmap)
         self.ui.horizontalLayout.addWidget(self.screenlabel)
         self.ui.stop_btn.clicked.connect(self.take_screen)
-        self.ui.cw = ConfigWindow()
-        self.ui.cw.logger = self.logger
-        self.ui.verticalLayout_5.addWidget(self.ui.cw)
+
         self.ui.pop_btn.clicked.connect(self.populate_test_data)
 
     @Slot()
@@ -387,6 +397,7 @@ class SBW(QMainWindow):
 
     def load_swing(self,id):
         swing = Swing.get_by_id(id)
+
         self.logger.debug(f"swing date: {swing.sdate}")
         right =  swing.rightVid
         left = swing.leftVid
@@ -394,6 +405,7 @@ class SBW(QMainWindow):
         maybe_trc = swing.trc
 
         self.current_swing = swing
+        self.ui.sw.set_swing_data(swing)
 
         self.video_clip = None
         self.video_playback = VideoPlayBack(self.video_playback_Ui, self.video_clip)
@@ -444,21 +456,11 @@ class SBW(QMainWindow):
 
     def create_db(self):
         db.create_tables([Swing,Config,Session])
-        config = "n"
-        try:
-            #config,created = Config.get_or_create(Config.id = 1)
-            config = Config.get_by_id(1)
-            self.logger.debug(f" the config was: {config}")
-        except DoesNotExist:
-            config = Config.create()
 
-        self.populate_config(config)
-        #self.find_swings()
-        return config
 
-    def populate_config(self,config):
-        None
-        #self.ui.cw.load_config()
+
+
+
 
     def populate_test_data(self):
         ##names = "abcdefg".split()

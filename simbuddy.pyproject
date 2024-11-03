@@ -7,6 +7,8 @@
         "util.py",
         "test.py",
         "vplayer.py",
-        "cfg.py"
+        "cfg.py",
+        "showswing.py",
+        "trcc.py"
     ]
 }

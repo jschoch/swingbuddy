@@ -17,6 +17,7 @@ class ConfigWindow(QWidget):
         self.setWindowTitle("Config Editor")
         self.setGeometry(100, 100, 600, 400)
         self.logger = None
+
         layout = QVBoxLayout()
 
         # Create input fields and labels
@@ -50,7 +51,8 @@ class ConfigWindow(QWidget):
         button_box.addWidget(load_button)
         button_box.addWidget(save_button)
         layout.addLayout(button_box)
-
+        c = self.load_config()
+        self.current_config = c
         self.setLayout(layout)
 
     def load_config(self):
@@ -64,6 +66,7 @@ class ConfigWindow(QWidget):
                     edit.setValue(value)
                 else:
                     edit.setText(str(value))
+            return config
         except pw.DoesNotExist:
             QMessageBox.warning(self, "Error", "No configuration found.")
 
@@ -72,10 +75,15 @@ class ConfigWindow(QWidget):
         if not config:
             config = Config()
 
-
         for field_name, (label, edit) in self.fields.items():
-            value = getattr(edit, 'isChecked' if isinstance(edit, QCheckBox) else ('value' if isinstance(edit, QSpinBox) else 'text'))
-            setattr(config, field_name, value)
+                value = getattr(edit, 'isChecked' if isinstance(edit, QCheckBox) else ('value' if isinstance(edit, QSpinBox) else 'text'))
+
+                # Call the method to get the actual value
+                value = value() if callable(value) else value
+
+                self.logger.debug(f"Setting {field_name} to {value}")
+                setattr(config, field_name, value)
+
 
         self.logger.debug(f"config : {model_to_dict(config)}")
         try:
