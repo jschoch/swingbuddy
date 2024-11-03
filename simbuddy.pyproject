@@ -6,6 +6,7 @@
         "wlog.py",
         "util.py",
         "test.py",
-        "vplayer.py"
+        "vplayer.py",
+        "cfg.py"
     ]
 }

@@ -70,7 +70,6 @@ class VideoPlayBack:
 
     # Function to update the frame
     def update_frame(self,lr):
-        self.logger.debug(f". {self.video_playback_ui}")
         qimage_frames = None
         if(lr):
             qimage_frames = self.qimage_frames2
@@ -85,7 +84,6 @@ class VideoPlayBack:
             self.current_frame_index = 0
         if self.current_frame_index < len(qimage_frames):
             qimage_frame = qimage_frames[self.current_frame_index]
-            self.logger.debug(f"stuff in there? {len(qimage_frames)}")
             pixmap = QPixmap.fromImage(qimage_frame)
 
             if(lr):

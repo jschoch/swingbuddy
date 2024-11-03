@@ -35,7 +35,7 @@ from playhouse.shortcuts import model_to_dict, dict_to_model
 import pyautogui
 from datetime import datetime
 from vplayer import OverlayWidget, VideoPlayBackUi,VideoPlayBack
-
+from cfg import ConfigWindow
 
 app2 = Flask(__name__)
 
@@ -180,7 +180,7 @@ class SBW(QMainWindow):
         print(f"tables: {tables}")
 
         self.pairs = []
-        self.ui.pop_btn.clicked.connect(self.populate_test_data)
+
         self.ui.sw_btn.clicked.connect(self.start_get_screen)
         self.ui.run_a_btn.clicked.connect(self.start_request_trc)
         self.ui.add_btn.clicked.connect(self.add_swing_clicked)
@@ -209,6 +209,10 @@ class SBW(QMainWindow):
         self.screenlabel.setPixmap(pixmap)
         self.ui.horizontalLayout.addWidget(self.screenlabel)
         self.ui.stop_btn.clicked.connect(self.take_screen)
+        self.ui.cw = ConfigWindow()
+        self.ui.cw.logger = self.logger
+        self.ui.verticalLayout_5.addWidget(self.ui.cw)
+        self.ui.pop_btn.clicked.connect(self.populate_test_data)
 
     @Slot()
     def take_screen(self):
@@ -453,8 +457,8 @@ class SBW(QMainWindow):
         return config
 
     def populate_config(self,config):
-        self.ui.vid_dir_le.setText(config.vidDir)
-        #self.ui.vid_dir_le.setText("fuck fuck me")
+        None
+        #self.ui.cw.load_config()
 
     def populate_test_data(self):
         ##names = "abcdefg".split()

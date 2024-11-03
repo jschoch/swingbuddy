@@ -43,6 +43,8 @@ class Config(BaseModel):
     enableTRC = BooleanField(default=True)
     enablePose = BooleanField(default=True)
     autoplay = BooleanField(default=True)
+    screen_timeout = IntegerField(default=15)
+    screen_coords = CharField(default = "0,0,600,600") # will be split into (a,b,c,d)
 
     #enable
     #how do you do defaults?
