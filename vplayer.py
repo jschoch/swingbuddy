@@ -17,7 +17,7 @@ class VideoPlayBack:
         self.qimage_frames = None
         self.qimage_frames2 = None
         self.current_frame_index = 0
-        self.is_playing = False
+        self.is_playing = True
         self.playback_speed = 1.0
         #self.lr = lr
         self.timer = QTimer()

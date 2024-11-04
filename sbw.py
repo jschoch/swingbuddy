@@ -292,7 +292,9 @@ class SBW(QMainWindow):
 
         self.current_swing.save
         qimage = QImage(ss.tobytes(), ss.width, ss.height, QImage.Format_RGB888)
-        pixmap = QPixmap.fromImage(qimage)
+        parent_size = self.screenlabel.parent().size()
+        scaled_image = qimage.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
+        pixmap = QPixmap.fromImage(scaled_image)
         self.screenlabel.setPixmap(pixmap)
         return fname
 
@@ -316,7 +318,6 @@ class SBW(QMainWindow):
         rv = [file for file in files if 'right.mp4' in file]
         screen = [file for file in files if 'screen.png' in file]
 
-        # TODO: unhardcode this
         bd = self.config.screen
         if len(lv) > 0:
             self.current_swing.leftVid = bd + lv[0]
@@ -529,9 +530,7 @@ class SBW(QMainWindow):
         else:
             self.logger.debug("already loading file 2")
 
-        if(self.config.autoplay):
-            if not self.video_playback.is_playing:
-                self.video_playback.start()
+        
 
         #image_path = f"c:/Files/test_swings/{swing.screen}"  # Replace with the path to your PNG file
         image_path = swing.screen
@@ -541,6 +540,9 @@ class SBW(QMainWindow):
         else:
             self.logger.debug(f"Screenshot path {image_path}")
             pixmap_big = QPixmap(image_path)
+            parent_size = self.screenlabel.parent().size()
+            scaled_image = pixmap_big.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
+            pixmap = QPixmap.fromImage(scaled_image)
             pixmap = pixmap_big.scaled(self.max_width, pixmap_big.height() * (self.max_width / pixmap_big.width()), Qt.KeepAspectRatio)
             self.screenlabel.setPixmap(pixmap)
 
@@ -587,7 +589,11 @@ class SBW(QMainWindow):
 
     Slot(str)
     def foo(self,s):
-        self.current_swing = Swing.create(session = self.session)
+        try: 
+            self.current_swing = Swing.create(session = self.session)
+        except Exception as e:
+            self.logger.debug(f"couldn't create swing, likely unique fname issue\n {e}")
+            return
         self.logger.debug(f" s was: {s}")
         if isinstance(s,str):
             self.ui.out_msg.setText(s)
@@ -651,6 +657,9 @@ class SBW(QMainWindow):
               self.video_playback.load_frame(1)
               self.video_playback.update_frame(1)
               self.logger.debug("done loading frame2")
+              if(self.config.autoplay):
+                if not self.video_playback.is_playing:
+                    self.video_playback.start()
 
     # Function to play the video
     @Slot()

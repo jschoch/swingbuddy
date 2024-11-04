@@ -28,6 +28,11 @@ class Swing(BaseModel):
     club = CharField(default="na")
     comment = TextField(default="none")
     session = ForeignKeyField(Session, backref="swings")
+    class Meta:
+        indexes = (
+            (('leftVid',),True),
+            (('rightVid',),True)
+        )
 
 
 
