@@ -562,6 +562,12 @@ class SBW(QMainWindow):
 
     def create_db(self):
         db.create_tables([Swing,Config,Session])
+        try:
+            self.config = Config.get_by_id(1)
+        except DoesNotExist:
+            self.logger.debug("No config found, trying to create one")
+            self.config = Config.create()
+            self.config.save
 
 
 
