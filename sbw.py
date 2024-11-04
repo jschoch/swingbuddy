@@ -223,11 +223,11 @@ class SBW(QMainWindow):
         self.loading_widget = LoadingWidget(self.logger)
 
         # test add image for screenshot
-        pixmap_big = QPixmap("c:/Files/test_swings/20241025-140527-left_screen.png")
-        self.max_width = 400
-        pixmap = pixmap_big.scaled(self.max_width, pixmap_big.height() * (self.max_width / pixmap_big.width()), Qt.KeepAspectRatio)
+        #pixmap_big = QPixmap("c:/Files/test_swings/20241025-140527-left_screen.png")
+        #self.max_width = 400
+        #pixmap = pixmap_big.scaled(self.max_width, pixmap_big.height() * (self.max_width / pixmap_big.width()), Qt.KeepAspectRatio)
         self.screenlabel = QLabel()
-        self.screenlabel.setPixmap(pixmap)
+        #self.screenlabel.setPixmap(pixmap)
         self.ui.horizontalLayout.addWidget(self.screenlabel)
         self.ui.stop_btn.clicked.connect(self.take_screen)
 
