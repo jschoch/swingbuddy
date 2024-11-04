@@ -313,10 +313,17 @@ class SBW(QMainWindow):
     @Slot()
     def manual_add_swing(self,files):
         self.logger.debug(f" got files {files}")
-        self.current_swing = Swing.create(session = self.session)
+        
         lv = [file for file in files if 'left.mp4' in file]
         rv = [file for file in files if 'right.mp4' in file]
         screen = [file for file in files if 'screen.png' in file]
+        try:
+            self.current_swing = Swing.create(session = self.session,
+                leftVid = lv,
+                rightVid = rv,
+                screen = screen)
+        except Exception as e:
+            self.logger.error(f"db excption {e}")
 
         bd = self.config.screen
         if len(lv) > 0:
@@ -589,19 +596,19 @@ class SBW(QMainWindow):
 
     Slot(str)
     def foo(self,s):
-        try: 
-            self.current_swing = Swing.create(session = self.session)
-        except Exception as e:
-            self.logger.debug(f"couldn't create swing, likely unique fname issue\n {e}")
-            return
+        
         self.logger.debug(f" s was: {s}")
         if isinstance(s,str):
             self.ui.out_msg.setText(s)
             swings = find_swing(self.config.vidDir,"mp4")
             self.logger.debug(f"swings found: {swings}")
-            self.current_swing.leftVid = swings[0]
-            self.current_swing.rightVid = swings[1]
-            self.current_swing.save()
+            try: 
+                self.current_swing = Swing.create(session = self.session,
+                    rightVid = swings[0],
+                    leftVid = swings[1])
+            except Exception as e:
+                self.logger.debug(f"couldn't create swing, likely unique fname issue\n {e}")
+                return
             self.add_swing_to_model(self.current_swing)
             self.load_swing(self.current_swing.id)
 
@@ -915,7 +922,7 @@ class SineWavePlot(QWidget):
 
 class AddDialog(QDialog):
     sfiles = Signal(list)
-    def __init__(self,config,parent=None):
+    def __init__(self,parent=None,config=None):
         super().__init__(parent)
 
         self.setWindowTitle("Select a swing to add")
