@@ -345,7 +345,7 @@ class SBW(QMainWindow):
             self.logger.debug("already running trc request")
 
     def request_trc(self):
-
+        id = self.current_swing.id
         result = fetch_trc(self.config,self.current_swing,self.logger)
         clean = result.replace('\\r','')
 
@@ -353,7 +353,7 @@ class SBW(QMainWindow):
         df = pd.read_csv(sio)
 
         self.logger.debug(f"df info: {df.info()}")
-        obj = (df,clean)
+        obj = (df,clean,id)
         self.trc_w.signals.result.emit(obj)
 
     @Slot()
@@ -433,7 +433,8 @@ class SBW(QMainWindow):
             b = 1
         i = QStandardItem(f"{item.name} {item.id} {item.sdate} {b}")
         i.setData(item.id,Qt.UserRole)
-        self.fuckyoumodel.appendRow(i)
+        #self.fuckyoumodel.appendRow(i)
+        self.fuckyoumodel.insertRow(0,[i])
 
 
     def find_swings(self):
