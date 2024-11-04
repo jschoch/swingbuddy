@@ -119,18 +119,21 @@ class VideoPlayBack:
         fps = int(stream.average_rate)
 
         if self.is_playing:
+            self.is_playing = False
             self.timer.stop()
         else:
-            self.timer.timeout.connect(self.update_all_frames)
-            self.timer.start(1000 / (fps * self.playback_speed))
-        self.is_playing = not self.is_playing
+            self.start()
 
+    @Slot()
     def stop(self):
         if self.is_playing:
+            self.is_playing = False
             self.timer.stop()
 
+    @Slot()
     def start(self):
         if not self.is_playing:
+            self.is_playing = True
             self.timer.timeout.connect(self.update_all_frames)
             self.timer.start(1000/60)
 

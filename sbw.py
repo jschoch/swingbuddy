@@ -478,8 +478,9 @@ class SBW(QMainWindow):
 
     def load_swing(self,id):
         swing = Swing.get_by_id(id)
-        if self.video_playback != None:
+        if self.video_playback != None and self.video_playback.is_playing:
             self.video_playback.stop()
+            #self.video_playback.stop.connect
         if swing == None:
             self.logger.error(f"cant' find the swing id {id}")
             return
@@ -529,7 +530,8 @@ class SBW(QMainWindow):
             self.logger.debug("already loading file 2")
 
         if(self.config.autoplay):
-            self.video_playback.start()
+            if not self.video_playback.is_playing:
+                self.video_playback.start()
 
         #image_path = f"c:/Files/test_swings/{swing.screen}"  # Replace with the path to your PNG file
         image_path = swing.screen

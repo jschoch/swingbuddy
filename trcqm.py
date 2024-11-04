@@ -66,8 +66,8 @@ class TrcQueueWorker(QObject):
             else:
                 self.progress_s.emit("Idle")
                 QThread.msleep(200)
-        #if self.current_task_index == len(self.tasks):
-            #self.complete.emit(0)
+
+        self.logger.debug("TRC worker queue thread exited")
 
     def stop(self):
         self.is_running = False

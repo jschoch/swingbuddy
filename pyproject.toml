@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "simbuddy"
+version = "0.1.0"
+description = "A swing database for Kinovea"
+authors = ["Jesse Schoch"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.14"
+pyside6 = "^6.8.0.2"
+requests = "^2.32.3"
+pyautogui = "^0.9.54"
+peewee = "^3.17.7"
+pandas = "^2.2.3"
+av = "^13.1.0"
+jsonify = "^0.5"
+flask = "^3.0.3"
+pyqtgraph = "^0.13.7"
+chardet = "^5.2.0"
+pillow = "^11.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
