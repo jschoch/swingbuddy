@@ -286,7 +286,6 @@ class SBW(QMainWindow):
 
         fname = f"{self.config.screenDir}/{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}_screen.png"
 
-        #fname = "c:/Files/test_swings/ss.png"
         ss = pyautogui.screenshot(fname, region=(0,0,300,400))
         self.logger.debug(f"screenshot: {fname}")
         self.current_swing.screen = fname
@@ -318,7 +317,7 @@ class SBW(QMainWindow):
         screen = [file for file in files if 'screen.png' in file]
 
         # TODO: unhardcode this
-        bd = "c:/Files/test_swings/"
+        bd = self.config.screen
         if len(lv) > 0:
             self.current_swing.leftVid = bd + lv[0]
         else:
@@ -927,7 +926,7 @@ class AddDialog(QDialog):
         # Create the QListView
         self.list_view = QListView()
         layout.addWidget(self.list_view)
-        data_dict = get_pairs("c:/Files/test_swings")
+        data_dict = get_pairs(self.config.vidDir)
         self.data_dict = data_dict
         # Populate the QListView with keys from the dictionary
         key_list = list(sorted(data_dict.keys(),reverse=True))
