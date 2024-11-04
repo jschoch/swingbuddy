@@ -299,7 +299,7 @@ class SBW(QMainWindow):
     def add_swing_clicked(self, s):
         print("click", s)
 
-        dlg = AddDialog(self)
+        dlg = AddDialog(self,self.config)
         dlg.sfiles.connect(self.manual_add_swing)
         if dlg.exec():
 
@@ -905,7 +905,7 @@ class SineWavePlot(QWidget):
 
 class AddDialog(QDialog):
     sfiles = Signal(list)
-    def __init__(self,parent=None):
+    def __init__(self,config,parent=None):
         super().__init__(parent)
 
         self.setWindowTitle("Select a swing to add")
@@ -914,6 +914,7 @@ class AddDialog(QDialog):
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel
         )
         self.files = []
+        self.config = config
         #self.sfiles = Signal()
         self.buttonBox = QDialogButtonBox(QBtn)
         self.buttonBox.accepted.connect(self.accept)
