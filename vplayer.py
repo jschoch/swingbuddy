@@ -76,8 +76,7 @@ class VideoPlayBack:
         
         #  dont start stop the timer, just don't update if it is not playing
 
-        if not self.is_playing:
-            return
+        
         if(lr):
             qimage_frames = self.qimage_frames2
         else:
@@ -116,6 +115,8 @@ class VideoPlayBack:
 
     def update_all_frames(self):
         self.current_frame_index += 1
+        if not self.is_playing:
+            return
         self.update_frame(0)
         self.update_frame(1)
 
@@ -176,6 +177,8 @@ class VideoPlayBackUi(QWidget):
         self.slider.setEnabled(False)
         self.slider_label = QLabel("Frame Slider:")
         self.slider.setSingleStep(1)
+        self.slider.setMaximum(250)
+        self.slider.setValue(0)
         self.speed_slider = QSlider(Qt.Horizontal)
         self.speed_slider.setMinimum(50)
         self.speed_slider.setMaximum(200)

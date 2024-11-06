@@ -210,11 +210,6 @@ class SBW(QMainWindow):
 
         # graph stuff
 
-        #self.plot_graph = pg.PlotWidget()
-        #self.ui.gridLayout.addWidget(self.plot_graph)
-        #time = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        #temperature = [30, 32, 34, 32, 33, 31, 29, 32, 35, 30]
-        #self.plot_graph.plot(time, temperature)
         self.plot = SineWavePlot(self.logger,self)
         self.ui.gridLayout.addWidget(self.plot)
 
@@ -222,12 +217,7 @@ class SBW(QMainWindow):
         self.video_playback_Ui.slider.valueChanged.connect(self.plot.update_vline)
         self.loading_widget = LoadingWidget(self.logger)
 
-        # test add image for screenshot
-        #pixmap_big = QPixmap("c:/Files/test_swings/20241025-140527-left_screen.png")
-        #self.max_width = 400
-        #pixmap = pixmap_big.scaled(self.max_width, pixmap_big.height() * (self.max_width / pixmap_big.width()), Qt.KeepAspectRatio)
         self.screenlabel = QLabel()
-        #self.screenlabel.setPixmap(pixmap)
         self.ui.horizontalLayout.addWidget(self.screenlabel)
         self.ui.stop_btn.clicked.connect(self.take_screen)
 
@@ -278,6 +268,18 @@ class SBW(QMainWindow):
         except DoesNotExist:
             print("fuck you peewee")
         self.logger.debug(f"reloading config:  new config \n{model_to_dict(self.config)}")
+    def convert_screen_string(self,s):
+        # Split the input string by commas
+        parts = s.split(',')
+        
+        # Convert each part to an integer
+        converted_parts = [int(part) for part in parts]
+        
+        # Ensure the result is a tuple of four integers
+        if len(converted_parts) != 4:
+            raise ValueError("Input string must contain exactly four comma-separated values.")
+        
+        return tuple(converted_parts)
 
     @Slot()
     def take_screen(self):
@@ -286,7 +288,8 @@ class SBW(QMainWindow):
 
         fname = f"{self.config.screenDir}/{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}_screen.png"
 
-        ss = pyautogui.screenshot(fname, region=(0,0,300,400))
+
+        ss = pyautogui.screenshot(fname, region=self.convert_screen_string(self.config.screen_coords))
         self.logger.debug(f"screenshot: {fname}")
         self.current_swing.screen = fname
 
@@ -700,6 +703,8 @@ class SBW(QMainWindow):
     # Function to handle slider movement
     def slider_moved(self, position):
         #self.logger.debug(f"pos: {position}")
+        if self.video_playback.is_playing:
+            self.video_playback.is_playing = False
         self.video_playback.current_frame_index = position
         self.video_playback.update_frame(0)
         self.video_playback.update_frame(1)
