@@ -3,6 +3,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication, QWidget
 
+
 # Important:
 # You need to run the following command to generate the ui_form.py file
 #     pyside6-uic form.ui -o ui_form.py, or
@@ -113,6 +114,10 @@ class SBW(QMainWindow):
         self.ui.verticalLayout_6.addWidget(self.ui.sw)
         self.video_clip = None
         self.video_playback_Ui = VideoPlayBackUi()
+        vpbusize_policy = self.video_playback_Ui.sizePolicy()
+        vpbusize_policy.setHorizontalPolicy(QSizePolicy.Expanding)
+        vpbusize_policy.setVerticalPolicy(QSizePolicy.Expanding)
+        self.video_playback_Ui.setSizePolicy(vpbusize_policy)
         self.video_playback = None
         #player = VideoPlayBackUi()
         self.ui.horizontalLayout.addWidget(self.video_playback_Ui)
@@ -160,7 +165,6 @@ class SBW(QMainWindow):
 
         # Connect signals to slots
         self.video_playback_Ui.play_button.clicked.connect(self.play)
-        self.video_playback_Ui.pause_button.clicked.connect(self.pause)
         self.play_rev_action.triggered.connect(self.play_reverse)
         self.video_playback_Ui.play_reverse_button.clicked.connect(self.play_reverse)
         self.video_playback_Ui.slider.sliderMoved.connect(self.slider_moved)
@@ -202,7 +206,7 @@ class SBW(QMainWindow):
 
         self.pairs = []
 
-        self.ui.sw_btn.clicked.connect(self.start_get_screen)
+        #self.ui.sw_btn.clicked.connect(self.start_get_screen)
         self.ui.run_a_btn.clicked.connect(self.start_request_trc)
         self.ui.add_btn.clicked.connect(self.add_swing_clicked)
 
@@ -392,33 +396,33 @@ class SBW(QMainWindow):
 
     def do_screen_timer(self):
         self.logger.debug(f"starting timer for screenshot {self.config.screen_timeout} seconds")
-        self.timer = QTimer()
+        timer = QTimer()
         #self.timer.timeout.connect(self.dst_done,self.current_swing.id)
-        self.timer.timeout.connect(lambda: self.dst_done( self.current_swing.id))
-        self.timer.start(self.config.screen_timeout * 1000)
+        timer.timeout.connect(lambda: self.dst_done( self.current_swing.id))
+        timer.start(self.config.screen_timeout * 1000)
 
     @Slot()
     def dst_done(self,id):
 
         #TODO: this screams for some sort of locking
         fname = self.take_screen()
-        self.timer.stop()
+        #self.timer.stop()
         self.logger.debug(f"done screen timer: id was {id}")
         swing = Swing.get_by_id(id)
         swing.screen = fname
         swing.save()
 
 
-    def get_screen(self,progress_callback):
-        self.logger.debug("in get_screen")
-        time.sleep(1)
-        return "Done"
+    #def get_screen(self,progress_callback):
+        #self.logger.debug("in get_screen")
+        #time.sleep(1)
+        #return "Done"
 
-    def start_get_screen(self):
-        self.logger.debug("Get Screen Clicked")
-        w = Worker(self.get_screen)
-        w.signals.result.connect(self.print_output)
-        self.threadpool.start(w)
+    #def start_get_screen(self):
+        #self.logger.debug("Get Screen Clicked")
+        #w = Worker(self.get_screen)
+        #w.signals.result.connect(self.print_output)
+        #self.threadpool.start(w)
 
     def start_loading(self):
         self.prev_cw = self.centralWidget()
@@ -521,7 +525,6 @@ class SBW(QMainWindow):
         self.video_playback = VideoPlayBack(self.video_playback_Ui, self.video_clip)
         self.video_playback.logger = self.logger
         self.video_playback_Ui.play_button.setEnabled(True)
-        self.video_playback_Ui.pause_button.setEnabled(True)
         self.video_playback_Ui.slider.setEnabled(True)
         self.video_playback_Ui.speed_slider.setRange(50, 200)
         self.video_playback_Ui.speed_slider.setValue(100)
@@ -554,9 +557,8 @@ class SBW(QMainWindow):
                 pixmap_big = QPixmap(image_path)
                 parent_size = self.screenlabel.parent().size()
                 pixmap = pixmap_big.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
-                #pixmap = QPixmap.fromImage(scaled_image)
-                #pixmap = pixmap_big.scaled(self.max_width, pixmap_big.height() * (self.max_width / pixmap_big.width()), Qt.KeepAspectRatio)
-                self.screenlabel.setPixmap(pixmap)
+                #self.screenlabel.setPixmap(pixmap)
+                self.video_playback_Ui.screen_label2.setPixmap(pixmap)
             else:
                 self.logger.debug(f"No path for screen {image_path}")
 
@@ -687,10 +689,6 @@ class SBW(QMainWindow):
         self.logger.debug("Like WTF!")
         self.video_playback.toggle_play_pause()
 
-    # Function to pause the video
-    @Slot()
-    def pause(self):
-        self.video_playback.toggle_play_pause()
 
     # Function to play the video in reverse
     @Slot()
@@ -818,6 +816,8 @@ class Worker(QRunnable):
         finally:
             self.running = False
             self.signals.finished.emit()  # Done
+            #self.quit()
+            #self.wait()
     @Slot()
     def isRunning(self):
         return self.running

@@ -171,7 +171,6 @@ class VideoPlayBackUi(QWidget):
         # Create play, pause, slider, speed slider, overlay, and save frame button
         self.play_button = QPushButton("Play")
         self.play_button.setEnabled(False)
-        self.pause_button = QPushButton("Pause")
         self.play_reverse_button = QPushButton("Play Reverse")
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setEnabled(False)
@@ -208,13 +207,16 @@ class VideoPlayBackUi(QWidget):
         self.vid_layout.addWidget(self.vid2_text, 0, 1, alignment=Qt.AlignRight)  # Placeholder for video file name
         self.vid_layout.addWidget(self.video_label2, 1, 1, alignment=Qt.AlignRight)
 
+        self.screen_label2 = QLabel()
+        self.vid_layout.addWidget(self.screen_label2,1,2)
+
         # Create layout and add widgets
         video_button_layout = QHBoxLayout()
+        slider_layout = QHBoxLayout()
         video_button_layout.addWidget(self.play_button, 1)
-        video_button_layout.addWidget(self.pause_button, 1)
         video_button_layout.addWidget(self.play_reverse_button, 1)
         video_button_layout.addWidget(self.slider_label)
-        video_button_layout.addWidget(self.slider, 5)
+        slider_layout.addWidget(self.slider, 5)
         video_button_layout.addWidget(self.speed_slider_label)
         video_button_layout.addWidget(self.speed_slider, 3)
 
@@ -227,6 +229,7 @@ class VideoPlayBackUi(QWidget):
 
         self.main_layout.addLayout(self.vid_layout)
         self.main_layout.addLayout(video_button_layout)
+        self.main_layout.addLayout(slider_layout)
 
 
         # Set size policy on main widget
