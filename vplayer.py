@@ -17,10 +17,11 @@ class VideoPlayBack:
         self.qimage_frames = None
         self.qimage_frames2 = None
         self.current_frame_index = 0
-        self.is_playing = True
+        self.is_playing = False
         self.playback_speed = 1.0
         #self.lr = lr
         self.timer = QTimer()
+        self.start()
 
     # Function to load frames from the video clip
     def load_frame(self,lr):
@@ -71,12 +72,18 @@ class VideoPlayBack:
     # Function to update the frame
     def update_frame(self,lr):
         qimage_frames = None
+
+        
+        #  dont start stop the timer, just don't update if it is not playing
+
+        if not self.is_playing:
+            return
         if(lr):
             qimage_frames = self.qimage_frames2
         else:
             qimage_frames = self.qimage_frames
 
-        if qimage_frames == None:
+        if qimage_frames == None or qimage_frames == []:
             return
 
 
@@ -91,7 +98,7 @@ class VideoPlayBack:
                 self.video_playback_ui.video_label2.setAlignment(Qt.AlignLeft)
             else:
                 self.video_playback_ui.video_label1.setPixmap(pixmap)
-                self.video_playback_ui.video_label1.setAlignment(Qt.AlignRight)
+                self.video_playback_ui.video_label1.setAlignment(Qt.AlignLeft)
             self.video_playback_ui.slider.setValue(self.current_frame_index)
             #self.current_frame_index += 1
         else:
@@ -115,20 +122,17 @@ class VideoPlayBack:
     # Function to toggle play/pause
     def toggle_play_pause(self):
         self.logger.debug(f"MORE WTF {self.is_playing}")
-        stream = self.video_clip.streams.video[0]
-        fps = int(stream.average_rate)
+        
 
         if self.is_playing:
             self.is_playing = False
-            self.timer.stop()
         else:
-            self.start()
+            self.is_playing = True
 
     @Slot()
     def stop(self):
         if self.is_playing:
             self.is_playing = False
-            self.timer.stop()
 
     @Slot()
     def start(self):

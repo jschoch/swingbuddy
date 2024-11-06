@@ -324,18 +324,19 @@ class SBW(QMainWindow):
                 screen = screen)
         except Exception as e:
             self.logger.error(f"db excption {e}")
+            return
 
-        bd = self.config.screen
+        vid_dir = self.config.vidDir
         if len(lv) > 0:
-            self.current_swing.leftVid = bd + lv[0]
+            self.current_swing.leftVid = vid_dir + "/"+ lv[0]
         else:
             self.logger.error("no right vid found")
         if len(rv) > 0:
-            self.current_swing.rightVid = bd + rv[0]
+            self.current_swing.rightVid = vid_dir + "/"+ rv[0]
         else:
             self.logger.error("no left vid found")
         if len(screen) > 0:
-            self.current_swing.screen = bd + screen[0]
+            self.current_swing.screen = self.config.screenDir + "/"+ screen[0]
         else:
             self.logger.error(f"no screen found {files}")
         self.current_swing.save()
@@ -546,12 +547,15 @@ class SBW(QMainWindow):
 
         else:
             self.logger.debug(f"Screenshot path {image_path}")
-            pixmap_big = QPixmap(image_path)
-            parent_size = self.screenlabel.parent().size()
-            scaled_image = pixmap_big.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
-            pixmap = QPixmap.fromImage(scaled_image)
-            pixmap = pixmap_big.scaled(self.max_width, pixmap_big.height() * (self.max_width / pixmap_big.width()), Qt.KeepAspectRatio)
-            self.screenlabel.setPixmap(pixmap)
+            if (os.path.exists(image_path)):
+                pixmap_big = QPixmap(image_path)
+                parent_size = self.screenlabel.parent().size()
+                pixmap = pixmap_big.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
+                #pixmap = QPixmap.fromImage(scaled_image)
+                #pixmap = pixmap_big.scaled(self.max_width, pixmap_big.height() * (self.max_width / pixmap_big.width()), Qt.KeepAspectRatio)
+                self.screenlabel.setPixmap(pixmap)
+            else:
+                self.logger.debug(f"No path for screen {image_path}")
 
 
         if(maybe_trc != "no trc"):
@@ -627,10 +631,10 @@ class SBW(QMainWindow):
         if file_path == None or file_path == False:
             file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
         else:
-           self.logger.error(f"OF1: can't find file {file_path}")
-           #return "this is suck"
-        if file_path == "no right vid":
-            return "suck"
+            self.logger.debug("Not using file menu, but maybe problem")
+
+        if not os.path.exists(file_path):
+            return "OF1 no file "
 
         self.logger.debug(f"file path: {file_path}")
         if file_path:
@@ -639,11 +643,15 @@ class SBW(QMainWindow):
            self.logger.debug("trying to load the frame")
            self.video_playback.load_frame(0)
            self.video_playback.update_frame(0)
-           if self.video_playback.qimage_frames == None:
+           if self.video_playback.qimage_frames == None or self.video_playback.qimage_frames == []:
                self.logger.error("no quimageframes in open_file() return")
                return
            self.video_playback_Ui.slider.setRange(0, len(self.video_playback.qimage_frames) )
            self.logger.debug("done loading frame")
+           if(self.config.autoplay):
+                if not self.video_playback.is_playing:
+                    #self.video_playback.start()
+                    self.video_playback.is_playing = True
 
 
     def open_file2(self,file_path):
@@ -653,9 +661,10 @@ class SBW(QMainWindow):
         else:
              self.logger.error(f"OF2: can't find file {file_path}")
              #return "this is bad, but no workie"
+            
+        if not os.path.exists(file_path):
+            return "OF1 no file "
 
-        if file_path == "no left vid":
-            return "suck2"
         self.logger.debug(f"file path2: {file_path}")
         if file_path:
               self.video_clip2 = av.open(file_path)
@@ -666,7 +675,8 @@ class SBW(QMainWindow):
               self.logger.debug("done loading frame2")
               if(self.config.autoplay):
                 if not self.video_playback.is_playing:
-                    self.video_playback.start()
+                    #self.video_playback.start()
+                    self.video_playback.is_playing = True
 
     # Function to play the video
     @Slot()

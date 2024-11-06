@@ -43,7 +43,11 @@ class TrcQueueWorker(QObject):
                 swing = Swing.get_by_id(task_value)
                 url = config.poseServer + "?path="+ requests.utils.quote(swing.leftVid)
                 self.logger.debug(f" url: {url}")
-                response = requests.get(url)
+                try:
+                    response = requests.get(url)
+                except Exception as e:
+                    self.logger.error(f" error getting trc data: {e}")
+                    return
                 if response.status_code == 200:
                     #logger.debug(f"woot, got trc\n{response.text} encoding: {response.encoding}")
                     self.logger.debug(f"woot, got trc encoding: {response.encoding}")
