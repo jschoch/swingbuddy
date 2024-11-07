@@ -242,6 +242,14 @@ class SBW(QMainWindow):
         self.trc_queue_worker.complete_trc.connect(self.trc_result)
         self.start_queue()
 
+    # Connect the main window's close event to a method in the debug window
+        #self.closeEvent.connect(self.on_main_window_close)
+    
+    def on_main_window_close(self, event):
+        self.debug_window.close()
+        event.accept()  # Accept the close event
+    
+
     def start_queue(self):
 
         if not self.trc_queue_worker.is_running:
@@ -389,7 +397,8 @@ class SBW(QMainWindow):
 
         if(swing.id == self.current_swing.id):
             self.current_swing = swing
-            self.plot.update_data(df['Speed'].to_list())
+            #self.plot.update_data(df['Speed'].to_list())
+            self.plot.update_data(df)
 
     def print_output(self,s):
         self.logger.debug(f"output: {s}")
@@ -489,7 +498,8 @@ class SBW(QMainWindow):
 
         self.trc_data = df
         self.logger.debug(f"columns: {df.head()}")
-        self.plot.update_data(df['Speed_filtered'].to_list())
+        #self.plot.update_data(df['Speed_filtered'].to_list())
+        self.plot.update_data(df)
 
 
     def load_swing(self,id):
@@ -879,8 +889,8 @@ class SineWavePlot(QWidget):
 
         # Create a plot widget
         self.plot_widget = pg.PlotWidget()
-        self.plot_item = self.plot_widget.plot(self.x, self.y, pen='b')
-        #self.plot_item = self.plot_widget.plot(x1, y1, pen='r')
+        self.plot_item = self.plot_widget.plot(self.x, self.y, pen={'color': 'r', 'width': 4})
+        self.plot_item2 = self.plot_widget.plot(self.x, self.y, pen={'color': 'g', 'width': 1})
         # Create a vertical line item
         self.vline = pg.InfiniteLine(angle=90, movable=False)
         self.plot_widget.addItem(self.vline)
@@ -927,12 +937,20 @@ class SineWavePlot(QWidget):
     def reset_data(self):
         self.y = self.oy
         self.x = self.ox
-        self.plot_item.setData(self.x, self.y, pen='r')
+        self.plot_item.setData(self.x, self.y, pen={'color': 'r', 'width': 2})
     @Slot()
-    def update_data(self, new_y_data):
-        self.y = new_y_data
-        self.x = list(range(len(new_y_data)))
-        self.plot_item.setData(self.x, self.y, pen='b')
+    #def update_data(self, new_y_data):
+    def update_data(self,df):
+        self.y = df['Speed_filtered'].to_list()
+        self.x = list(range(len(self.y)))
+        self.plot_item.setData(self.x, self.y, pen={'color': 'cyan', 'width': 4})
+        self.y2 = df['Speed'].to_list()
+        pen = {'color': 'r', 'width': 1}
+        self.plot_item2.setData(self.x,self.y2,pen=pen)
+        #brush = {'color': (0, 255, 255), 'alpha': 0.5}  # Neon green with alpha=0.7
+        #brush = {'color':'r','alpha': 0.5}
+        #self.plot_item2.setData(self.x, self.y2, pen=pen, brush=brush)
+        #self.plot_item2.setData(self.x, self.y2, pen={'color': 'pink', 'width': 2}, brush={'alpha': 0.5})
 
 
 class AddDialog(QDialog):

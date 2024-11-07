@@ -56,3 +56,16 @@ class Window(QWidget):
 
     def CleanUi(self):
         self.textEdit.clear()
+
+    def closeEvent(self, event):
+        # Optionally you can add some confirmation logic here
+        # For example:
+        # reply = QMessageBox.question(self, 'Message', "Are you sure to quit?",
+        #                              QMessageBox.Yes | QMessageBox.No,
+        #                              QMessageBox.No)
+        # if reply == QMessageBox.Yes:
+        self.quit_application()
+        event.accept()
+
+    def quit_application(self):
+        self.close()

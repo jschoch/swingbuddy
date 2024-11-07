@@ -51,7 +51,7 @@
     <item row="1" column="1">
      <widget class="QTabWidget" name="tabWidget_2">
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab_3">
        <property name="sizePolicy">
@@ -106,8 +106,8 @@
          <rect>
           <x>20</x>
           <y>10</y>
-          <width>2</width>
-          <height>2</height>
+          <width>781</width>
+          <height>411</height>
          </rect>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_5"/>

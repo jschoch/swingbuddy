@@ -73,7 +73,7 @@ class Ui_SBW(object):
         self.tab_4.setObjectName(u"tab_4")
         self.verticalLayoutWidget_3 = QWidget(self.tab_4)
         self.verticalLayoutWidget_3.setObjectName(u"verticalLayoutWidget_3")
-        self.verticalLayoutWidget_3.setGeometry(QRect(20, 10, 2, 2))
+        self.verticalLayoutWidget_3.setGeometry(QRect(20, 10, 781, 411))
         self.verticalLayout_5 = QVBoxLayout(self.verticalLayoutWidget_3)
         self.verticalLayout_5.setObjectName(u"verticalLayout_5")
         self.verticalLayout_5.setContentsMargins(0, 0, 0, 0)
@@ -182,7 +182,7 @@ class Ui_SBW(object):
         self.retranslateUi(SBW)
         self.stop_btn.clicked.connect(SBW.update)
 
-        self.tabWidget_2.setCurrentIndex(2)
+        self.tabWidget_2.setCurrentIndex(0)
         self.tabWidget.setCurrentIndex(0)
 
 
