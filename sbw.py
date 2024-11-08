@@ -111,6 +111,11 @@ class FlaskThread(QThread):
     
     @Slot()
     def on_msg_to_send(self,obj):
+        """
+        why do i need to do this?
+        the signals don't work
+        just call emit directly!?
+        """
         (a,b) = obj
         log.debug("got a signal on_msg_to_send")
         #socketio.emit(a,b,broadcast=True)
@@ -599,6 +604,8 @@ class SBW(QMainWindow):
         self.logger.debug("of1wdone done {result}")
 
     def test_ws(self):
+        socketio.emit("do_ocr", "awww/vuck/path")
+        return
         self.logger.debug("testing ws")
         self.shared_object.message_signal.doany.emit()
         self.logger.debug("testing direct fuckery")
