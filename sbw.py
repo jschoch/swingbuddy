@@ -22,7 +22,7 @@ from peewee import *
 from wlog import QtWindowHandler
 #from moviepy.video.io.VideoFileClip import VideoFileClip
 import av
-from util import find_swing, test_fetch_trc, fetch_trc,get_pairs
+from util import find_swing, fetch_trc,get_pairs
 import pyqtgraph as pg
 import numpy as np
 import json
@@ -90,6 +90,8 @@ class MyReceiver(QObject):
 
 
 class SBW(QMainWindow):
+    main_play_signal = Signal()
+    main_pause_signal = Signal()
     def __init__(self, parent=None):
         super().__init__(parent)
         self.ui = Ui_SBW()
@@ -105,11 +107,6 @@ class SBW(QMainWindow):
         self.ui.verticalLayout_5.addWidget(self.ui.cw)
         self.config = self.ui.cw.load_config()
 
-        # queue for trc jobs
-        #self.trc_queue_worker = TrcQueueWorker(tasks=[1])
-        #self.ui.qs = QwStatusWidget()
-
-
         self.ui.sw = SwingWidget()
         self.ui.verticalLayout_6.addWidget(self.ui.sw)
         self.video_clip = None
@@ -119,7 +116,6 @@ class SBW(QMainWindow):
         vpbusize_policy.setVerticalPolicy(QSizePolicy.Expanding)
         self.video_playback_Ui.setSizePolicy(vpbusize_policy)
         self.video_playback = None
-        #player = VideoPlayBackUi()
         self.ui.horizontalLayout.addWidget(self.video_playback_Ui)
 
         # Adding MenuBar with File, Tool, and Help menus
@@ -143,8 +139,6 @@ class SBW(QMainWindow):
         self.quit_action.setShortcut("Ctrl+Q")
         self.quit_action.triggered.connect(self.quit_application)
         self.file_menu.addAction(self.quit_action)
-
-        self.timer = QTimer()
 
         # Setup share obj for flask messages
         self.message_signal = MessageReceivedSignal()
@@ -196,17 +190,13 @@ class SBW(QMainWindow):
         self.logger.debug(f" tables: {tables}")
         if "swing" in tables:
             self.logger.debug("found swing table")
-            #self.foo("swings")
         else:
             None
-            #self.foo("no swings")
 
-            #self.foo("made seings")
         print(f"tables: {tables}")
 
         self.pairs = []
 
-        #self.ui.sw_btn.clicked.connect(self.start_get_screen)
         self.ui.run_a_btn.clicked.connect(self.start_request_trc)
         self.ui.add_btn.clicked.connect(self.add_swing_clicked)
 
@@ -232,9 +222,7 @@ class SBW(QMainWindow):
         self.trc_queue_worker = TrcQueueWorker(self.logger,tasks=[])
         self.ui.qs = QwStatusWidget(self.logger, queue_worker=self.trc_queue_worker)
         self.ui.verticalLayout_5.addWidget(self.ui.qs)
-        #self.status_widget.logger = self.logger
         self.trc_thread = QThread()
-
         self.trc_queue_worker.moveToThread(self.trc_thread)
         self.trc_thread.started.connect(self.trc_queue_worker.run)
         self.trc_queue_worker.complete.connect(self.stop_queue)
@@ -262,10 +250,9 @@ class SBW(QMainWindow):
     #@Slot(int)
     #def add_task(self):
     def add_task(self, id):
+        """ adds a swing id to the trc queue """
         try:
-            #task_value = int(self.task_input.text())
             self.trc_queue_worker.add_task(id)
-            #self.task_list.addItem(id)
         except ValueError:
             print("Invalid input. Please enter a valid integer.")
 
@@ -360,29 +347,13 @@ class SBW(QMainWindow):
 
     @Slot()
     def start_request_trc(self):
-        if not hasattr(self, 'trc_w') or not self.trc_w.isRunning():
-            self.trc_w = Worker(self.request_trc)
-            self.trc_w.signals.result.connect(self.trc_result)
-            self.trc_w.signals.finished.connect(self.on_request_trc_finished)
-            self.threadpool.start(self.trc_w)
-        else:
-            self.logger.debug("already running trc request")
+        """ 
+        should just add to the trc queue
+        """
+        self.logger.debug("Adding a swing to the queue")
+        self.add_task(self.current_swing.id)
 
-    def request_trc(self):
-        id = self.current_swing.id
-        result = fetch_trc(self.config,self.current_swing,self.logger)
-        clean = result.replace('\\r','')
 
-        sio = StringIO(clean)
-        df = pd.read_csv(sio)
-
-        self.logger.debug(f"df info: {df.info()}")
-        obj = (df,clean,id)
-        self.trc_w.signals.result.emit(obj)
-
-    @Slot()
-    def on_request_trc_finished(self):
-        self.logger.debug("got fnishied, why do i need this?")
 
     @Slot()
     def trc_result(self,obj):
@@ -406,7 +377,7 @@ class SBW(QMainWindow):
     def do_screen_timer(self):
         self.logger.debug(f"starting timer for screenshot {self.config.screen_timeout} seconds")
         timer = QTimer()
-        #self.timer.timeout.connect(self.dst_done,self.current_swing.id)
+        print("in do_screen_timer, creating timer")
         timer.timeout.connect(lambda: self.dst_done( self.current_swing.id))
         timer.start(self.config.screen_timeout * 1000)
 
@@ -415,7 +386,6 @@ class SBW(QMainWindow):
 
         #TODO: this screams for some sort of locking
         fname = self.take_screen()
-        #self.timer.stop()
         self.logger.debug(f"done screen timer: id was {id}")
         swing = Swing.get_by_id(id)
         swing.screen = fname
@@ -487,25 +457,13 @@ class SBW(QMainWindow):
         self.logger.debug(f"item {item} id: {item_id}")
         self.load_swing(item_id)
 
-    def parse_csv(self,maybe_trc):
-        df = pd.read_csv(StringIO(maybe_trc))
-
-        self.logger.debug(f"info: {df.info()}")
-
-        if(df.empty):
-            self.logger.debug("EMPTY")
-            return
-
-        self.trc_data = df
-        self.logger.debug(f"columns: {df.head()}")
-        #self.plot.update_data(df['Speed_filtered'].to_list())
-        self.plot.update_data(df)
-
+    
 
     def load_swing(self,id):
         swing = Swing.get_by_id(id)
         if self.video_playback != None and self.video_playback.is_playing:
-            self.video_playback.stop()
+            self.main_pause_signal.emit()
+            #self.video_playback.stop()
             #self.video_playback.stop.connect
         if swing == None:
             self.logger.error(f"cant' find the swing id {id}")
@@ -529,10 +487,14 @@ class SBW(QMainWindow):
         maybe_trc = swing.trc
 
         self.current_swing = swing
+
+        # this setups the swing data in the tab
         self.ui.sw.set_swing_data(swing)
 
         self.video_clip = None
         self.video_playback = VideoPlayBack(self.video_playback_Ui, self.video_clip)
+        self.main_play_signal.connect(self.video_playback.play)
+        self.main_pause_signal.connect(self.video_playback.pause)
         self.video_playback.logger = self.logger
         self.video_playback_Ui.play_button.setEnabled(True)
         self.video_playback_Ui.slider.setEnabled(True)
@@ -567,7 +529,6 @@ class SBW(QMainWindow):
                 pixmap_big = QPixmap(image_path)
                 parent_size = self.screenlabel.parent().size()
                 pixmap = pixmap_big.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
-                #self.screenlabel.setPixmap(pixmap)
                 self.video_playback_Ui.screen_label2.setPixmap(pixmap)
             else:
                 self.logger.debug(f"No path for screen {image_path}")
@@ -580,10 +541,13 @@ class SBW(QMainWindow):
             if(self.config.enableTRC):
                 self.logger.debug("auto trc, fetching")
                 self.add_task(self.current_swing.id)
-                #self.start_request_trc()
             return
-        w3 = Worker(self.parse_csv,maybe_trc)
-        self.threadpool.start(w3)
+
+        #w3 = Worker(self.parse_csv,maybe_trc)
+        #self.threadpool.start(w3)
+        #self.parse_csv(self,maybe_trc)
+        (df,hip_df,shoulder_df,maybe_trc) = self.trc_queue_worker.parse_csv(maybe_trc)
+        self.plot.update_data(df,hip_df,shoulder_df)
 
     def of1wdone(self,result):
         self.logger.debug("of1wdone done {result}")
@@ -665,7 +629,6 @@ class SBW(QMainWindow):
            self.logger.debug("done loading frame")
            if(self.config.autoplay):
                 if not self.video_playback.is_playing:
-                    #self.video_playback.start()
                     self.video_playback.is_playing = True
 
 
@@ -690,14 +653,14 @@ class SBW(QMainWindow):
               self.logger.debug("done loading frame2")
               if(self.config.autoplay):
                 if not self.video_playback.is_playing:
-                    #self.video_playback.start()
                     self.video_playback.is_playing = True
 
     # Function to play the video
     @Slot()
     def play(self):
         self.logger.debug("Like WTF!")
-        self.video_playback.toggle_play_pause()
+        #self.video_playback.toggle_play_pause()
+        self.main_play_signal.emit()
 
 
     # Function to play the video in reverse
@@ -712,7 +675,7 @@ class SBW(QMainWindow):
     def slider_moved(self, position):
         #self.logger.debug(f"pos: {position}")
         if self.video_playback.is_playing:
-            self.video_playback.is_playing = False
+            self.main_pause_signal.emit()
         self.video_playback.current_frame_index = position
         self.video_playback.update_frame(0)
         self.video_playback.update_frame(1)
@@ -891,6 +854,7 @@ class SineWavePlot(QWidget):
         self.plot_widget = pg.PlotWidget()
         self.plot_item = self.plot_widget.plot(self.x, self.y, pen={'color': 'r', 'width': 4})
         self.plot_item2 = self.plot_widget.plot(self.x, self.y, pen={'color': 'g', 'width': 1})
+        self.hip_plot_item = self.plot_widget.plot(self.x, self.y, pen={'color': 'g', 'width': 1})
         # Create a vertical line item
         self.vline = pg.InfiniteLine(angle=90, movable=False)
         self.plot_widget.addItem(self.vline)
@@ -938,15 +902,21 @@ class SineWavePlot(QWidget):
         self.y = self.oy
         self.x = self.ox
         self.plot_item.setData(self.x, self.y, pen={'color': 'r', 'width': 2})
+        self.plot_item2.setData(self.x, self.y, pen={'color': 'r', 'width': 2})
     @Slot()
     #def update_data(self, new_y_data):
-    def update_data(self,df):
+    def update_data(self,df, df2 = None, df3 = None):
         self.y = df['Speed_filtered'].to_list()
         self.x = list(range(len(self.y)))
         self.plot_item.setData(self.x, self.y, pen={'color': 'cyan', 'width': 4})
         self.y2 = df['Speed'].to_list()
         pen = {'color': 'r', 'width': 1}
         self.plot_item2.setData(self.x,self.y2,pen=pen)
+
+        if df2.empty:
+            self.logger.debug("Got some Shoulder data! now you have to update the plot and add the ui stuff to toggle and stuff")
+            self.hip_plot_item.setData(self.x, df2['Speed'],pen={'color':'g','width':2})
+
         #brush = {'color': (0, 255, 255), 'alpha': 0.5}  # Neon green with alpha=0.7
         #brush = {'color':'r','alpha': 0.5}
         #self.plot_item2.setData(self.x, self.y2, pen=pen, brush=brush)

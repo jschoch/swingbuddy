@@ -131,6 +131,14 @@ class VideoPlayBack:
             self.is_playing = True
 
     @Slot()
+    def play(self):
+        self.is_playing = True
+
+    @Slot()
+    def pause(self):
+        self.is_playing = False
+
+    @Slot()
     def stop(self):
         if self.is_playing:
             self.is_playing = False

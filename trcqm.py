@@ -9,6 +9,7 @@ from io import StringIO
 import requests
 from swingdb import Config,Swing
 from peewee import *
+import json
 
 db = SqliteDatabase('swingbuddy.db')
 
@@ -30,6 +31,29 @@ class TrcQueueWorker(QObject):
         self.tasks.append(task_value)
         self.progress.emit(task_value)
         self.logger.debug(f"Added task: {task_value}")
+    
+    def parse_csv(self,maybe_trc):
+        """
+        parse out the dataframes from the raw json text blob. 
+        """
+        shoulder_df = None
+        json_data = json.loads(maybe_trc)
+        df = pd.read_csv(StringIO(json_data['wrist']))
+
+        self.logger.debug(f"info: {df.info()}")
+
+        if(df.empty):
+            self.logger.debug("EMPTY")
+            return
+
+        self.logger.debug(f"columns: {df.head()}")
+        hip_df = pd.read_csv(StringIO(json_data['hip']))
+
+        if(hip_df.empty):
+            self.logger.error("some problem with the hip data")
+        else:
+            self.logger.debug(f" hip head: {hip_df.head()}")
+        return (df,hip_df,shoulder_df,maybe_trc)
 
     def run(self):
         while self.is_running :
@@ -54,16 +78,10 @@ class TrcQueueWorker(QObject):
                     #return response.text
                 else:
                     return "ERROR"
-                #clean = result.replace('\\r','')
 
-                sio = StringIO(response.text)
-                df = pd.read_csv(sio)
-
+                (df,hip_df,shoulder_df,maybe_trc) = self.parse_csv(response.text)
                 self.logger.debug(f"df info: {df.info()}")
-                #swing.trc = response.text
-                #swing.save
                 obj = (df,response.text,task_value)
-                #self.trc_w.signals.result.emit(obj)
                 self.complete_trc.emit(obj)
                 self.progress.emit(self.current_task_index)
                 self.logger.debug(f"pretending i'm done")
