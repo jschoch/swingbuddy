@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (QMainWindow, QListView, QPushButton, QTextEdit,QS
     QHBoxLayout, QWidget, QVBoxLayout, QLabel,QDialog,QDialogButtonBox,
     QSizePolicy, QMessageBox,QDialog, QGridLayout, QTextEdit)
 from flask import Flask, request,jsonify
+from flask_socketio import SocketIO, emit, send
 import logging
 from swingdb import Swing, Session,Config
 from peewee import *
@@ -43,42 +44,64 @@ from qwid import QwStatusWidget
 from trcqm import TrcQueueWorker
 
 app2 = Flask(__name__)
+socketio = SocketIO(app2, cors_allowed_origins="*")
 
 db = SqliteDatabase('swingbuddy.db')
 
 class MessageReceivedSignal(QObject):
     messageReceived = Signal(str)
+    wsSignal = Signal(str)
 
 class SharedObject:
     def __init__(self):
         self.message_signal = MessageReceivedSignal()
 
 shared_object = SharedObject()
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')  
+
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+log.addHandler(handler) 
+log.debug("TEST123121111111111111111111111111111111111111111111111111")
 
 class FlaskThread(QThread):
+    def __init__(self, logger):
+        super().__init__()
+        #self.logging = logger
 
     def run(self):
         global shared_object
-        app2.run(host='127.0.0.1', port=5004)
+        socketio.run(app2, host='0.0.0.0', port=5004)
         shared_object.message_signal.messageReceived.emit("i started ok?")
+        log.debug("Flask Run finished")
 
+    @app2.route('/')
+    def index():
+        return "Flask App is running"
 
     @app2.route('/s')
     def handle_message():
         message = request.args.get('message')
 
         if not message:
-            logging.debug("fuck fuck fuck")
             return jsonify({'error': 'Message is required'}), 410
 
         shared_object.message_signal.messageReceived.emit(message)
         return jsonify({'message': message})
+    
+    @socketio.on('connect')
+    def handle_connect():
+        print('Client connected')
 
-    @app2.route('/foo')
-    def ham():
-        shared_object.message_signal.messageReceived.emit("i hate you")
-        return "bar"
-
+    # WebSocket event handler
+    @socketio.on('message')
+    def handle_client_message(data):
+        # Emit the received message back to all clients
+        emit('message_received', data, broadcast=True)
+        emit('do_ocr',"some/file/path")
+        shared_object.message_signal.wsSignal.emit(data)
 
 
 class MyReceiver(QObject):
@@ -141,11 +164,11 @@ class SBW(QMainWindow):
         self.file_menu.addAction(self.quit_action)
 
         # Setup share obj for flask messages
+        self.shared_object = shared_object
         self.message_signal = MessageReceivedSignal()
         self.message_signal.messageReceived.connect(self.foo, Qt.QueuedConnection)
-        self.shared_object = shared_object
-        self.shared_object.message_signal.messageReceived.connect(self.foo, Qt.QueuedConnection)
-
+        self.shared_object.message_signal.wsSignal.connect(self.ws_sig,Qt.QueuedConnection)
+        
         # Add action to the Tool menu
         self.play_rev_action = QAction("&Play Reverse", self)
         self.play_rev_action.setShortcut("Ctrl+R")
@@ -169,7 +192,9 @@ class SBW(QMainWindow):
 
         #  Flask stuff
 
-        self.flask_thread = FlaskThread()
+        self.flask_thread = FlaskThread(self.logger)
+        self.flask_thread.start()
+        self.flask_thread.logging = self.logger
 
 
 
@@ -182,7 +207,7 @@ class SBW(QMainWindow):
         self.ui.del_swing_btn.clicked.connect(self.del_swing)
         self.ui.create_db_btn.clicked.connect(self.create_db)
 
-        self.flask_thread.start()
+
 
 
         db.connect()
@@ -232,6 +257,10 @@ class SBW(QMainWindow):
 
     # Connect the main window's close event to a method in the debug window
         #self.closeEvent.connect(self.on_main_window_close)
+
+    @Slot()    
+    def ws_sig(self,s):
+        self.logger.info(f"WebSocket signal received {s}")
     
     def on_main_window_close(self, event):
         self.debug_window.close()

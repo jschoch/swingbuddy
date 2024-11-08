@@ -19,6 +19,8 @@ flask = "^3.0.3"
 pyqtgraph = "^0.13.7"
 chardet = "^5.2.0"
 pillow = "^11.0.0"
+flask-socketio = "^5.4.1"
+websockets = "^13.1"
 
 
 [build-system]
