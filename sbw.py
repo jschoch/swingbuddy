@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (QMainWindow, QListView, QPushButton, QTextEdit,QS
     QHBoxLayout, QWidget, QVBoxLayout, QLabel,QDialog,QDialogButtonBox,
     QSizePolicy, QMessageBox,QDialog, QGridLayout, QTextEdit)
 from flask import Flask, request,jsonify
-from flask_socketio import SocketIO, emit, send
+from flask_socketio import SocketIO, emit, send,join_room
 import logging
 from swingdb import Swing, Session,Config
 from peewee import *
@@ -51,12 +51,15 @@ db = SqliteDatabase('swingbuddy.db')
 class MessageReceivedSignal(QObject):
     messageReceived = Signal(str)
     wsSignal = Signal(str)
+    msg_to_send = Signal(object)
+    doany = Signal()
 
 class SharedObject:
     def __init__(self):
         self.message_signal = MessageReceivedSignal()
 
 shared_object = SharedObject()
+
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')  
@@ -64,7 +67,6 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 log.addHandler(handler) 
-log.debug("TEST123121111111111111111111111111111111111111111111111111")
 
 class FlaskThread(QThread):
     def __init__(self, logger):
@@ -75,6 +77,8 @@ class FlaskThread(QThread):
         global shared_object
         socketio.run(app2, host='0.0.0.0', port=5004)
         shared_object.message_signal.messageReceived.emit("i started ok?")
+        shared_object.message_signal.msg_to_send.connect(self.on_msg_to_send)
+        shared_object.message_signal.doany.connect(self.on_do_any)
         log.debug("Flask Run finished")
 
     @app2.route('/')
@@ -91,23 +95,31 @@ class FlaskThread(QThread):
         shared_object.message_signal.messageReceived.emit(message)
         return jsonify({'message': message})
     
-    @socketio.on('connect')
-    def handle_connect():
-        print('Client connected')
+    @socketio.on('connect', namespace='/remote')
+    def handle_connect(sid):
+        log.debug(f"Client connected {sid}")
+        join_room(sid,'remote')
 
     # WebSocket event handler
     @socketio.on('message')
     def handle_client_message(data):
         # Emit the received message back to all clients
+        log.debug("Handle Client triggered")
         emit('message_received', data, broadcast=True)
         emit('do_ocr',"some/file/path")
         shared_object.message_signal.wsSignal.emit(data)
+    
+    @Slot()
+    def on_msg_to_send(self,obj):
+        (a,b) = obj
+        log.debug("got a signal on_msg_to_send")
+        #socketio.emit(a,b,broadcast=True)
+        #socketio.emit(a, {'data': b}, room='remote')
+        socketio.emit(a,b)
 
-
-class MyReceiver(QObject):
-    def receive_signal(self, message):
-        self.ui.out_msg.setText(" god damn you ")
-        print("Received signal:", message)
+    @Slot()
+    def on_do_any(self):
+        log.debug("Somethign happend thank god")
 
 
 
@@ -122,6 +134,12 @@ class SBW(QMainWindow):
         self.logger =  logging.getLogger("__main__")
         self.threadpool = QThreadPool()
 
+        #  Flask stuff
+
+        self.flask_thread = FlaskThread(self.logger)
+        self.flask_thread.start()
+        self.flask_thread.logging = self.logger
+
 
         # setup db
         self.create_db()
@@ -129,6 +147,7 @@ class SBW(QMainWindow):
         self.ui.cw.logger = self.logger
         self.ui.verticalLayout_5.addWidget(self.ui.cw)
         self.config = self.ui.cw.load_config()
+        self.current_swing = None
 
         self.ui.sw = SwingWidget()
         self.ui.verticalLayout_6.addWidget(self.ui.sw)
@@ -165,8 +184,8 @@ class SBW(QMainWindow):
 
         # Setup share obj for flask messages
         self.shared_object = shared_object
-        self.message_signal = MessageReceivedSignal()
-        self.message_signal.messageReceived.connect(self.foo, Qt.QueuedConnection)
+        #self.message_signal = MessageReceivedSignal()
+        self.shared_object.message_signal.messageReceived.connect(self.foo, Qt.QueuedConnection)
         self.shared_object.message_signal.wsSignal.connect(self.ws_sig,Qt.QueuedConnection)
         
         # Add action to the Tool menu
@@ -190,11 +209,7 @@ class SBW(QMainWindow):
         self.video_playback_Ui.speed_slider.valueChanged.connect(self.set_playback_speed)
 
 
-        #  Flask stuff
-
-        self.flask_thread = FlaskThread(self.logger)
-        self.flask_thread.start()
-        self.flask_thread.logging = self.logger
+        
 
 
 
@@ -205,7 +220,7 @@ class SBW(QMainWindow):
 
         #self.ui.play_btn.clicked.connect(self.foo)
         self.ui.del_swing_btn.clicked.connect(self.del_swing)
-        self.ui.create_db_btn.clicked.connect(self.create_db)
+        self.ui.create_db_btn.clicked.connect(self.test_ws)
 
 
 
@@ -240,7 +255,6 @@ class SBW(QMainWindow):
         self.ui.horizontalLayout.addWidget(self.screenlabel)
         self.ui.stop_btn.clicked.connect(self.take_screen)
 
-        self.ui.pop_btn.clicked.connect(self.populate_test_data)
         self.ui.cw.reload_signal.connect(self.reload_config)
 
 
@@ -315,8 +329,11 @@ class SBW(QMainWindow):
         now = datetime.now()
 
         fname = f"{self.config.screenDir}/{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}_screen.png"
+        self.test_ws()
 
-
+        if self.current_swing is None:
+            self.logger.debug("no loaded swing")
+            return
         ss = pyautogui.screenshot(fname, region=self.convert_screen_string(self.config.screen_coords))
         self.logger.debug(f"screenshot: {fname}")
         self.current_swing.screen = fname
@@ -581,6 +598,17 @@ class SBW(QMainWindow):
     def of1wdone(self,result):
         self.logger.debug("of1wdone done {result}")
 
+    def test_ws(self):
+        self.logger.debug("testing ws")
+        self.shared_object.message_signal.doany.emit()
+        self.logger.debug("testing direct fuckery")
+        self.flask_thread.on_do_any()
+        #emit('do_ocr',"another/file/path")
+        obj = ('do_ocr',"another/file/path")
+        self.shared_object.message_signal.msg_to_send.emit(obj)
+        self.logger.debug("more fuckery")
+        self.flask_thread.on_msg_to_send(obj)
+
     def create_db(self):
         db.create_tables([Swing,Config,Session])
         try:
@@ -591,16 +619,6 @@ class SBW(QMainWindow):
             self.config.save
 
 
-
-
-
-
-    def populate_test_data(self):
-        ##names = "abcdefg".split()
-        #names = list("abcdefg")
-        #for n in names:
-        #    Swing.create(name = n)
-        find_swings()
 
     Slot()
     def unf(self):

@@ -1,7 +1,7 @@
 import socketio
 import time
 
-uri = "http://192.168.1.216:5004"
+uri = "http://192.168.1.216:5004/remote"
 
 sio = socketio.Client(logger=True, engineio_logger=True)
 start_timer = None
@@ -40,5 +40,10 @@ def do_ocr(file_path):
 
 
 if __name__ == '__main__':
-    sio.connect(uri)
-    sio.wait()
+    try:
+        sio.connect(uri)
+        sio.wait()
+    except KeyboardInterrupt:
+        print("Exiting...")
+        sio.disconnect()
+        exit(0)
