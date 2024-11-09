@@ -357,8 +357,11 @@ class SBW(QMainWindow):
             self.logger.error(f"error saving swing: {e}")
             return
         qimage = QImage(ss.tobytes(), ss.width, ss.height, QImage.Format_RGB888)
+        if qimage == None:  
+            logger.error("QImage is None")
+            return
         parent_size = self.screenlabel.parent().size()
-        self.logger.debug(f"parent size: {parent_size}")
+        self.logger.debug(f"parent size: {parent_size} qimage {qimage}")
         scaled_image = qimage.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
         pixmap = QPixmap.fromImage(scaled_image)
         self.logger.debug("setting pixmap label")
