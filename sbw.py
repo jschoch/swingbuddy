@@ -157,6 +157,8 @@ class SBW(QMainWindow):
         self.config = self.ui.cw.load_config()
         self.current_swing = None
 
+        self.timer = QTimer()
+
         self.ui.sw = SwingWidget()
         self.ui.verticalLayout_6.addWidget(self.ui.sw)
         self.video_clip = None
@@ -346,12 +348,13 @@ class SBW(QMainWindow):
         ss = pyautogui.screenshot(fname, region=self.convert_screen_string(self.config.screen_coords))
         self.logger.debug(f"screenshot: {fname}")
         self.current_swing.screen = fname
-
+        self.logger.debug("saving swing")
         self.current_swing.save
         qimage = QImage(ss.tobytes(), ss.width, ss.height, QImage.Format_RGB888)
         parent_size = self.screenlabel.parent().size()
         scaled_image = qimage.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
         pixmap = QPixmap.fromImage(scaled_image)
+        self.logger.debug("setting pixmap label")
         self.screenlabel.setPixmap(pixmap)
         return fname
 
@@ -432,7 +435,7 @@ class SBW(QMainWindow):
 
     def do_screen_timer(self):
         self.logger.debug(f"starting timer for screenshot {self.config.screen_timeout} seconds")
-        self.timer = QTimer()
+        #self.timer = QTimer()
         print("in do_screen_timer, creating timer")
         self.timer.timeout.connect(lambda: self.dst_done( self.current_swing.id))
         self.timer.start(self.config.screen_timeout * 1000)
@@ -446,6 +449,7 @@ class SBW(QMainWindow):
         swing = Swing.get_by_id(id)
         swing.screen = fname
         swing.save()
+        self.timer.stop()
 
 
     #def get_screen(self,progress_callback):
