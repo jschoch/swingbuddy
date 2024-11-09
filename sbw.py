@@ -248,7 +248,8 @@ class SBW(QMainWindow):
 
         self.pairs = []
 
-        self.ui.run_a_btn.clicked.connect(self.start_request_trc)
+        #self.ui.run_a_btn.clicked.connect(self.start_request_trc)
+        self.ui.run_a_btn.clicked.connect(self.ws_request_trc)
         self.ui.add_btn.clicked.connect(self.add_swing_clicked)
 
         self.logger.debug("end of widget init")
@@ -365,9 +366,9 @@ class SBW(QMainWindow):
         # TODO: figure out why scaling this crashes
         #scaled_image = qimage.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
         #pixmap = QPixmap.fromImage(scaled_image)
-        pixmap = QPixmap.fromImage(qimage)
-        self.logger.debug("setting pixmap label")
-        self.screenlabel.setPixmap(pixmap)
+        #pixmap = QPixmap.fromImage(qimage)
+        #self.logger.debug("setting pixmap label")
+        #self.screenlabel.setPixmap(pixmap)
         return fname
       except Exception as e:
            self.logger.error(f"HORRROR error taking screenshot: {e}")
@@ -417,6 +418,12 @@ class SBW(QMainWindow):
         self.current_swing.save()
         self.add_swing_to_model(self.current_swing)
         self.load_swing(self.current_swing.id)
+
+    @Slot()
+    def ws_request_trc(self):
+        swing_id = self.current_swing.id 
+        self.logger.info(f"Requesting TRC for swing {swing_id}")
+        socketio.emit('do_vid',self.current_swing.rightVid)
 
     @Slot()
     def start_request_trc(self):
