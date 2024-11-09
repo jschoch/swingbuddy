@@ -637,6 +637,12 @@ class SBW(QMainWindow):
 
     Slot(str)
     def foo(self,s):
+        """
+        this gets called twice because kinovea does it for each video :(
+
+        you must ignor the errors from the 2nd attempt.
+            
+        """
         
         self.logger.debug(f"foo() s was: {s}")
         if isinstance(s,str):
@@ -649,15 +655,16 @@ class SBW(QMainWindow):
                     rightVid = swings[0],
                     leftVid = swings[1])
                 self.logger.debug("Trying to take the fucking screenshot")
-                if(self.config.enableScreen):
+
+                if(self.config.enableScreen ):
                     self.do_screen_timer()
+                else:
+                    self.logger.debug(f"enable screen was set to {self.config.enableScreen}")
+                self.add_swing_to_model(self.current_swing)
+                self.load_swing(self.current_swing.id)
             except Exception as e:
-                self.logger.debug(f"couldn't create swing, likely unique fname issue\n {e}")
+                self.logger.debug(f"couldn't create swing, likely unique fname issue\nKINOVEA calls this twice so should expect failure on every swing {e}")
                 return
-            self.add_swing_to_model(self.current_swing)
-            self.load_swing(self.current_swing.id)
-
-
         else:
             self.logger.debug("foo() s was not a string")
 
