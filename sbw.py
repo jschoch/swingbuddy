@@ -647,6 +647,8 @@ class SBW(QMainWindow):
                 self.current_swing = Swing.create(session = self.session,
                     rightVid = swings[0],
                     leftVid = swings[1])
+                if(self.config.enableScreen):
+                    self.do_screen_timer()
             except Exception as e:
                 self.logger.debug(f"couldn't create swing, likely unique fname issue\n {e}")
                 return
@@ -657,8 +659,7 @@ class SBW(QMainWindow):
         else:
             self.logger.debug("foo() s was not a string")
 
-        if(self.config.enableScreen):
-            self.do_screen_timer()
+        
 
 
     # Function to open a video file

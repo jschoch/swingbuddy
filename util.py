@@ -63,7 +63,7 @@ def get_pairs(directory_path):
     # Filter out pairs with only one file
     file_pairs = {prefix: files for prefix, files in file_pairs.items() if len(files) > 1}
 
-    print(file_pairs.keys())
+    #print(file_pairs.keys())
     return file_pairs
 
 def gen_trc():
