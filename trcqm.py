@@ -37,7 +37,11 @@ class TrcQueueWorker(QObject):
         parse out the dataframes from the raw json text blob. 
         """
         shoulder_df = None
-        json_data = json.loads(maybe_trc)
+        try: 
+            json_data = json.loads(maybe_trc)
+        except json.JSONDecodeError as e:
+            self.logger.error(f"JSON Decode Error: {e}")
+            return None
         df = pd.read_csv(StringIO(json_data['wrist']))
 
         self.logger.debug(f"info: {df.info()}")
