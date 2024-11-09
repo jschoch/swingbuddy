@@ -349,7 +349,11 @@ class SBW(QMainWindow):
         self.logger.debug(f"screenshot: {fname}")
         self.current_swing.screen = fname
         self.logger.debug("saving swing")
-        self.current_swing.save
+        try:
+            self.current_swing.save
+        except Exception as e:
+            self.logger.error(f"error saving swing: {e}")
+            return
         qimage = QImage(ss.tobytes(), ss.width, ss.height, QImage.Format_RGB888)
         parent_size = self.screenlabel.parent().size()
         scaled_image = qimage.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
