@@ -226,7 +226,6 @@ class SBW(QMainWindow):
         self.session = Session(name="Default Session")
         self.session.save()
 
-        #self.ui.play_btn.clicked.connect(self.foo)
         self.ui.del_swing_btn.clicked.connect(self.del_swing)
 
         self.ui.do_ocr_btn.clicked.connect(self.test_ws)
@@ -602,8 +601,12 @@ class SBW(QMainWindow):
         #w3 = Worker(self.parse_csv,maybe_trc)
         #self.threadpool.start(w3)
         #self.parse_csv(self,maybe_trc)
-        (df,hip_df,shoulder_df,maybe_trc) = self.trc_queue_worker.parse_csv(maybe_trc)
-        self.plot.update_data(df,hip_df,shoulder_df)
+        obj = self.trc_queue_worker.parse_csv(maybe_trc)
+        if obj != None:
+            (df,hip_df,shoulder_df,maybe_trc) = self.trc_queue_worker.parse_csv(maybe_trc)
+            self.plot.update_data(df,hip_df,shoulder_df)
+        else:
+            self.logger.error("trc data not parsed correctly")
 
     def of1wdone(self,result):
         self.logger.debug("of1wdone done {result}")
@@ -635,7 +638,7 @@ class SBW(QMainWindow):
     Slot(str)
     def foo(self,s):
         
-        self.logger.debug(f" s was: {s}")
+        self.logger.debug(f"foo() s was: {s}")
         if isinstance(s,str):
             self.ui.out_msg.setText(s)
             swings = find_swing(self.config.vidDir,"mp4")
@@ -652,9 +655,8 @@ class SBW(QMainWindow):
 
 
         else:
-            self.ui.out_msg.setText("you are the worst programmer ever")
+            self.logger.debug("foo() s was not a string")
 
-            print("shit out of luck")
         if(self.config.enableScreen):
             self.do_screen_timer()
 
