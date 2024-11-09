@@ -644,9 +644,11 @@ class SBW(QMainWindow):
             swings = find_swing(self.config.vidDir,"mp4")
             self.logger.debug(f"swings found: {swings}")
             try: 
+                self.logger.debug("trying to creat th efucking swing")
                 self.current_swing = Swing.create(session = self.session,
                     rightVid = swings[0],
                     leftVid = swings[1])
+                self.logger.debug("Trying to take the fucking screenshot")
                 if(self.config.enableScreen):
                     self.do_screen_timer()
             except Exception as e:
