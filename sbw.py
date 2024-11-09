@@ -349,9 +349,10 @@ class SBW(QMainWindow):
         ss = pyautogui.screenshot(fname, region=self.convert_screen_string(self.config.screen_coords))
         self.logger.debug(f"screenshot: {fname}")
         self.current_swing.screen = fname
-        self.logger.debug("saving swing")
         try:
-            self.current_swing.save
+            self.logger.debug("saving swing to db")
+            #self.current_swing.save
+
         except Exception as e:
             self.logger.error(f"error saving swing: {e}")
             return
