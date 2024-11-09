@@ -112,6 +112,10 @@ class FlaskThread(QThread):
     @socketio.on('ocr_data')
     def handle_ocr_data(data):
         log.debug(f"Got the data fool: {data}")
+
+    @socketio.on('video_data')
+    def handle_video_data(data):
+        log.debug(f"Got the video data fool: {data}")
     
     #@Slot()
     #def on_msg_to_send(self,obj):
