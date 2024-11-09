@@ -358,6 +358,7 @@ class SBW(QMainWindow):
             return
         qimage = QImage(ss.tobytes(), ss.width, ss.height, QImage.Format_RGB888)
         parent_size = self.screenlabel.parent().size()
+        self.logger.debug(f"parent size: {parent_size}")
         scaled_image = qimage.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
         pixmap = QPixmap.fromImage(scaled_image)
         self.logger.debug("setting pixmap label")
