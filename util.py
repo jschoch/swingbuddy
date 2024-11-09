@@ -35,7 +35,7 @@ def find_swing(directory_path,extension):
     print(f"directory path {directory_path}")
     #extension = 'trc'  # Change this to your desired extension
     files = get_files_with_extension(directory_path, extension)
-    print(f" files: {files}")
+    #print(f" files: {files}")
     sorted_files = sort_by_creation_time(files)
     if(len(sorted_files) > 0):
         print(sorted_files[-2:])

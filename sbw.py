@@ -589,7 +589,7 @@ class SBW(QMainWindow):
                 self.logger.debug(f"No path for screen {image_path}")
 
 
-        if(maybe_trc != "no trc" or maybe_trc != None):
+        if(maybe_trc != "no trc" and maybe_trc != None):
             self.logger.debug(f"found trc")
         else:
             self.logger.error("no trc data")
@@ -1019,7 +1019,7 @@ class AddDialog(QDialog):
     def on_selection_changed(self, selected, deselected):
         for index in selected.indexes():
             key = self.model.data(index)
-            print(f"Selected key: {key}, files: {self.data_dict[key]}")
+            #print(f"Selected key: {key}, files: {self.data_dict[key]}")
             self.files = self.data_dict[key]
             #self.sfiles.emit(self.files)
 
