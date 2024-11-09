@@ -336,6 +336,7 @@ class SBW(QMainWindow):
 
     @Slot()
     def take_screen(self):
+      try:
         # Get the current date and time
         now = datetime.now()
 
@@ -361,6 +362,9 @@ class SBW(QMainWindow):
         self.logger.debug("setting pixmap label")
         self.screenlabel.setPixmap(pixmap)
         return fname
+      except Exception as e:
+           self.logger.error(f"HORRROR error taking screenshot: {e}")
+           return None
 
     def add_swing_clicked(self, s):
         print("click", s)
