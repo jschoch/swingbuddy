@@ -161,6 +161,11 @@ class Ui_SBW(object):
 
         self.horizontalLayout_2.addWidget(self.sw_btn)
 
+        self.do_ocr_btn = QPushButton(self.horizontalLayoutWidget_2)
+        self.do_ocr_btn.setObjectName(u"do_ocr_btn")
+
+        self.horizontalLayout_2.addWidget(self.do_ocr_btn)
+
         self.run_a_btn = QPushButton(self.horizontalLayoutWidget_2)
         self.run_a_btn.setObjectName(u"run_a_btn")
 
@@ -207,6 +212,7 @@ class Ui_SBW(object):
         self.add_btn.setText(QCoreApplication.translate("SBW", u"Add Swing", None))
         self.del_swing_btn.setText(QCoreApplication.translate("SBW", u"Delete Swing ", None))
         self.sw_btn.setText(QCoreApplication.translate("SBW", u"Test Screenshot", None))
+        self.do_ocr_btn.setText(QCoreApplication.translate("SBW", u"Process ScreenShot", None))
         self.run_a_btn.setText(QCoreApplication.translate("SBW", u"Run Analysis", None))
     # retranslateUi
 

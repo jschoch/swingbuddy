@@ -105,26 +105,29 @@ class FlaskThread(QThread):
     def handle_client_message(data):
         # Emit the received message back to all clients
         log.debug("Handle Client triggered")
-        emit('message_received', data, broadcast=True)
-        emit('do_ocr',"some/file/path")
-        shared_object.message_signal.wsSignal.emit(data)
-    
-    @Slot()
-    def on_msg_to_send(self,obj):
-        """
-        why do i need to do this?
-        the signals don't work
-        just call emit directly!?
-        """
-        (a,b) = obj
-        log.debug("got a signal on_msg_to_send")
-        #socketio.emit(a,b,broadcast=True)
-        #socketio.emit(a, {'data': b}, room='remote')
-        socketio.emit(a,b)
+        #emit('message_received', data, broadcast=True)
+        #emit('do_ocr',"some/file/path")
+        #shared_object.message_signal.wsSignal.emit(data)
 
-    @Slot()
-    def on_do_any(self):
-        log.debug("Somethign happend thank god")
+    @socketio.on('ocr_data')
+    def handle_ocr_data(data):
+        log.debug(f"Got the data fool: {data}")
+    
+    #@Slot()
+    #def on_msg_to_send(self,obj):
+        #"""
+        #why do i need to do this?
+        #the signals don't work
+        #just call emit directly!?
+        #"""
+        #(a,b) = obj
+        #log.debug("got a signal on_msg_to_send")
+        ##socketio.emit(a,b,broadcast=True)
+        ##socketio.emit(a, {'data': b}, room='remote')
+        #socketio.emit(a,b)
+    #@Slot()
+    #def on_do_any(self):
+        #log.debug("Somethign happend thank god")
 
 
 
@@ -225,7 +228,8 @@ class SBW(QMainWindow):
 
         #self.ui.play_btn.clicked.connect(self.foo)
         self.ui.del_swing_btn.clicked.connect(self.del_swing)
-        self.ui.create_db_btn.clicked.connect(self.test_ws)
+
+        self.ui.do_ocr_btn.clicked.connect(self.test_ws)
 
 
 
@@ -334,7 +338,7 @@ class SBW(QMainWindow):
         now = datetime.now()
 
         fname = f"{self.config.screenDir}/{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}_screen.png"
-        self.test_ws()
+        #self.test_ws()
 
         if self.current_swing is None:
             self.logger.debug("no loaded swing")
@@ -402,7 +406,8 @@ class SBW(QMainWindow):
         should just add to the trc queue
         """
         self.logger.debug("Adding a swing to the queue")
-        self.add_task(self.current_swing.id)
+        if self.current_swing != None:
+            self.add_task(self.current_swing.id)
 
 
 
@@ -585,7 +590,7 @@ class SBW(QMainWindow):
                 self.logger.debug(f"No path for screen {image_path}")
 
 
-        if(maybe_trc != "no trc"):
+        if(maybe_trc != "no trc" or maybe_trc != None):
             self.logger.debug(f"found trc")
         else:
             self.logger.error("no trc data")
@@ -604,17 +609,13 @@ class SBW(QMainWindow):
         self.logger.debug("of1wdone done {result}")
 
     def test_ws(self):
-        socketio.emit("do_ocr", "awww/vuck/path")
+        self.logger.debug("ocr btn clicked")
+        if self.current_swing != None:
+            self.logger.debug("swing found")
+            if self.current_swing.screen != "no Screen": 
+                self.logger.debug(f"sending screen: {self.current_swing.screen}")
+                socketio.emit("do_ocr", self.current_swing.screen)
         return
-        self.logger.debug("testing ws")
-        self.shared_object.message_signal.doany.emit()
-        self.logger.debug("testing direct fuckery")
-        self.flask_thread.on_do_any()
-        #emit('do_ocr',"another/file/path")
-        obj = ('do_ocr',"another/file/path")
-        self.shared_object.message_signal.msg_to_send.emit(obj)
-        self.logger.debug("more fuckery")
-        self.flask_thread.on_msg_to_send(obj)
 
     def create_db(self):
         db.create_tables([Swing,Config,Session])

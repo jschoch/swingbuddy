@@ -79,12 +79,16 @@ class TrcQueueWorker(QObject):
                 else:
                     return "ERROR"
 
-                (df,hip_df,shoulder_df,maybe_trc) = self.parse_csv(response.text)
-                self.logger.debug(f"df info: {df.info()}")
-                obj = (df,response.text,task_value)
-                self.complete_trc.emit(obj)
-                self.progress.emit(self.current_task_index)
-                self.logger.debug(f"pretending i'm done")
+                if response.text != None:
+                    (df,hip_df,shoulder_df,maybe_trc) = self.parse_csv(response.text)
+                    self.logger.debug(f"df info: {df.info()}")
+                    obj = (df,response.text,task_value)
+                    self.complete_trc.emit(obj)
+                    self.progress.emit(self.current_task_index)
+                    self.logger.debug(f"pretending i'm done")
+                else:
+                    self.logger.error("parse_csv: TRC was None")
+                    return "ERROR"
             else:
                 self.progress_s.emit("Idle")
                 QThread.msleep(200)
