@@ -229,6 +229,7 @@ class SBW(QMainWindow):
         self.ui.del_swing_btn.clicked.connect(self.del_swing)
 
         self.ui.do_ocr_btn.clicked.connect(self.test_ws)
+        self.ui.sw_btn.clicked.connect(self.do_screen_timer)
 
 
 
@@ -431,10 +432,10 @@ class SBW(QMainWindow):
 
     def do_screen_timer(self):
         self.logger.debug(f"starting timer for screenshot {self.config.screen_timeout} seconds")
-        timer = QTimer()
+        self.timer = QTimer()
         print("in do_screen_timer, creating timer")
-        timer.timeout.connect(lambda: self.dst_done( self.current_swing.id))
-        timer.start(self.config.screen_timeout * 1000)
+        self.timer.timeout.connect(lambda: self.dst_done( self.current_swing.id))
+        self.timer.start(self.config.screen_timeout * 1000)
 
     @Slot()
     def dst_done(self,id):
