@@ -155,10 +155,18 @@ class FlaskThread(QThread):
     @socketio.on('video_data')
     def handle_video_data(data_txt):
         log.debug(f"Got the video data fool: {data_txt}")
-        #data = json.loads(data_txt)
-        #swing = Swing.get_by_id(data['swing_id'])
-        #lmdata = LMData.get_by_id(swing.lmdata)
-        #log.debug(f" the lmdata look like this: {lmdata}")
+        data = json.loads(data_txt)
+        try: 
+            swing = Swing.get_by_id(data['swingid'])
+            swing.faceTrc = data['trc_txt']
+            log.debug(f"got some crap {swing.faceTrc[:100]}")
+            swing.save()
+            log.debug("should have saved but hours of debugging and no clue hit brain cause i suck")
+            
+        except Exception as e:
+            log.error(f"Error getting swing by id: {e}")
+
+        
     
 
 
@@ -187,7 +195,8 @@ class SBW(QMainWindow):
         self.ui.cw.logger = self.logger
         self.ui.verticalLayout_5.addWidget(self.ui.cw)
         self.config = self.ui.cw.load_config()
-        self.current_swing = None
+
+        
 
         self.timer = QTimer()
 
@@ -310,6 +319,14 @@ class SBW(QMainWindow):
         self.trc_queue_worker.complete_trc.connect(self.trc_result)
         self.start_queue()
 
+        #self.current_swing = None
+        try:
+            lastswing = Swing.select().order_by(Swing.id.desc()).get()
+            #id = 
+            self.load_swing(lastswing.id)
+        except NoResultFound:
+            self.logger.error("No Swing found to load default on init ya")
+
     # Connect the main window's close event to a method in the debug window
         #self.closeEvent.connect(self.on_main_window_close)
 
@@ -344,6 +361,8 @@ class SBW(QMainWindow):
     #@Slot(int)
     #def add_task(self):
     def add_task(self, id):
+        self.logger.debug("TODO: get rid of this add_task thing, we are not using it")
+        return
         """ adds a swing id to the trc queue """
         try:
             self.trc_queue_worker.add_task(id)
@@ -463,9 +482,13 @@ class SBW(QMainWindow):
 
     @Slot()
     def ws_request_trc(self):
-        swing_id = self.current_swing.id 
-        self.logger.info(f"Requesting TRC for swing {swing_id}")
-        socketio.emit('do_vid',self.current_swing.faceVid)
+        self.logger.info(f"Requesting TRC for swing {self.current_swing.id}")
+        request_data = {
+            'file_path' : self.current_swing.faceVid,
+            'swingid' : self.current_swing.id
+        }
+        request_txt = json.dumps(request_data)
+        socketio.emit('do_vid',request_txt)
 
     @Slot()
     def start_request_trc(self):
