@@ -7,7 +7,7 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.14"
+python = ">=3.10,<3.14"
 pyside6 = "^6.8.0.2"
 requests = "^2.32.3"
 pyautogui = "^0.9.54"
@@ -21,6 +21,7 @@ chardet = "^5.2.0"
 pillow = "^11.0.0"
 flask-socketio = "^5.4.1"
 websockets = "^13.1"
+scipy = "^1.14.1"
 
 
 [build-system]

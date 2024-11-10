@@ -42,6 +42,7 @@ from showswing import SwingWidget
 import os
 from qwid import QwStatusWidget
 from trcqm import TrcQueueWorker
+from dataa import pre_speed, gen_speed
 
 app2 = Flask(__name__)
 socketio = SocketIO(app2, cors_allowed_origins="*")
@@ -318,8 +319,9 @@ class SBW(QMainWindow):
             lastswing = Swing.select().order_by(Swing.id.desc()).get()
             #id = 
             self.load_swing(lastswing.id)
-        except NoResultFound:
-            self.logger.error("No Swing found to load default on init ya")
+        except Exception as e:
+            self.logger.error(f"No Swing found to load default on init ya {e}")
+            self.current_swing = None
 
     # Connect the main window's close event to a method in the debug window
         #self.closeEvent.connect(self.on_main_window_close)
@@ -687,6 +689,14 @@ class SBW(QMainWindow):
 
         # TODO: move pre-speed and stuff from server here and update teh plot
         self.logger.error("TODO: fix the plots")
+        df = pd.read_csv(StringIO(maybe_trc))
+        self.logger.debug(f"dff info {df.info()} df head: {df.head()}")
+        wrist = df.filter(regex='LWrist')
+        self.logger.debug(f"wrist head: {wrist.head()}")
+        wrist_with_speed = gen_speed(wrist)
+        self.logger.debug(f"with speed {wrist_with_speed.head()}")
+        self.plot.update_data(wrist_with_speed)
+
         #obj = self.trc_queue_worker.parse_csv(maybe_trc)
         #if obj != None:
             #(df,hip_df,shoulder_df,maybe_trc) = self.trc_queue_worker.parse_csv(maybe_trc)
