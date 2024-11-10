@@ -103,12 +103,6 @@ class FlaskThread(QThread):
         shared_object.message_signal.messageReceived.emit(message)
         return jsonify({'message': message})
     
-    @socketio.on('connect', namespace='/remote')
-    def handle_connect(sid):
-        log.debug(f"Client connected {sid}")
-        join_room(sid,'remote')
-        shared_object.message_signal.serverConnect.emit()
-
     @socketio.on('connect', namespace='/')
     def handle_connect(sid):
         log.debug(f"Client connected to '/' {sid}")
