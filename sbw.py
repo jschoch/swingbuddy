@@ -527,8 +527,12 @@ class SBW(QMainWindow):
         self.logger.debug(f"starting timer for screenshot {self.config.screen_timeout} seconds")
         #self.timer = QTimer()
         print("in do_screen_timer, creating timer")
-        self.timer.timeout.connect(lambda: self.dst_done( self.current_swing.id))
-        self.timer.start(self.config.screen_timeout * 1000)
+        if not self.timer.isActive():
+            self.timer.disconnect()
+            self.timer.timeout.connect(lambda: self.dst_done( self.current_swing.id))
+            self.timer.start(self.config.screen_timeout * 1000)
+        else:
+            self.logger.debug("timer already active")
 
     @Slot()
     def dst_done(self,id):
