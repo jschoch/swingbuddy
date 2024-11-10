@@ -69,7 +69,7 @@ class TrcQueueWorker(QObject):
 
                 config = Config.get_by_id(1)
                 swing = Swing.get_by_id(task_value)
-                url = config.poseServer + "?path="+ requests.utils.quote(swing.leftVid)
+                url = config.poseServer + "?path="+ requests.utils.quote(swing.dtlVid)
                 self.logger.debug(f" url: {url}")
                 try:
                     response = requests.get(url)

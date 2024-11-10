@@ -23,9 +23,10 @@ class SwingWidget(QWidget):
             "Name:": swing.name,
             "Date": swing.sdate.strftime("%Y-%m-%d"),
             "Screen": swing.screen,
-            "Left Video ": swing.leftVid,
-            "Right Video ": swing.rightVid,
-            "TRC": len(swing.trc),
+            "Down the Line Video ": swing.dtlVid,
+            "Face On Video ": swing.faceVid,
+            "Face on TRC": len(swing.faceTrc),
+            "DTL TRC": len(swing.dtlTrc),
             "TRC Video": swing.trcVid,
             "Club": swing.club,
             "Comment": swing.comment
@@ -36,10 +37,16 @@ class SwingWidget(QWidget):
             self.layout.addWidget(label)
 
         # Create a collapsible widget for the trc field
-        trc_collapsible = QCollapsibleWidget("TRC", self)
-        trc_label = QLabel(swing.trc, self)
-        trc_collapsible.add_content(trc_label)
-        self.layout.addWidget(trc_collapsible)
+        face_trc_collapsible = QCollapsibleWidget("face TRC", self)
+        face_trc_label = QLabel(swing.faceTrc, self)
+        face_trc_collapsible.add_content(face_trc_label)
+        self.layout.addWidget(face_trc_collapsible)
+
+        dtl_trc_collapsible = QCollapsibleWidget("Down the line TRC", self)
+        dtl_trc_label = QLabel(swing.dtlTrc, self)
+        dtl_trc_collapsible.add_content(dtl_trc_label)
+        self.layout.addWidget(dtl_trc_collapsible)
+        
 
     def clear_layout(self):
         while self.layout.count():

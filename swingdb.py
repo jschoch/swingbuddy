@@ -17,22 +17,41 @@ class Session(BaseModel):
     comment = TextField(default="none")
     #swing = ForeignKeyField(Swing, backref='swings')
 
+class LMData(BaseModel):
+    carry = FloatField(null=True)
+    total = FloatField(null=True)
+    roll = FloatField(null=True)
+    v_launch = FloatField(null=True)
+    height = FloatField(null=True)
+    descent = FloatField(null=True)
+    h_launch = FloatField(null=True)
+    lateral = FloatField(null=True)
+    spin = FloatField(null=True)
+    spin_axis = FloatField(null=True)
+    club_path = FloatField(null=True)
+    # the raw string from the LLM
+    raw= TextField(default="none")
+
 class Swing(BaseModel):
     name = CharField(default="none")
     sdate = DateField(default=datetime.datetime.now)
     screen = CharField(default="no Screen")
-    leftVid = CharField(default="no leftVid")
-    rightVid = CharField(default="no right vid")
-    trc = TextField(default="no trc")
+    dtlVid = CharField(default="no vid")
+    faceVid = CharField(default="no vid")
+    dtlTrc = TextField(default="no trc")
+    faceTrc = TextField(default = "no trc")
     trcVid = CharField(default="no trc vid")
     club = CharField(default="na")
     comment = TextField(default="none")
     session = ForeignKeyField(Session, backref="swings")
+    lmdata = ForeignKeyField(LMData, backref='swings')
     class Meta:
         indexes = (
-            (('leftVid',),True),
-            (('rightVid',),True)
+            (('dtlVid',),True),
+            (('faceVid',),True)
         )
+
+
 
 
 

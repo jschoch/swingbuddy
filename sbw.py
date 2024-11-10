@@ -8,8 +8,9 @@ from PySide6.QtWidgets import QApplication, QWidget
 # You need to run the following command to generate the ui_form.py file
 #     pyside6-uic form.ui -o ui_form.py, or
 #     pyside2-uic form.ui -o ui_form.py
+
+
 from ui_form import Ui_SBW
-#from PySide6 import QtCore
 from PySide6.QtCore import QObject, QThread, Signal,  Qt,QPoint, Slot,QTimer,QThreadPool,QRunnable,QStringListModel
 from PySide6.QtGui import QAction,QIcon,QMovie, QStandardItemModel, QStandardItem,QImage, QPixmap,QPainter,QTransform
 from PySide6.QtWidgets import (QMainWindow, QListView, QPushButton, QTextEdit,QSlider,QFileDialog,
@@ -18,10 +19,9 @@ from PySide6.QtWidgets import (QMainWindow, QListView, QPushButton, QTextEdit,QS
 from flask import Flask, request,jsonify
 from flask_socketio import SocketIO, emit, send,join_room
 import logging
-from swingdb import Swing, Session,Config
+from swingdb import Swing, Session,Config,LMData
 from peewee import *
 from wlog import QtWindowHandler
-#from moviepy.video.io.VideoFileClip import VideoFileClip
 import av
 from util import find_swing, fetch_trc,get_pairs
 import pyqtgraph as pg
@@ -53,6 +53,10 @@ class MessageReceivedSignal(QObject):
     wsSignal = Signal(str)
     msg_to_send = Signal(object)
     doany = Signal()
+    serverConnect = Signal()
+    serverDisconnect = Signal()
+
+#  this is what flask uses to bridget into the QT app
 
 class SharedObject:
     def __init__(self):
@@ -87,6 +91,10 @@ class FlaskThread(QThread):
 
     @app2.route('/s')
     def handle_message():
+        """
+        This is what responds teh the curl request from kinvovea 
+
+        """
         message = request.args.get('message')
 
         if not message:
@@ -99,41 +107,59 @@ class FlaskThread(QThread):
     def handle_connect(sid):
         log.debug(f"Client connected {sid}")
         join_room(sid,'remote')
+        shared_object.message_signal.serverConnect.emit()
+
+    @socketio.on('connect', namespace='/')
+    def handle_connect(sid):
+        log.debug(f"Client connected to '/' {sid}")
+        #join_room(sid,'remote')
+        shared_object.message_signal.serverConnect.emit()
+    
+    @socketio.on('disconnect')
+    def handle_disconnect():
+        log.debug(f"Client disconnected {1}")
+        shared_object.message_signal.serverDisconnect.emit()
 
     # WebSocket event handler
     @socketio.on('message')
     def handle_client_message(data):
         # Emit the received message back to all clients
         log.debug("Handle Client triggered")
-        #emit('message_received', data, broadcast=True)
-        #emit('do_ocr',"some/file/path")
         #shared_object.message_signal.wsSignal.emit(data)
 
     @socketio.on('ocr_data')
-    def handle_ocr_data(data):
-        log.debug(f"Got the data fool: {data}")
+    def handle_ocr_data(data_txt):
+        log.debug(f"Got the video data fool: {data_txt}")
+        data = json.loads(data_txt)
+        swing = Swing.get_by_id(data['swingid'])
+        lmdata = LMData.get_by_id(swing.lmdata)
+        log.debug(f" the lmdata look like this: {lmdata}")
+        maybe_json = data['ocr_data_text']
+        lmdata.raw = maybe_json
+        lmdata.save
+        try:
+            # get rid of first line
+            lines = maybe_json.splitlines()
+            if lines:
+                lines.pop(0)
+            else:
+                log.error("No lines found in OCR data")
+                return 
+            new_maybe_json = '\n'.join(lines)
+            maybedata = json.loads(new_maybe_json)
+            log.info(f"data looks like {maybedata}")
+        except Exception as e:
+            log.error(f"Error parsing OCR data: {e}")
+
 
     @socketio.on('video_data')
-    def handle_video_data(data):
-        log.debug(f"Got the video data fool: {data}")
+    def handle_video_data(data_txt):
+        log.debug(f"Got the video data fool: {data_txt}")
+        #data = json.loads(data_txt)
+        #swing = Swing.get_by_id(data['swing_id'])
+        #lmdata = LMData.get_by_id(swing.lmdata)
+        #log.debug(f" the lmdata look like this: {lmdata}")
     
-    #@Slot()
-    #def on_msg_to_send(self,obj):
-        #"""
-        #why do i need to do this?
-        #the signals don't work
-        #just call emit directly!?
-        #"""
-        #(a,b) = obj
-        #log.debug("got a signal on_msg_to_send")
-        ##socketio.emit(a,b,broadcast=True)
-        ##socketio.emit(a, {'data': b}, room='remote')
-        #socketio.emit(a,b)
-    #@Slot()
-    #def on_do_any(self):
-        #log.debug("Somethign happend thank god")
-
-
 
 
 class SBW(QMainWindow):
@@ -145,6 +171,8 @@ class SBW(QMainWindow):
         self.ui.setupUi(self)
         self.logger =  logging.getLogger("__main__")
         self.threadpool = QThreadPool()
+
+
 
         #  Flask stuff
 
@@ -201,6 +229,8 @@ class SBW(QMainWindow):
         #self.message_signal = MessageReceivedSignal()
         self.shared_object.message_signal.messageReceived.connect(self.foo, Qt.QueuedConnection)
         self.shared_object.message_signal.wsSignal.connect(self.ws_sig,Qt.QueuedConnection)
+        self.shared_object.message_signal.serverConnect.connect(self.server_connect)
+        self.shared_object.message_signal.serverDisconnect.connect(self.server_disconnect)
         
         # Add action to the Tool menu
         self.play_rev_action = QAction("&Play Reverse", self)
@@ -222,18 +252,12 @@ class SBW(QMainWindow):
         #self.video_playback_Ui.video_label.mouseMoveEvent = self.overlay_mouse_move
         self.video_playback_Ui.speed_slider.valueChanged.connect(self.set_playback_speed)
 
-
-        
-
-
-
-
         self.find_swings()
         self.session = Session(name="Default Session")
         self.session.save()
 
         self.ui.del_swing_btn.clicked.connect(self.del_swing)
-
+        self.ui.do_ocr_btn.setEnabled(False)
         self.ui.do_ocr_btn.clicked.connect(self.test_ws)
         self.ui.sw_btn.clicked.connect(self.do_screen_timer)
 
@@ -254,6 +278,7 @@ class SBW(QMainWindow):
 
         #self.ui.run_a_btn.clicked.connect(self.start_request_trc)
         self.ui.run_a_btn.clicked.connect(self.ws_request_trc)
+        self.ui.run_a_btn.setEnabled(False)
         self.ui.add_btn.clicked.connect(self.add_swing_clicked)
 
         self.logger.debug("end of widget init")
@@ -287,6 +312,16 @@ class SBW(QMainWindow):
 
     # Connect the main window's close event to a method in the debug window
         #self.closeEvent.connect(self.on_main_window_close)
+
+    @Slot()
+    def server_connect(self):
+        self.ui.run_a_btn.setEnabled(True)
+        self.ui.do_ocr_btn.setEnabled(True)
+        #self.ui.w
+    @Slot()
+    def server_disconnect(self):
+        self.ui.run_a_btn.setEnabled(False)
+        self.ui.do_ocr_btn.setEnabled(False)
 
     @Slot()    
     def ws_sig(self,s):
@@ -346,7 +381,7 @@ class SBW(QMainWindow):
         now = datetime.now()
 
         fname = f"{self.config.screenDir}/{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}_screen.png"
-        #self.test_ws()
+        # TODO: this file prefix should match the swing
 
         if self.current_swing is None:
             self.logger.debug("no loaded swing")
@@ -394,27 +429,30 @@ class SBW(QMainWindow):
     def manual_add_swing(self,files):
         self.logger.debug(f" got files {files}")
         
-        lv = [file for file in files if 'left.mp4' in file]
-        rv = [file for file in files if 'right.mp4' in file]
+        #TODO, how to allow for user naming scheme?
+        dtlVid = [file for file in files if 'left.mp4' in file]
+        faceVid = [file for file in files if 'right.mp4' in file]
         screen = [file for file in files if 'screen.png' in file]
         try:
+            lmdata = LMData.create()
             self.current_swing = Swing.create(session = self.session,
-                leftVid = lv,
-                rightVid = rv,
+                dtlVid = dtlVid,
+                lmdata= lmdata,
+                faceVid = faceVid,
                 screen = screen)
         except Exception as e:
             self.logger.error(f"db excption {e}")
             return
 
         vid_dir = self.config.vidDir
-        if len(lv) > 0:
-            self.current_swing.leftVid = vid_dir + "/"+ lv[0]
+        if len(dtlVid) > 0:
+            self.current_swing.dtlVid = vid_dir + "/"+ dtlVid[0]
         else:
-            self.logger.error("no right vid found")
-        if len(rv) > 0:
-            self.current_swing.rightVid = vid_dir + "/"+ rv[0]
+            self.logger.error("no face on vid found")
+        if len(faceVid) > 0:
+            self.current_swing.faceVid = vid_dir + "/"+ faceVid[0]
         else:
-            self.logger.error("no left vid found")
+            self.logger.error("no down the line vid found")
         if len(screen) > 0:
             self.current_swing.screen = self.config.screenDir + "/"+ screen[0]
         else:
@@ -427,7 +465,7 @@ class SBW(QMainWindow):
     def ws_request_trc(self):
         swing_id = self.current_swing.id 
         self.logger.info(f"Requesting TRC for swing {swing_id}")
-        socketio.emit('do_vid',self.current_swing.rightVid)
+        socketio.emit('do_vid',self.current_swing.faceVid)
 
     @Slot()
     def start_request_trc(self):
@@ -448,7 +486,7 @@ class SBW(QMainWindow):
         df,clean,id = obj
 
         swing = Swing.get_by_id(id)
-        swing.trc = clean
+        swing.faceTrc = clean
         swing.save()
 
         if(swing.id == self.current_swing.id):
@@ -567,10 +605,10 @@ class SBW(QMainWindow):
         self.plot.reset_data()
 
         # grabbie
-        right =  swing.rightVid
-        left = swing.leftVid
+        faceVid =  swing.faceVid
+        dtlVid = swing.dtlVid
 
-        maybe_trc = swing.trc
+        maybe_trc = swing.faceTrc
 
         self.current_swing = swing
 
@@ -589,14 +627,14 @@ class SBW(QMainWindow):
         self.video_playback_Ui.speed_slider.setEnabled(True)
 
         if not hasattr(self, 'of1w') or not self.of1w.isRunning():
-            self.of1w = Worker(self.open_file,right)
+            self.of1w = Worker(self.open_file,faceVid)
             self.of1w.signals.result.connect(self.of1wdone)
             self.threadpool.start(self.of1w)
         else:
             self.logger.debug("already loading file 1")
 
         if not hasattr(self, 'of2w') or not self.of2w.isRunning():
-            self.of2w = Worker(self.open_file2,left)
+            self.of2w = Worker(self.open_file2,dtlVid)
             self.of2w.signals.result.connect(self.of1wdone)
             self.threadpool.start(self.of2w)
         else:
@@ -648,11 +686,13 @@ class SBW(QMainWindow):
             self.logger.debug("swing found")
             if self.current_swing.screen != "no Screen": 
                 self.logger.debug(f"sending screen: {self.current_swing.screen}")
-                socketio.emit("do_ocr", self.current_swing.screen)
+                request_data = {'file_path':self.current_swing.screen,'swingid':self.current_swing.id}
+                request_text = json.dumps(request_data)
+                socketio.emit("do_ocr", request_text)
         return
 
     def create_db(self):
-        db.create_tables([Swing,Config,Session])
+        db.create_tables([Swing,Config,Session,LMData])
         try:
             self.config = Config.get_by_id(1)
         except DoesNotExist:
@@ -682,9 +722,12 @@ class SBW(QMainWindow):
             self.logger.debug(f"swings found: {swings}")
             try: 
                 self.logger.debug("trying to creat th efucking swing")
+                #TODO: fix thisto match on actual name
+                lmdata = LMData.create()
                 self.current_swing = Swing.create(session = self.session,
-                    rightVid = swings[0],
-                    leftVid = swings[1])
+                    lmdata = lmdata,
+                    faceVid = swings[0],
+                    dtlVid = swings[1])
                 self.logger.debug("Trying to take the fucking screenshot")
 
                 if(self.config.enableScreen ):
@@ -756,8 +799,6 @@ class SBW(QMainWindow):
     # Function to play the video
     @Slot()
     def play(self):
-        self.logger.debug("Like WTF!")
-        #self.video_playback.toggle_play_pause()
         self.main_play_signal.emit()
 
 

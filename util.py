@@ -88,7 +88,7 @@ def testdb():
 
 def fetch_trc(config,swing,logger):
     #url = config.poseServer + "?path="+ requests.utils.quote(swing.rightVid)
-    url = config.poseServer + "?path="+ requests.utils.quote(swing.leftVid)
+    url = config.poseServer + "?path="+ requests.utils.quote(swing.dtlVid)
     logger.debug(f" url: {url}")
     response = requests.get(url)
     if response.status_code == 200:
