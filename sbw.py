@@ -56,6 +56,7 @@ class MessageReceivedSignal(QObject):
     doany = Signal()
     serverConnect = Signal()
     serverDisconnect = Signal()
+    got_trc_for_swing = Signal(int)
 
 #  this is what flask uses to bridget into the QT app
 
@@ -156,12 +157,7 @@ class FlaskThread(QThread):
             swing.faceTrc = data['trc_txt']
             log.debug(f"got some crap {swing.faceTrc[:100]}")
             swing.save()
-            if swing.id == self.current_swing.id:
-               None 
-               df = pd.read_csv(StringIO(swing.faceTrc))
-               wrist = df.filter(regex='LWrist')
-               wrist_with_speed = gen_speed(wrist)
-               self.plot.update_data(wrist_with_speed)
+            shared_object.message_signal.got_trc_for_swing.emit(swing.id)
             
         except Exception as e:
             log.error(f"Error getting swing by id: {e}")
@@ -240,6 +236,7 @@ class SBW(QMainWindow):
         self.shared_object.message_signal.wsSignal.connect(self.ws_sig,Qt.QueuedConnection)
         self.shared_object.message_signal.serverConnect.connect(self.server_connect)
         self.shared_object.message_signal.serverDisconnect.connect(self.server_disconnect)
+        self.shared_object.message_signal.got_trc_for_swing.connect(self.on_got_trc_for_swing)
         
         # Add action to the Tool menu
         self.play_rev_action = QAction("&Play Reverse", self)
@@ -330,6 +327,11 @@ class SBW(QMainWindow):
 
     # Connect the main window's close event to a method in the debug window
         #self.closeEvent.connect(self.on_main_window_close)
+
+    @Slot()
+    def on_got_trc_for_swing(self, swingid):
+        if self.current_swing.id == swingid:
+            self.load_swing(swingid)
 
     @Slot()
     def server_connect(self):
