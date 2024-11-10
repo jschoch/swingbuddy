@@ -681,18 +681,18 @@ class SBW(QMainWindow):
             self.logger.error("no trc data")
             if(self.config.enableTRC):
                 self.logger.debug("auto trc, fetching")
-                self.add_task(self.current_swing.id)
+                #self.add_task(self.current_swing.id)
+                self.ws_request_trc()
             return
 
-        #w3 = Worker(self.parse_csv,maybe_trc)
-        #self.threadpool.start(w3)
-        #self.parse_csv(self,maybe_trc)
-        obj = self.trc_queue_worker.parse_csv(maybe_trc)
-        if obj != None:
-            (df,hip_df,shoulder_df,maybe_trc) = self.trc_queue_worker.parse_csv(maybe_trc)
-            self.plot.update_data(df,hip_df,shoulder_df)
-        else:
-            self.logger.error("trc data not parsed correctly")
+        # TODO: move pre-speed and stuff from server here and update teh plot
+        self.logger.error("TODO: fix the plots")
+        #obj = self.trc_queue_worker.parse_csv(maybe_trc)
+        #if obj != None:
+            #(df,hip_df,shoulder_df,maybe_trc) = self.trc_queue_worker.parse_csv(maybe_trc)
+            #self.plot.update_data(df,hip_df,shoulder_df)
+        #else:
+            #self.logger.error("trc data not parsed correctly")
 
     def of1wdone(self,result):
         self.logger.debug("of1wdone done {result}")
