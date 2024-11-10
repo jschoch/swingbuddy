@@ -156,7 +156,12 @@ class FlaskThread(QThread):
             swing.faceTrc = data['trc_txt']
             log.debug(f"got some crap {swing.faceTrc[:100]}")
             swing.save()
-            log.debug("should have saved but hours of debugging and no clue hit brain cause i suck")
+            if swing.id == self.current_swing.id:
+               None 
+               df = pd.read_csv(StringIO(swing.faceTrc))
+               wrist = df.filter(regex='LWrist')
+               wrist_with_speed = gen_speed(wrist)
+               self.plot.update_data(wrist_with_speed)
             
         except Exception as e:
             log.error(f"Error getting swing by id: {e}")
