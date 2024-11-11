@@ -349,7 +349,7 @@ class SBW(QMainWindow):
             #self.current_swing = Swing.get(swingid)
             self.load_swing(swingid)
         else:
-            self.logger.debug(f"do_got_trc_for_swing()  current swing changed, skipping TRC load {swingid}")
+            self.logger.debug(f"do_got_trc_for_swing()  current swing changed, skipping TRC load \nold: {swingid} new: {self.current_swing.id}")
 
     @Slot()
     def server_connect(self):
