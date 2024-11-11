@@ -49,6 +49,12 @@ socketio = SocketIO(app2, cors_allowed_origins="*")
 
 db = SqliteDatabase('swingbuddy.db')
 
+# Get the Peewee logger
+plogger = logging.getLogger('peewee')
+
+# Set the logging level to WARNING or higher to suppress debug messages
+plogger.setLevel(logging.WARNING)
+
 class MessageReceivedSignal(QObject):
     messageReceived = Signal(str)
     wsSignal = Signal(str)
