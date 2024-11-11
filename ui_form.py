@@ -208,7 +208,7 @@ class Ui_SBW(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("SBW", u"Test crap", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("SBW", u"Tab 2", None))
         self.status_label.setText(QCoreApplication.translate("SBW", u"Analysis: charts, tabs, tables?", None))
-        self.stop_btn.setText(QCoreApplication.translate("SBW", u"?", None))
+        self.stop_btn.setText(QCoreApplication.translate("SBW", u"'stop_btn'", None))
         self.add_btn.setText(QCoreApplication.translate("SBW", u"Add Swing", None))
         self.del_swing_btn.setText(QCoreApplication.translate("SBW", u"Delete Swing ", None))
         self.sw_btn.setText(QCoreApplication.translate("SBW", u"Test Screenshot", None))

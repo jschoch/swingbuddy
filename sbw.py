@@ -228,7 +228,8 @@ class SBW(QMainWindow):
         vpbusize_policy.setHorizontalPolicy(QSizePolicy.Expanding)
         vpbusize_policy.setVerticalPolicy(QSizePolicy.Expanding)
         self.video_playback_Ui.setSizePolicy(vpbusize_policy)
-        self.video_playback = None
+        #self.video_playback = None
+        self.video_playback = VideoPlayBack(self.video_playback_Ui, None)
         self.ui.horizontalLayout.addWidget(self.video_playback_Ui)
 
         # Adding MenuBar with File, Tool, and Help menus
@@ -574,8 +575,7 @@ class SBW(QMainWindow):
         # this setups the swing data in the tab
         self.ui.sw.set_swing_data(self.current_swing)
 
-        self.video_clip = None
-        self.video_playback = VideoPlayBack(self.video_playback_Ui, self.video_clip)
+        #self.video_playback = VideoPlayBack(self.video_playback_Ui, self.video_clip)
         self.main_play_signal.connect(self.video_playback.play)
         self.main_pause_signal.connect(self.video_playback.pause)
         self.video_playback.logger = self.logger
@@ -588,14 +588,17 @@ class SBW(QMainWindow):
         if not hasattr(self, 'of1w') or not self.of1w.isRunning():
             self.of1w = Worker(self.open_file,self.current_swing.faceVid)
             self.of1w.signals.result.connect(self.of1wdone)
-            self.threadpool.start(self.of1w)
+            #self.threadpool.start(self.of1w)
+            QThreadPool.globalInstance().start(self.of1w)
         else:
             self.logger.debug("already loading file 1")
 
         if not hasattr(self, 'of2w') or not self.of2w.isRunning():
             self.of2w = Worker(self.open_file2,self.current_swing.dtlVid)
             self.of2w.signals.result.connect(self.of1wdone)
-            self.threadpool.start(self.of2w)
+            QThreadPool.globalInstance().start(self.of2w)
+            #self.threadpool.start(self.of2w)
+            None
         else:
             self.logger.debug("already loading file 2")
 
@@ -742,31 +745,27 @@ class SBW(QMainWindow):
 
     # Function to open a video file
     def open_file(self,file_path):
-        #if  os.path.exists(file_path):
         if file_path is None or file_path == False:
             file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
 
         if not os.path.exists(file_path):
             return "OF1 no file "
 
-        self.logger.debug(f" file path: {file_path}")
+        #self.logger.debug(f" file path: {file_path}")
         clip = av.open(file_path)
         obj = (clip,1)
         self.clip_loaded.emit(obj)
         self.of1w.signals.result.emit("done of1")
 
-           
-
 
     def open_file2(self,file_path):
         if file_path is None or file_path == False:
-        #if  os.path.exists(file_path):
              file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
             
         if not os.path.exists(file_path):
             return "OF1 no file "
 
-        self.logger.debug(f"file path2: {file_path}")
+        #self.logger.debug(f"file path2: {file_path}")
         clip = av.open(file_path)
         obj = (clip,2)
         self.clip_loaded.emit(obj)

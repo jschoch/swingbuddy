@@ -14,8 +14,8 @@ class VideoPlayBack:
         self.video_playback_ui = video_playback_ui
         self.video_clip = video_clip
         self.video_clip2 = None
-        self.qimage_frames = None
-        self.qimage_frames2 = None
+        self.qimage_frames = []
+        self.qimage_frames2 = []
         self.current_frame_index = 0
         self.is_playing = False
         self.playback_speed = 1.0
@@ -25,18 +25,18 @@ class VideoPlayBack:
 
     # Function to load frames from the video clip
     def load_frame(self,lr):
-
+        self.logger.debug("load_frame() starting to load")
         parent_size = self.video_playback_ui.parent().size()
 
         video_clip = None
         if(lr):
             self.qimage_frames2 = []
             video_clip = self.video_clip2
-            self.video_playback_ui.vid2_text.setText(f"Begin Loading!\n{self.video_clip2.format.name}")
+            #self.video_playback_ui.vid2_text.setText(f"Begin Loading!\n{self.video_clip2.format.name}")
         else:
             self.qimage_frames = []
             video_clip = self.video_clip
-            self.video_playback_ui.vid1_text.setText(f"Begin Loading!\n{self.video_clip.format.name}")
+            #self.video_playback_ui.vid1_text.setText(f"Begin Loading!\n{self.video_clip.format.name}")
 
         if video_clip is None:
             self.logger.debug("class: VideoPlayBack, fun: load_frame: video_clip is Null")
@@ -58,15 +58,12 @@ class VideoPlayBack:
             else:
                 self.qimage_frames.append(scaled_image)
                 self.video_playback_ui.vid1_text.setText(f"{self.video_clip}")
-
+        self.logger.debug("VideoPlayBack load_frames() done loading framse")
 
         if(lr):
             self.video_playback_ui.vid2_text.setText(f"{self.video_clip2}")
         else:
             self.video_playback_ui.vid1_text.setText(f"{self.video_clip}")
-
-
-
         return
 
     # Function to update the frame
@@ -99,7 +96,6 @@ class VideoPlayBack:
                 self.video_playback_ui.video_label1.setPixmap(pixmap)
                 self.video_playback_ui.video_label1.setAlignment(Qt.AlignLeft)
             self.video_playback_ui.slider.setValue(self.current_frame_index)
-            #self.current_frame_index += 1
         else:
             self.current_frame_index = 0
 
