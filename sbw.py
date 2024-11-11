@@ -344,9 +344,12 @@ class SBW(QMainWindow):
 
     @Slot()
     def do_got_trc_for_swing(self, swingid):
-        self.logger.debug("TODO:  WHY DO YOU NEED TO RELOAD THE WHOLE SWING?")
         if self.current_swing.id == swingid:
+            self.logger.debug("do_got_trc_for_swing()  fetching saved trc data")
+            self.current_swing = Swing.get(swingid)
             self.load_swing(swingid)
+        else:
+            self.logger.debug("do_got_trc_for_swing()  current swing changed, skipping TRC load")
 
     @Slot()
     def server_connect(self):
@@ -542,21 +545,8 @@ class SBW(QMainWindow):
         self.logger.debug(f"item {item} id: {item_id}")
         self.load_swing(item_id)
 
-    
-
-    def load_swing(self,id):
-        if(self.current_swing is not None and self.current_swing.id == id):
-            self.logger.debug("current swing already loaded what now?")
-        else:
-            swing = Swing.get_by_id(id)
-            if swing is None:
-                self.logger.error(f"cant' find the swing id {id}")
-                return
-            self.current_swing = swing
-
-        
-        
-        
+    def load_swing_videos(self,swing):
+        self.logger.debug(f"loading videos for {swing}")
         if self.video_playback != None and self.video_playback.is_playing:
             self.main_pause_signal.emit()
             
@@ -570,11 +560,7 @@ class SBW(QMainWindow):
         self.video_playback_Ui.video_label1.setPixmap(QPixmap())
         self.plot.reset_data()
 
-        maybe_trc = self.current_swing.faceTrc
-
-        # this setups the swing data in the tab
-        self.ui.sw.set_swing_data(self.current_swing)
-
+        
         #self.video_playback = VideoPlayBack(self.video_playback_Ui, self.video_clip)
         self.main_play_signal.connect(self.video_playback.play)
         self.main_pause_signal.connect(self.video_playback.pause)
@@ -600,7 +586,23 @@ class SBW(QMainWindow):
             #self.threadpool.start(self.of2w)
             None
         else:
-            self.logger.debug("already loading file 2")
+            self.logger.debug("already loading file 2") 
+
+    def load_swing(self,id):
+        if(self.current_swing is not None and self.current_swing.id == id):
+            self.logger.debug("current swing already loaded what now?")
+        else:
+            swing = Swing.get_by_id(id)
+            if swing is None:
+                self.logger.error(f"cant' find the swing id {id}")
+                return
+            self.current_swing = swing
+            self.load_swing_videos(swing)
+
+        maybe_trc = self.current_swing.faceTrc
+
+        # this setups the swing data in the tab
+        self.ui.sw.set_swing_data(self.current_swing)
 
         image_path = self.current_swing.screen
         if image_path == "no Screen":
@@ -698,8 +700,6 @@ class SBW(QMainWindow):
         dtlVid = [file for file in files if 'left.mp4' in file]
         faceVid = [file for file in files if 'right.mp4' in file]
         screen = [file for file in files if 'screen.png' in file]
-
-        vid_dir = self.config.vidDir
 
         if len(dtlVid) > 0:
             dtlVid = dtlVid[0]
