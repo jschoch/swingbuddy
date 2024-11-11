@@ -703,6 +703,7 @@ class SBW(QMainWindow):
         dtlVid = [file for file in files if 'left.mp4' in file]
         faceVid = [file for file in files if 'right.mp4' in file]
         screen = [file for file in files if 'screen.png' in file]
+        swing = None
 
         if len(dtlVid) > 0:
             dtlVid = dtlVid[0]
@@ -723,14 +724,14 @@ class SBW(QMainWindow):
             lmdata = LMData.create()
             parts = faceVid.split('-')[:2]
             sname = "-".join(parts)
-            self.current_swing = Swing.create(session = self.session,
+            swing = Swing.create(session = self.session,
                 name = sname,
                 dtlVid = dtlVid,
                 lmdata= lmdata,
                 faceVid = faceVid,
                 screen = screen)
         except Exception as e:
-            self.logger.error(f"db excption {e}")
+            self.logger.error(f"add_and_load_swing()  db excption {e} {model_to_dict(swing)}")
             return
         
         if(self.config.enableTRC):
@@ -745,7 +746,7 @@ class SBW(QMainWindow):
 
         #self.current_swing.save()
         self.add_swing_to_model(self.current_swing)
-        self.load_swing(self.current_swing.id)
+        self.load_swing(swing.id)
 
 
 
