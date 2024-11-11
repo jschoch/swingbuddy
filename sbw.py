@@ -345,11 +345,11 @@ class SBW(QMainWindow):
     @Slot()
     def do_got_trc_for_swing(self, swingid):
         if self.current_swing.id == swingid:
-            self.logger.debug("do_got_trc_for_swing()  fetching saved trc data")
+            self.logger.debug(f"do_got_trc_for_swing()  fetching saved trc data {swingid}")
             #self.current_swing = Swing.get(swingid)
             self.load_swing(swingid)
         else:
-            self.logger.debug("do_got_trc_for_swing()  current swing changed, skipping TRC load")
+            self.logger.debug(f"do_got_trc_for_swing()  current swing changed, skipping TRC load {swingid}")
 
     @Slot()
     def server_connect(self):
@@ -515,10 +515,7 @@ class SBW(QMainWindow):
         self.setCentralWidget(self.prev_cw)
 
     def add_swing_to_model(self,item):
-        b = 0
-        if item.screen != "no Screen":
-            b = 1
-        i = QStandardItem(f"{item.name} {item.id} {item.sdate} {b}")
+        i = QStandardItem(f"{item.id} --- {item.name}")
         i.setData(item.id,Qt.UserRole)
         self.fuckyoumodel.insertRow(0,[i])
 
