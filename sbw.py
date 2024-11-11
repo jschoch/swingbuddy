@@ -41,7 +41,6 @@ from cfg import ConfigWindow
 from showswing import SwingWidget
 import os
 from qwid import QwStatusWidget
-from trcqm import TrcQueueWorker
 from dataa import pre_speed, gen_speed
 
 app2 = Flask(__name__)
@@ -309,7 +308,6 @@ class SBW(QMainWindow):
 
         self.pairs = []
 
-        #self.ui.run_a_btn.clicked.connect(self.start_request_trc)
         self.ui.run_a_btn.clicked.connect(self.ws_request_trc)
         self.ui.run_a_btn.setEnabled(False)
         self.ui.add_btn.clicked.connect(self.add_swing_clicked)
@@ -330,18 +328,7 @@ class SBW(QMainWindow):
         self.ui.stop_btn.clicked.connect(self.take_screen)
 
         self.ui.cw.reload_signal.connect(self.reload_config)
-
-
-        self.trc_queue_worker = TrcQueueWorker(self.logger,tasks=[])
-        self.ui.qs = QwStatusWidget(self.logger, queue_worker=self.trc_queue_worker)
-        self.ui.verticalLayout_5.addWidget(self.ui.qs)
-        self.trc_thread = QThread()
-        self.trc_queue_worker.moveToThread(self.trc_thread)
-        self.trc_thread.started.connect(self.trc_queue_worker.run)
-        self.trc_queue_worker.complete.connect(self.stop_queue)
-        self.trc_queue_worker.progress_s.connect(self.update_status)
-        self.trc_queue_worker.complete_trc.connect(self.trc_result)
-        self.start_queue()
+        # TODO: make a signal/slot to reload teh swing data when you update the swing object
 
         self.current_swing = None
         try:
@@ -379,29 +366,7 @@ class SBW(QMainWindow):
         event.accept()  # Accept the close event
     
 
-    def start_queue(self):
 
-        if not self.trc_queue_worker.is_running:
-            self.trc_queue_worker.is_running = True
-            self.trc_thread.start()
-
-    def stop_queue(self):
-        self.trc_queue_worker.is_running = False
-
-    #@Slot(int)
-    #def add_task(self):
-    def add_task(self, id):
-        self.logger.debug("TODO: get rid of this add_task thing, we are not using it")
-        return
-        """ adds a swing id to the trc queue """
-        try:
-            self.trc_queue_worker.add_task(id)
-        except ValueError:
-            print("Invalid input. Please enter a valid integer.")
-
-    @Slot(int)
-    def update_status(self, progress):
-        self.ui.status_label.setText(progress)
     @Slot()
     def reload_config(self,id):
         self.logger.debug(f"reloading config: id: {id} old config \n{model_to_dict(self.config)}")
@@ -490,32 +455,6 @@ class SBW(QMainWindow):
         request_txt = json.dumps(request_data)
         socketio.emit('do_vid',request_txt)
 
-    @Slot()
-    def start_request_trc(self):
-        """ 
-        should just add to the trc queue
-        """
-        self.logger.debug("Adding a swing to the queue")
-        if self.current_swing != None:
-            self.add_task(self.current_swing.id)
-
-
-
-    @Slot()
-    def trc_result(self,obj):
-        if obj == None:
-            self.logger.error("trc_result obj was None")
-            return
-        df,clean,id = obj
-
-        swing = Swing.get_by_id(id)
-        swing.faceTrc = clean
-        swing.save()
-
-        if(swing.id == self.current_swing.id):
-            self.current_swing = swing
-            #self.plot.update_data(df['Speed'].to_list())
-            self.plot.update_data(df)
 
     def print_output(self,s):
         self.logger.debug(f"output: {s}")
@@ -1033,12 +972,9 @@ class LoadingWidget(QWidget):
 
         # Create loading thread
         self.thread = LoadingThread()
-        self.thread.status_update.connect(self.update_status)
         self.thread.start()
         self.logger.debug("LW init done")
 
-    def update_status(self, message):
-        self.status_label.setText(message)
 
 class SineWavePlot(QWidget):
     def __init__(self,logger,parent):
