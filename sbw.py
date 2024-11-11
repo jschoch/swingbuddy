@@ -125,33 +125,51 @@ class FlaskThread(QThread):
 
     @socketio.on('ocr_data')
     def handle_ocr_data(data_txt):
-        log.debug(f"Got the video data fool: {data_txt}")
+        #log.debug(f"Got the video data fool: {data_txt}")
         data = json.loads(data_txt)
         swing = Swing.get_by_id(data['swingid'])
-        lmdata = LMData.get_by_id(swing.lmdata)
-        log.debug(f" the lmdata look like this: {lmdata}")
         maybe_json = data['ocr_data_text']
-        lmdata.raw = maybe_json
-        lmdata.save
+        
+        # get rid of first line and the last line
+        lines = maybe_json.splitlines()
+        if lines:
+            lines.pop(0)
+            lines.pop()
+        else:
+            log.error("No lines found in OCR data")
+            return 
+        new_maybe_json = '\n'.join(lines)
+        unescaped_json_str = new_maybe_json.encode('utf-8').decode('unicode_escape')
+        log.info(f"data looks like \n{unescaped_json_str}")
         try:
-            # get rid of first line
-            lines = maybe_json.splitlines()
-            if lines:
-                lines.pop(0)
-            else:
-                log.error("No lines found in OCR data")
-                return 
-            new_maybe_json = '\n'.join(lines)
-            maybedata = json.loads(new_maybe_json)
-            log.info(f"data looks like {maybedata}")
+            maybedata = json.loads(unescaped_json_str)
+            log.debug(f"parsed ocr json: {maybedata}")
         except Exception as e:
-            log.error(f"Error parsing OCR data: {e}")
+            log.error(f"Error parsing OCR data: {e} json: \n{unescaped_json_str}")
+            return
+
+        try:
+            lmdata = LMData.get_by_id(swing.lmdata.id)
+            lmdata.raw_txt = unescaped_json_str
+            log.info(f"lmdata model: {model_to_dict(lmdata)}")
+            lmdata.save()
+        except Exception as e:
+            log.error(f"Error saving OCR data to LMData: {e}")
 
 
     @socketio.on('video_data')
     def handle_video_data(data_txt):
-        log.debug(f"Got the video data fool: {data_txt}")
-        data = json.loads(data_txt)
+        #log.debug(f"Got the video data fool: {data_txt}")
+        data = None
+        if(data_txt == "ERROR"):
+            log.error("Received error message from TRC processing")
+            return
+        try:
+            data = json.loads(data_txt)
+        except Exception as e:
+            log.error(f"Error parsing json: {e}\n{data_txt[:200]}")
+            return
+
         try: 
             swing = Swing.get_by_id(data['swingid'])
             swing.faceTrc = data['trc_txt']
@@ -194,7 +212,7 @@ class SBW(QMainWindow):
 
         
 
-        self.timer = QTimer()
+        self.timer = QTimer(self, singleShot=True)
 
         self.ui.sw = SwingWidget()
         self.ui.verticalLayout_6.addWidget(self.ui.sw)
@@ -232,7 +250,7 @@ class SBW(QMainWindow):
         # Setup share obj for flask messages
         self.shared_object = shared_object
         #self.message_signal = MessageReceivedSignal()
-        self.shared_object.message_signal.messageReceived.connect(self.foo, Qt.QueuedConnection)
+        self.shared_object.message_signal.messageReceived.connect(self.http_process_swing, Qt.QueuedConnection)
         self.shared_object.message_signal.wsSignal.connect(self.ws_sig,Qt.QueuedConnection)
         self.shared_object.message_signal.serverConnect.connect(self.server_connect)
         self.shared_object.message_signal.serverDisconnect.connect(self.server_disconnect)
@@ -326,7 +344,7 @@ class SBW(QMainWindow):
             self.current_swing = None
 
     # Connect the main window's close event to a method in the debug window
-        #self.closeEvent.connect(self.on_main_window_close)
+    #self.closeEvent.connect(self.on_main_window_close)
 
     @Slot()
     def on_got_trc_for_swing(self, swingid):
@@ -450,38 +468,8 @@ class SBW(QMainWindow):
     @Slot()
     def manual_add_swing(self,files):
         self.logger.debug(f" got files {files}")
+        self.add_and_load_swing(files)
         
-        #TODO, how to allow for user naming scheme?
-        dtlVid = [file for file in files if 'left.mp4' in file]
-        faceVid = [file for file in files if 'right.mp4' in file]
-        screen = [file for file in files if 'screen.png' in file]
-        try:
-            lmdata = LMData.create()
-            self.current_swing = Swing.create(session = self.session,
-                dtlVid = dtlVid,
-                lmdata= lmdata,
-                faceVid = faceVid,
-                screen = screen)
-        except Exception as e:
-            self.logger.error(f"db excption {e}")
-            return
-
-        vid_dir = self.config.vidDir
-        if len(dtlVid) > 0:
-            self.current_swing.dtlVid = vid_dir + "/"+ dtlVid[0]
-        else:
-            self.logger.error("no face on vid found")
-        if len(faceVid) > 0:
-            self.current_swing.faceVid = vid_dir + "/"+ faceVid[0]
-        else:
-            self.logger.error("no down the line vid found")
-        if len(screen) > 0:
-            self.current_swing.screen = self.config.screenDir + "/"+ screen[0]
-        else:
-            self.logger.error(f"no screen found {files}")
-        self.current_swing.save()
-        self.add_swing_to_model(self.current_swing)
-        self.load_swing(self.current_swing.id)
 
     @Slot()
     def ws_request_trc(self):
@@ -528,34 +516,29 @@ class SBW(QMainWindow):
         #self.timer = QTimer()
         print("in do_screen_timer, creating timer")
         if not self.timer.isActive():
-            self.timer.disconnect()
-            self.timer.timeout.connect(lambda: self.dst_done( self.current_swing.id))
+            #self.timer.disconnect(self.)
+            self.timer.timeout.disconnect(self.dst_done)
+            #self.timer.timeout.connect(lambda: self.dst_done( self.current_swing.id))
+            self.timer.timeout.connect(self.dst_done)
             self.timer.start(self.config.screen_timeout * 1000)
         else:
             self.logger.debug("timer already active")
 
     @Slot()
-    def dst_done(self,id):
+    def dst_done(self):
 
         #TODO: this screams for some sort of locking
         fname = self.take_screen()
         self.logger.debug(f"done screen timer: id was {id}")
-        swing = Swing.get_by_id(id)
-        swing.screen = fname
-        swing.save()
+        #swing = Swing.get_by_id(id)
+        self.current_swing.screen = fname
+        self.current_swing.save()
         self.timer.stop()
+        self.timer.timeout.disconnect(self.dst_done)
+        #self.timer.disconnect(self.dst_done)
+        if self.config.enableOcr:
+           self.test_ws() 
 
-
-    #def get_screen(self,progress_callback):
-        #self.logger.debug("in get_screen")
-        #time.sleep(1)
-        #return "Done"
-
-    #def start_get_screen(self):
-        #self.logger.debug("Get Screen Clicked")
-        #w = Worker(self.get_screen)
-        #w.signals.result.connect(self.print_output)
-        #self.threadpool.start(w)
 
     def start_loading(self):
         self.prev_cw = self.centralWidget()
@@ -692,28 +675,24 @@ class SBW(QMainWindow):
             self.logger.debug(f"found trc")
         else:
             self.logger.error("no trc data")
-            if(self.config.enableTRC):
-                self.logger.debug("auto trc, fetching")
-                #self.add_task(self.current_swing.id)
-                self.ws_request_trc()
             return
 
         # TODO: move pre-speed and stuff from server here and update teh plot
         self.logger.error("TODO: fix the plots")
-        df = pd.read_csv(StringIO(maybe_trc))
-        self.logger.debug(f"dff info {df.info()} df head: {df.head()}")
+        df = []
+        try:
+            df = pd.read_csv(StringIO(maybe_trc))
+        except Exception as e:  
+            self.logger.error(f"Error reading trc data: {e}")
+            return
+
+        #self.logger.debug(f"dff info {df.info()} df head: {df.head()}")
         wrist = df.filter(regex='LWrist')
-        self.logger.debug(f"wrist head: {wrist.head()}")
+        #self.logger.debug(f"wrist head: {wrist.head()}")
         wrist_with_speed = gen_speed(wrist)
-        self.logger.debug(f"with speed {wrist_with_speed.head()}")
+        #self.logger.debug(f"with speed {wrist_with_speed.head()}")
         self.plot.update_data(wrist_with_speed)
 
-        #obj = self.trc_queue_worker.parse_csv(maybe_trc)
-        #if obj != None:
-            #(df,hip_df,shoulder_df,maybe_trc) = self.trc_queue_worker.parse_csv(maybe_trc)
-            #self.plot.update_data(df,hip_df,shoulder_df)
-        #else:
-            #self.logger.error("trc data not parsed correctly")
 
     def of1wdone(self,result):
         self.logger.debug("of1wdone done {result}")
@@ -727,6 +706,8 @@ class SBW(QMainWindow):
                 request_data = {'file_path':self.current_swing.screen,'swingid':self.current_swing.id}
                 request_text = json.dumps(request_data)
                 socketio.emit("do_ocr", request_text)
+            else:
+                self.logger.debug("test_ws no screen found")
         return
 
     def create_db(self):
@@ -736,7 +717,7 @@ class SBW(QMainWindow):
         except DoesNotExist:
             self.logger.debug("No config found, trying to create one")
             self.config = Config.create()
-            self.config.save
+            self.config.save()
 
 
 
@@ -745,7 +726,7 @@ class SBW(QMainWindow):
         print("unf")
 
     Slot(str)
-    def foo(self,s):
+    def http_process_swing(self,s):
         """
         this gets called twice because kinovea does it for each video :(
 
@@ -753,7 +734,7 @@ class SBW(QMainWindow):
             
         """
         
-        self.logger.debug(f"foo() s was: {s}")
+        self.logger.debug(f"http_process_swing() s was: {s}")
         if isinstance(s,str):
             self.ui.out_msg.setText(s)
             swings = find_swing(self.config.vidDir,"mp4")
@@ -775,12 +756,65 @@ class SBW(QMainWindow):
                 self.add_swing_to_model(self.current_swing)
                 self.load_swing(self.current_swing.id)
             except Exception as e:
-                self.logger.debug(f"couldn't create swing, likely unique fname issue\nKINOVEA calls this twice so should expect failure on every swing {e}")
+                self.logger.debug(f"couldn't create swing, likely unique fname issue\nKINOVEA calls this twice so should expect failure on every swing\n\t Exception: {e}")
                 return
         else:
-            self.logger.debug("foo() s was not a string")
+            self.logger.debug("http_process_swing() s was not a string")
 
+    def add_and_load_swing(self,files, maybeScreen=False,autoTrc=False, autoScreen=False):
+        """
+        takes array of file paths [swing1,swing2,screnshot1], creates db objects and loads the videos/screens/trc
+        autoXXX will attempt to process trc and screenshots
+        maybeScreen may start the screen shot timer
         
+        """    
+        #TODO, how to allow for user naming scheme?
+        dtlVid = [file for file in files if 'left.mp4' in file]
+        faceVid = [file for file in files if 'right.mp4' in file]
+        screen = [file for file in files if 'screen.png' in file]
+
+        vid_dir = self.config.vidDir
+
+        if len(dtlVid) > 0:
+            dtlVid = vid_dir + "/"+ dtlVid[0]
+        else:
+            self.logger.error("no face on vid found")
+            dtlVid = Swing.dtlVid.default
+        if len(faceVid) > 0:
+            faceVid = vid_dir + "/"+ faceVid[0]
+        else:
+            self.logger.error("no down the line vid found")
+            faceVid = Swing.faceVid.default
+        if len(screen) > 0:
+            screen = self.config.screenDir + "/"+ screen[0]
+        else:
+            self.logger.error(f"no screen found {files}")
+            screen = Swing.screen.default
+        try:
+            lmdata = LMData.create()
+            self.current_swing = Swing.create(session = self.session,
+                dtlVid = dtlVid,
+                lmdata= lmdata,
+                faceVid = faceVid,
+                screen = screen)
+        except Exception as e:
+            self.logger.error(f"db excption {e}")
+            return
+        
+        if(self.config.enableTRC):
+            self.logger.debug("auto trc, fetching")
+            #self.add_task(self.current_swing.id)
+            self.ws_request_trc()
+
+        if(self.config.enableScreen ):
+            self.do_screen_timer()
+        else:
+            self.logger.debug(f"enable screen was set to {self.config.enableScreen}")        
+
+        self.current_swing.save()
+        self.add_swing_to_model(self.current_swing)
+        self.load_swing(self.current_swing.id)
+
 
 
     # Function to open a video file
@@ -1077,7 +1111,7 @@ class SineWavePlot(QWidget):
     @Slot()
     def reset_data(self):
         self.y = self.oy
-        self.x = self.ox
+        self.x = list(range(len(self.oy)))
         self.plot_item.setData(self.x, self.y, pen={'color': 'r', 'width': 2})
         self.plot_item2.setData(self.x, self.y, pen={'color': 'r', 'width': 2})
     @Slot()
@@ -1090,7 +1124,7 @@ class SineWavePlot(QWidget):
         pen = {'color': 'r', 'width': 1}
         self.plot_item2.setData(self.x,self.y2,pen=pen)
 
-        if df2.empty:
+        if df2 is not None and not df2.empty:
             self.logger.debug("Got some Shoulder data! now you have to update the plot and add the ui stuff to toggle and stuff")
             self.hip_plot_item.setData(self.x, df2['Speed'],pen={'color':'g','width':2})
 
@@ -1154,9 +1188,9 @@ if __name__ == "__main__":
     logger.addHandler(window_handler)
 
     logger = logging.getLogger(__name__)
-    logger.debug("test debug")
-    logger.info("test info")
-    logger.warning("test warn")
+    #logger.debug("test debug")
+    #logger.info("test info")
+    #logger.warning("test warn")
 
     widget = SBW()
     widget.show()

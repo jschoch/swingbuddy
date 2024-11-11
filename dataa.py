@@ -3,7 +3,7 @@ from pathlib import Path
 import math
 from scipy.signal import butter, filtfilt
 import pandas as pd
-
+pd.options.mode.copy_on_write = True
 
 def euclidean_distance(point1, point2):
     if point1 is None or point2 is None:

@@ -30,7 +30,7 @@ class LMData(BaseModel):
     spin_axis = FloatField(null=True)
     club_path = FloatField(null=True)
     # the raw string from the LLM
-    raw= TextField(default="none")
+    raw_txt = TextField(default="none")
 
 class Swing(BaseModel):
     name = CharField(default="none")
@@ -51,13 +51,6 @@ class Swing(BaseModel):
             (('faceVid',),True)
         )
 
-
-
-
-
-
-
-
 class Config(BaseModel):
     vidDir = CharField(default=r"c:/files/test_swings")
     screenDir = CharField(default="c:/files/test_swings")
@@ -66,6 +59,7 @@ class Config(BaseModel):
     enableScreen = BooleanField(default=True)
     enableTRC = BooleanField(default=True)
     enablePose = BooleanField(default=True)
+    enableOcr = BooleanField(default=True)
     autoplay = BooleanField(default=True)
     screen_timeout = IntegerField(default=15)
     screen_coords = CharField(default = "0,0,600,600") # will be split into (a,b,c,d)

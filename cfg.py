@@ -26,7 +26,7 @@ class ConfigWindow(QWidget):
         for field_name in Config._meta.columns.keys():
             row_layout = QHBoxLayout()
             label = QLabel(field_name)
-            if field_name == "enableScreen" or field_name == "enableTRC" or field_name == "enablePose" or field_name == "autoplay":
+            if field_name == "enableScreen" or field_name == "enableOcr" or field_name == "enableTRC" or field_name == "enablePose" or field_name == "autoplay":
                 edit = QCheckBox()
                 edit.setChecked(Config._meta.columns[field_name].default)
             elif field_name == "screen_timeout":
