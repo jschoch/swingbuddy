@@ -346,7 +346,7 @@ class SBW(QMainWindow):
     def do_got_trc_for_swing(self, swingid):
         if self.current_swing.id == swingid:
             self.logger.debug("do_got_trc_for_swing()  fetching saved trc data")
-            self.current_swing = Swing.get(swingid)
+            #self.current_swing = Swing.get(swingid)
             self.load_swing(swingid)
         else:
             self.logger.debug("do_got_trc_for_swing()  current swing changed, skipping TRC load")
@@ -593,7 +593,8 @@ class SBW(QMainWindow):
 
     def load_swing(self,id):
         if(self.current_swing is not None and self.current_swing.id == id):
-            self.logger.debug("current swing already loaded what now?")
+            self.logger.debug("current swing already loaded getting refresh from db!")
+            self.current_swing = Swing.get_by_id(id)
         else:
             swing = Swing.get_by_id(id)
             if swing is None:
