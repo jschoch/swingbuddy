@@ -738,26 +738,7 @@ class SBW(QMainWindow):
         if isinstance(s,str):
             self.ui.out_msg.setText(s)
             swings = find_swing(self.config.vidDir,"mp4")
-            self.logger.debug(f"swings found: {swings}")
-            try: 
-                self.logger.debug("trying to creat th efucking swing")
-                #TODO: fix thisto match on actual name
-                lmdata = LMData.create()
-                self.current_swing = Swing.create(session = self.session,
-                    lmdata = lmdata,
-                    faceVid = swings[0],
-                    dtlVid = swings[1])
-                self.logger.debug("Trying to take the fucking screenshot")
-
-                if(self.config.enableScreen ):
-                    self.do_screen_timer()
-                else:
-                    self.logger.debug(f"enable screen was set to {self.config.enableScreen}")
-                self.add_swing_to_model(self.current_swing)
-                self.load_swing(self.current_swing.id)
-            except Exception as e:
-                self.logger.debug(f"couldn't create swing, likely unique fname issue\nKINOVEA calls this twice so should expect failure on every swing\n\t Exception: {e}")
-                return
+            self.add_and_load_swing(swings)
         else:
             self.logger.debug("http_process_swing() s was not a string")
 
@@ -776,17 +757,17 @@ class SBW(QMainWindow):
         vid_dir = self.config.vidDir
 
         if len(dtlVid) > 0:
-            dtlVid = vid_dir + "/"+ dtlVid[0]
+            dtlVid = dtlVid[0]
         else:
             self.logger.error("no face on vid found")
             dtlVid = Swing.dtlVid.default
         if len(faceVid) > 0:
-            faceVid = vid_dir + "/"+ faceVid[0]
+            faceVid = faceVid[0]
         else:
             self.logger.error("no down the line vid found")
             faceVid = Swing.faceVid.default
         if len(screen) > 0:
-            screen = self.config.screenDir + "/"+ screen[0]
+            screen = screen[0]
         else:
             self.logger.error(f"no screen found {files}")
             screen = Swing.screen.default
@@ -1146,7 +1127,6 @@ class AddDialog(QDialog):
         )
         self.files = []
         self.config = config
-        #self.sfiles = Signal()
         self.buttonBox = QDialogButtonBox(QBtn)
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
@@ -1172,9 +1152,13 @@ class AddDialog(QDialog):
     def on_selection_changed(self, selected, deselected):
         for index in selected.indexes():
             key = self.model.data(index)
-            #print(f"Selected key: {key}, files: {self.data_dict[key]}")
+            print(f"Selected key: {key}, files: {self.data_dict[key]}")
             self.files = self.data_dict[key]
-            #self.sfiles.emit(self.files)
+            full_path_files = []
+            for file in self.files:
+                full_path_files.append(self.config.vidDir + "/" + file)
+            self.files = full_path_files
+                
 
 
 

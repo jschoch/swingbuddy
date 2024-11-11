@@ -16,11 +16,20 @@ import pandas as pd
 
 testdb = SqliteDatabase('test.db')
 
-def get_files_with_extension(directory, extension):
+def get_files_with_extension_bad(directory, extension):
     return [os.path.join(directory, f) for f in os.listdir(directory) if
             (os.path.isfile(os.path.join(directory, f)) and
              os.path.splitext(f)[1].lower() == f'.{extension.lower()}' and
              os.path.getsize(os.path.join(directory, f)) > 0)]
+            
+def get_files_with_extension(directory, extension):
+    files = []
+    for f in os.listdir(directory):
+        full_path = os.path.join(directory, f)
+        if os.path.isfile(full_path) and os.path.splitext(f)[1].lower() == f'.{extension.lower()}' and os.path.getsize(full_path) > 0:
+            normalized_path = full_path.replace('\\', '/')
+            files.append(normalized_path)  # Use the normalized path instead of the original one
+    return files
 
 
 def sort_by_creation_time(files):
