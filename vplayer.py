@@ -8,6 +8,38 @@ from PySide6.QtWidgets import (QMainWindow, QListView, QPushButton, QTextEdit,QS
     QHBoxLayout, QWidget, QVBoxLayout, QLabel,QDialog,QDialogButtonBox,
     QSizePolicy, QMessageBox,QDialog, QGridLayout, QTextEdit)
 
+    
+class WorkerThread(QThread):
+    result = Signal(object)
+
+    def __init__(self, clip, parent_size, lr):
+        super().__init__()
+        self.clip = clip
+        self.parent_size = parent_size
+        self.lr = lr
+        self.isRunning = False
+
+    def do_work(self):
+        self.isRunning = True
+        qimage_frames = []
+        for frame in self.clip.decode(video=0):
+            img = frame.to_image()
+            q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
+            my_transform = QTransform()
+            my_transform.rotate(-90)
+            q_image = q_image.transformed(my_transform)
+            scaled_image = q_image.scaledToHeight(self.parent_size.height()-100,Qt.SmoothTransformation)
+            qimage_frames.append(scaled_image)
+
+        obj = (qimage_frames,self.lr)
+        self.result.emit(obj)
+
+    def run(self):
+        """Override run method
+        """
+        self.do_work()
+
+
 # Video playback class responsible for managing the actual playback of the video.
 class VideoPlayBack:
     def __init__(self, video_playback_ui, video_clip):
@@ -20,6 +52,8 @@ class VideoPlayBack:
         self.is_playing = False
         self.playback_speed = 1.0
         #self.lr = lr
+        self.t1 = None
+        self.t0 = None
         self.timer = QTimer()
         self.start()
 
@@ -45,19 +79,14 @@ class VideoPlayBack:
         video_stream = video_clip.streams.video[0]
         print(f" meta:\n {video_stream.metadata}")
 
-        for frame in video_clip.decode(video=0):
-            img = frame.to_image()
-            q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
-            my_transform = QTransform()
-            my_transform.rotate(-90)
-            q_image = q_image.transformed(my_transform)
-            scaled_image = q_image.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
-            if(lr):
-                self.qimage_frames2.append(scaled_image)
-                self.video_playback_ui.vid2_text.setText(f"{self.video_clip}")
-            else:
-                self.qimage_frames.append(scaled_image)
-                self.video_playback_ui.vid1_text.setText(f"{self.video_clip}")
+        #t1.start() 
+        if lr:
+            self.t1 = WorkerThread(self, video_stream, parent_size, lr)
+            self.t1.result.connect(self.frames_done)
+        else:
+            self.t0 = WorkerThread(self, video_stream, parent_size, lr)
+            self.t0.result.connect(self.frames_done)
+
         self.logger.debug("VideoPlayBack load_frames() done loading framse")
 
         if(lr):
@@ -65,6 +94,14 @@ class VideoPlayBack:
         else:
             self.video_playback_ui.vid1_text.setText(f"{self.video_clip}")
         return
+
+    def frames_done(self,obj):
+        (frames, lr) = obj
+        
+        if lr: 
+            self.qimage_frames2 = frames
+        else:
+            self.qimage_frames = frames
 
     # Function to update the frame
     def update_frame(self,lr):
