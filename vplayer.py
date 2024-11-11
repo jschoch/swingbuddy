@@ -116,8 +116,10 @@ class VideoPlayBack:
         if lr: 
             self.qimage_frames2 = frames
             self.update_frame(lr)
+            self.video_playback_ui.slider.setRange(0,len(self.qimage_frames2)-1)
         else:
             self.qimage_frames = frames
+            self.video_playback_ui.slider.setRange(0,len(self.qimage_frames)-1)
             self.update_frame(lr)
 
     # Function to update the frame

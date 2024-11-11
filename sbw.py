@@ -487,7 +487,10 @@ class SBW(QMainWindow):
         self.current_swing.save()
         self.timer.stop()
         self.timer.timeout.disconnect(self.dst_done)
-        #self.timer.disconnect(self.dst_done)
+        pixmap_big = QPixmap(fname)
+        parent_size = self.screenlabel.parent().size()
+        pixmap = pixmap_big.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
+        self.video_playback_Ui.screen_label2.setPixmap(pixmap)
         if self.config.enableOcr:
            self.test_ws() 
 
