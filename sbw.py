@@ -340,14 +340,13 @@ class SBW(QMainWindow):
         self.trc_queue_worker.complete_trc.connect(self.trc_result)
         self.start_queue()
 
-        #self.current_swing = None
+        self.current_swing = None
         try:
             lastswing = Swing.select().order_by(Swing.id.desc()).get()
             #id = 
             self.load_swing(lastswing.id)
         except Exception as e:
             self.logger.error(f"No Swing found to load default on init ya {e}")
-            self.current_swing = None
 
     # Connect the main window's close event to a method in the debug window
     #self.closeEvent.connect(self.on_main_window_close)
@@ -571,7 +570,6 @@ class SBW(QMainWindow):
             b = 1
         i = QStandardItem(f"{item.name} {item.id} {item.sdate} {b}")
         i.setData(item.id,Qt.UserRole)
-        #self.fuckyoumodel.appendRow(i)
         self.fuckyoumodel.insertRow(0,[i])
 
 
@@ -603,15 +601,21 @@ class SBW(QMainWindow):
     
 
     def load_swing(self,id):
-        swing = Swing.get_by_id(id)
+        if(self.current_swing is not None and self.current_swing.id == id):
+            self.logger.debug("current swing already loaded what now?")
+        else:
+            swing = Swing.get_by_id(id)
+            if swing is None:
+                self.logger.error(f"cant' find the swing id {id}")
+                return
+            self.current_swing = swing
+
+        
+        
+        
         if self.video_playback != None and self.video_playback.is_playing:
             self.main_pause_signal.emit()
-            #self.video_playback.stop()
-            #self.video_playback.stop.connect
-        if swing == None:
-            self.logger.error(f"cant' find the swing id {id}")
-            return
-
+            
         # reset stuff
         self.video_clip = None
         self.video_clip2 = None
@@ -620,19 +624,12 @@ class SBW(QMainWindow):
         self.qimage_frames2 = []
         self.video_playback_Ui.video_label2.setPixmap(QPixmap())
         self.video_playback_Ui.video_label1.setPixmap(QPixmap())
-        self.logger.debug(f"swing date: {swing.sdate}")
         self.plot.reset_data()
 
-        # grabbie
-        faceVid =  swing.faceVid
-        dtlVid = swing.dtlVid
-
-        maybe_trc = swing.faceTrc
-
-        self.current_swing = swing
+        maybe_trc = self.current_swing.faceTrc
 
         # this setups the swing data in the tab
-        self.ui.sw.set_swing_data(swing)
+        self.ui.sw.set_swing_data(self.current_swing)
 
         self.video_clip = None
         self.video_playback = VideoPlayBack(self.video_playback_Ui, self.video_clip)
@@ -646,23 +643,20 @@ class SBW(QMainWindow):
         self.video_playback_Ui.speed_slider.setEnabled(True)
 
         if not hasattr(self, 'of1w') or not self.of1w.isRunning():
-            self.of1w = Worker(self.open_file,faceVid)
+            self.of1w = Worker(self.open_file,self.current_swing.faceVid)
             self.of1w.signals.result.connect(self.of1wdone)
             self.threadpool.start(self.of1w)
         else:
             self.logger.debug("already loading file 1")
 
         if not hasattr(self, 'of2w') or not self.of2w.isRunning():
-            self.of2w = Worker(self.open_file2,dtlVid)
+            self.of2w = Worker(self.open_file2,self.current_swing.dtlVid)
             self.of2w.signals.result.connect(self.of1wdone)
             self.threadpool.start(self.of2w)
         else:
             self.logger.debug("already loading file 2")
 
-        
-
-        #image_path = f"c:/Files/test_swings/{swing.screen}"  # Replace with the path to your PNG file
-        image_path = swing.screen
+        image_path = self.current_swing.screen
         if image_path == "no Screen":
             self.logger.debug("no screen")
 
@@ -742,7 +736,6 @@ class SBW(QMainWindow):
         
         self.logger.debug(f"http_process_swing() s was: {s}")
         if isinstance(s,str):
-            self.ui.out_msg.setText(s)
             swings = find_swing(self.config.vidDir,"mp4")
             self.add_and_load_swing(swings)
         else:
@@ -798,7 +791,7 @@ class SBW(QMainWindow):
         else:
             self.logger.debug(f"enable screen was set to {self.config.enableScreen}")        
 
-        self.current_swing.save()
+        #self.current_swing.save()
         self.add_swing_to_model(self.current_swing)
         self.load_swing(self.current_swing.id)
 
@@ -807,10 +800,8 @@ class SBW(QMainWindow):
     # Function to open a video file
     def open_file(self,file_path):
         #if  os.path.exists(file_path):
-        if file_path == None or file_path == False:
+        if file_path is None or file_path == False:
             file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
-        else:
-            self.logger.debug("Not using file menu, but maybe problem")
 
         if not os.path.exists(file_path):
             return "OF1 no file "
@@ -833,12 +824,9 @@ class SBW(QMainWindow):
 
 
     def open_file2(self,file_path):
-        if file_path == None or file_path == False:
+        if file_path is None or file_path == False:
         #if  os.path.exists(file_path):
              file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
-        else:
-             self.logger.error(f"OF2: can't find file {file_path}")
-             #return "this is bad, but no workie"
             
         if not os.path.exists(file_path):
             return "OF1 no file "
