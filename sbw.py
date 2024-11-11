@@ -193,6 +193,7 @@ class FlaskThread(QThread):
 class SBW(QMainWindow):
     main_play_signal = Signal()
     main_pause_signal = Signal()
+    clip_loaded = Signal(object)
     def __init__(self, parent=None):
         super().__init__(parent)
         self.ui = Ui_SBW()
@@ -243,6 +244,8 @@ class SBW(QMainWindow):
         self.open_action.triggered.connect(self.open_file)
         self.file_menu.addAction(self.open_action)
 
+        self.clip_loaded.connect(self.load_video)
+
         self.open_action2 = QAction("&Open2", self)
         self.open_action2.setShortcut("Ctrl+O")
         self.open_action2.triggered.connect(self.open_file2)
@@ -260,7 +263,7 @@ class SBW(QMainWindow):
         self.shared_object.message_signal.wsSignal.connect(self.ws_sig,Qt.QueuedConnection)
         self.shared_object.message_signal.serverConnect.connect(self.server_connect)
         self.shared_object.message_signal.serverDisconnect.connect(self.server_disconnect)
-        self.shared_object.message_signal.got_trc_for_swing.connect(self.on_got_trc_for_swing)
+        self.shared_object.message_signal.got_trc_for_swing.connect(self.do_got_trc_for_swing)
         
         # Add action to the Tool menu
         self.play_rev_action = QAction("&Play Reverse", self)
@@ -352,7 +355,8 @@ class SBW(QMainWindow):
     #self.closeEvent.connect(self.on_main_window_close)
 
     @Slot()
-    def on_got_trc_for_swing(self, swingid):
+    def do_got_trc_for_swing(self, swingid):
+        self.logger.debug("TODO:  WHY DO YOU NEED TO RELOAD THE WHOLE SWING?")
         if self.current_swing.id == swingid:
             self.load_swing(swingid)
 
@@ -695,7 +699,7 @@ class SBW(QMainWindow):
 
 
     def of1wdone(self,result):
-        self.logger.debug("of1wdone done {result}")
+        self.logger.debug(f"of1wdone done {result}")
 
     def test_ws(self):
         self.logger.debug("ocr btn clicked")
@@ -806,21 +810,13 @@ class SBW(QMainWindow):
         if not os.path.exists(file_path):
             return "OF1 no file "
 
-        self.logger.debug(f"file path: {file_path}")
-        if file_path:
-           self.video_clip = av.open(file_path)
-           self.video_playback.video_clip = self.video_clip
-           self.logger.debug("trying to load the frame")
-           self.video_playback.load_frame(0)
-           self.video_playback.update_frame(0)
-           if self.video_playback.qimage_frames == None or self.video_playback.qimage_frames == []:
-               self.logger.error("no quimageframes in open_file() return")
-               return
-           self.video_playback_Ui.slider.setRange(0, len(self.video_playback.qimage_frames) )
-           self.logger.debug("done loading frame")
-           if(self.config.autoplay):
-                if not self.video_playback.is_playing:
-                    self.video_playback.is_playing = True
+        self.logger.debug(f" file path: {file_path}")
+        clip = av.open(file_path)
+        obj = (clip,1)
+        self.clip_loaded.emit(obj)
+        self.of1w.signals.result.emit("done of1")
+
+           
 
 
     def open_file2(self,file_path):
@@ -832,17 +828,41 @@ class SBW(QMainWindow):
             return "OF1 no file "
 
         self.logger.debug(f"file path2: {file_path}")
-        if file_path:
-              self.video_clip2 = av.open(file_path)
-              self.video_playback.video_clip2 = self.video_clip2
-              self.logger.debug("trying to load the frame2")
-              self.video_playback.load_frame(1)
-              self.video_playback.update_frame(1)
-              self.logger.debug("done loading frame2")
-              if(self.config.autoplay):
-                if not self.video_playback.is_playing:
-                    self.video_playback.is_playing = True
+        clip = av.open(file_path)
+        obj = (clip,2)
+        self.clip_loaded.emit(obj)
+        self.of1w.signals.result.emit("done of2")
 
+
+    @Slot()
+    def load_video(self, obj):
+        (clip,id) = obj
+        self.logger.debug(f"load_video: {clip} id: {id}")
+
+        if id == 2:
+            self.video_clip2 = clip
+            self.video_playback.video_clip2 = self.video_clip2
+            self.logger.debug("trying to load the frame2")
+            self.video_playback.load_frame(1)
+            self.video_playback.update_frame(1)
+            self.logger.debug("done loading frame2")
+        if id == 1:
+           self.video_clip = clip
+           self.video_playback.video_clip = self.video_clip
+           self.logger.debug("trying to load the frame")
+           self.video_playback.load_frame(0)
+           self.video_playback.update_frame(0)
+           if self.video_playback.qimage_frames == None or self.video_playback.qimage_frames == []:
+               self.logger.error("no quimageframes in open_file() return")
+               return
+           self.video_playback_Ui.slider.setRange(0, len(self.video_playback.qimage_frames) )
+           self.logger.debug("done loading frame")
+            
+        
+        if(self.config.autoplay):
+            if not self.video_playback.is_playing:
+                self.video_playback.is_playing = True
+        
     # Function to play the video
     @Slot()
     def play(self):
@@ -970,8 +990,8 @@ class Worker(QRunnable):
             traceback.print_exc()
             exctype, value = sys.exc_info()[:2]
             self.signals.error.emit((exctype, value, traceback.format_exc()))
-        else:
-            self.signals.result.emit(result)  # Return the result of the processing
+        #else:
+            #self.signals.result.emit(result)  # Return the result of the processing
         finally:
             self.running = False
             self.signals.finished.emit()  # Done

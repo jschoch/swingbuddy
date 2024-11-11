@@ -14,14 +14,15 @@ class SwingWidget(QWidget):
         self.hlayout = QHBoxLayout()
         self.layout = QVBoxLayout()
         self.vlayout2 = QVBoxLayout()
+        self.hlayout.addLayout(self.layout)
+        self.hlayout.addLayout(self.vlayout2)
         self.setLayout(self.hlayout)
 
         self.clear_layout()
 
     def set_swing_data(self, swing: 'Swing'):
         self.clear_layout()
-        self.hlayout.addLayout(self.layout)
-        self.hlayout.addLayout(self.vlayout2)
+        
 
         labels = {
             "ID: ": swing.id,
