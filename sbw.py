@@ -718,7 +718,10 @@ class SBW(QMainWindow):
             screen = Swing.screen.default
         try:
             lmdata = LMData.create()
+            parts = faceVid.split('-')[:2]
+            sname = "-".join(parts)
             self.current_swing = Swing.create(session = self.session,
+                name = sname,
                 dtlVid = dtlVid,
                 lmdata= lmdata,
                 faceVid = faceVid,
@@ -782,17 +785,17 @@ class SBW(QMainWindow):
             self.video_playback.video_clip2 = self.video_clip2
             self.logger.debug("trying to load the frame2")
             self.video_playback.load_frame(1)
-            self.video_playback.update_frame(1)
+            #self.video_playback.update_frame(1)
             self.logger.debug("done loading frame2")
         if id == 1:
            self.video_clip = clip
            self.video_playback.video_clip = self.video_clip
            self.logger.debug("trying to load the frame")
            self.video_playback.load_frame(0)
-           self.video_playback.update_frame(0)
+           #self.video_playback.update_frame(0)
            if self.video_playback.qimage_frames == None or self.video_playback.qimage_frames == []:
                self.logger.error("no quimageframes in open_file() return")
-               return
+               #return
            self.video_playback_Ui.slider.setRange(0, len(self.video_playback.qimage_frames) )
            self.logger.debug("done loading frame")
             

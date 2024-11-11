@@ -33,6 +33,7 @@ class WorkerThread(QThread):
 
         obj = (qimage_frames,self.lr)
         self.result.emit(obj)
+        self.isRunning = False
 
     def run(self):
         """Override run method
@@ -52,8 +53,8 @@ class VideoPlayBack:
         self.is_playing = False
         self.playback_speed = 1.0
         #self.lr = lr
-        self.t1 = None
-        self.t0 = None
+        self.t1 = WorkerThread(None, 0, 0)
+        self.t0 = WorkerThread(None, 0, 0)
         self.timer = QTimer()
         self.start()
 
@@ -67,6 +68,7 @@ class VideoPlayBack:
             self.qimage_frames2 = []
             video_clip = self.video_clip2
             #self.video_playback_ui.vid2_text.setText(f"Begin Loading!\n{self.video_clip2.format.name}")
+
         else:
             self.qimage_frames = []
             video_clip = self.video_clip
@@ -81,11 +83,24 @@ class VideoPlayBack:
 
         #t1.start() 
         if lr:
-            self.t1 = WorkerThread(self, video_stream, parent_size, lr)
+            if self.t1.isRunning:
+                self.logger.error("t1 is already running")
+                return
+            
+            self.t1 = WorkerThread(video_clip, parent_size, lr)
             self.t1.result.connect(self.frames_done)
+            self.t1.finished.connect(self.t1.deleteLater)
+            self.t1.start()
         else:
-            self.t0 = WorkerThread(self, video_stream, parent_size, lr)
+            if self.t0.isRunning:
+                self.logger.error("t0 is already running")
+                return
+
+            self.t0 = WorkerThread(video_clip, parent_size, lr)
             self.t0.result.connect(self.frames_done)
+            self.t0.finished.connect(self.t0.deleteLater)
+            self.t0.start()
+
 
         self.logger.debug("VideoPlayBack load_frames() done loading framse")
 
@@ -100,8 +115,10 @@ class VideoPlayBack:
         
         if lr: 
             self.qimage_frames2 = frames
+            self.update_frame(lr)
         else:
             self.qimage_frames = frames
+            self.update_frame(lr)
 
     # Function to update the frame
     def update_frame(self,lr):
