@@ -360,6 +360,7 @@ class SBW(QMainWindow):
     def closeEvent(self, event):
         # Perform actions before closing the window
         print("Window is closing...")
+        db.close()
         self.shutdown_logger()
         event.accept()
 

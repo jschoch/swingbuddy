@@ -17,23 +17,35 @@ from io import StringIO
 models = [Swing,Config,Session,LMData]
 
 class TestVideoPlayBack(unittest.TestCase):
-    def setUp(self):
-        # Set up the database connection
+    def setupDb(self):
         self.db = SqliteDatabase('swingbuddy_test.db')
         self.db.connect()
         self.db.create_tables(models)  # Replace YourModel with your actual model class
+        self.swing = Swing.get_by_id(3)
+        self.logger.debug(f"swn: {self.swing.name}")
+        
+    def setUp(self):
+        # setup logger
+        
+        self.logger = logging.getLogger()
+        self.logger.setLevel(logging.DEBUG)
+        streamHandler = logging.StreamHandler(sys.stdout)
+        stE = logging.StreamHandler(sys.stderr)
+        self.logger.addHandler(streamHandler)
+        self.logger.addHandler(stE)
+        self.logger.info('Hello World!')
+        
+        # Set up the database connection
+        self.setupDb() 
+        # setup qt app
 
         self.app = QApplication(sys.argv)
         self.ui = QMainWindow()
-        self.video_clip = av.open('c:/Files/test_swings/20241111-150119-left.mp4')
-        self.video_clip2 = av.open('c:/Files/test_swings/20241111-150119-left.mp4')
-        logger = logging.getLogger()
-        logger.setLevel(logging.DEBUG)
-        streamHandler = logging.StreamHandler(sys.stdout)
-        stE = logging.StreamHandler(sys.stderr)
-        logger.addHandler(streamHandler)
-        logger.addHandler(stE)
-        logger.info('Hello World!')
+        #self.video_clip = av.open('c:/Files/test_swings/20241111-150119-left.mp4')
+        #self.video_clip2 = av.open('c:/Files/test_swings/20241111-150119-left.mp4')
+        self.video_clip = av.open(self.swing.faceVid)
+        self.video_clip2 = av.open(self.swing.dtlVid)
+        
 
         # Initialize VideoPlayBack instance
         self.video_playback_Ui = VideoPlayBackUi()
@@ -47,7 +59,7 @@ class TestVideoPlayBack(unittest.TestCase):
         h.addWidget(lbl)
         central_widget.setLayout(h)
         self.ui.setCentralWidget(self.video_playback_Ui)
-        self.video_playback.logger = logger
+        self.video_playback.logger = self.logger
         self.video_playback_Ui.video_label2.setPixmap(QPixmap())
         self.video_playback_Ui.video_label1.setPixmap(QPixmap())
         self.ui.show()
@@ -55,7 +67,7 @@ class TestVideoPlayBack(unittest.TestCase):
 
     def tearDown(self):
         # Clean up the database and close the connection
-        self.db.drop_tables(models)
+        #self.db.drop_tables(models)
         self.db.close()
         self.ui.close()
         self.app.quit()
@@ -63,6 +75,9 @@ class TestVideoPlayBack(unittest.TestCase):
     def test_load_frame(self):
         # Test the load_frame method
         lr = 1# or False, depending on what you want to test
+        self.video_playback.load_frame(lr)
+        self.video_playback.update_frame(lr)
+        lr = 0
         self.video_playback.load_frame(lr)
         self.video_playback.update_frame(lr)
         self.app.exec()
