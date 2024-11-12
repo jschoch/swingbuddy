@@ -13,6 +13,10 @@ from swingdb import Swing, Session,Config
 import requests
 from io import StringIO
 import pandas as pd
+from importlib.util import spec_from_file_location, module_from_spec
+from lib.swingpipe import BasePipe
+
+PIPE_DIR = 'pipes'
 
 testdb = SqliteDatabase('test.db')
 
@@ -119,3 +123,44 @@ def fFUCKYOU():
     sio = StringIO(s)
     df = pd.read_csv(sio)
     print(f"df info: {df.info()}")
+
+PIPES_DIR = 'pipes'
+def load_pipes():
+    pipes = []
+    # List all files in the directory
+    for filename in os.listdir(PIPES_DIR):
+        if filename.endswith('.py') and not filename.startswith('__'):
+            # Construct the full path to the module file
+            module_path = os.path.join(PIPES_DIR, filename)
+            
+            # Create a spec from the file location
+            spec = spec_from_file_location(filename[:-3], module_path)
+            
+            # Create a module from the spec
+            module = module_from_spec(spec)
+            
+            # Load the module
+            spec.loader.exec_module(module)
+            
+            # Find subclasses of BaseProcessor and add them to the list
+            for name, obj in module.__dict__.items():
+                if isinstance(obj, type) and issubclass(obj, BasePipe) and obj != BasePipe:
+                    pipes.append(obj())
+    
+    return pipes
+
+def run_predf_pipes():
+    data = {
+         'RHip_x': [0.272623, 0.272168, 0.274765, 0.272704, 0.272990],
+         'RHip_y': [-0.684526, -0.684361, -0.683200, -0.687197, -0.685515],
+         'RHip_z': [0.0, 0.0, 0.0, 0.0, 0.0],
+         'LHip_y': [-0.272623, -0.272168, -0.274765, -0.272704, -0.272990],
+         'LHip_x': [0.684526, 0.684361, 0.683200, 0.687197, 0.685515],
+         'LHip_z': [0.0, 0.0, 0.0, 0.0, 0.0]
+    }
+    df = pd.DataFrame(data)
+    
+    pipes = load_pipes()
+    for pipe in pipes:
+        pipe.preprocess_df(df)
+    return df
