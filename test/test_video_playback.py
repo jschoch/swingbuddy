@@ -40,18 +40,25 @@ class TestVideoPlayBack(unittest.TestCase):
         self.video_playback = VideoPlayBack(self.video_playback_Ui, None)
         self.video_playback.video_clip = self.video_clip
         self.video_playback.video_clip2 = self.video_clip2
-        self.ui.horizontalLayout = QHBoxLayout()
-        self.ui.horizontalLayout.addWidget(self.video_playback_Ui)
-        lbl = QLabel('Video Playback')
-        self.ui.horizontalLayout.addWidget(lbl)
-        self.ui.setLayout(self.ui.horizontalLayout)
+
+        central_widget = QWidget()
+        h = QHBoxLayout()
+        #self.ui.horizontalLayout.addWidget(self.video_playback_Ui)
+        lbl = QLabel('Video Playback',self.ui)
+        h.addWidget(lbl)
+        central_widget.setLayout(h)
+
+        #self.ui.setCentralWidget(central_widget)
+        self.ui.setCentralWidget(self.video_playback_Ui)
+        #self.video_playback_Ui.setLayout(self.ui.horizontalLayout)
 
         self.video_playback.logger = logger
         self.video_playback_Ui.video_label2.setPixmap(QPixmap())
         self.video_playback_Ui.video_label1.setPixmap(QPixmap())
         #central_widget.show()
-        self.ui.setCentralWidget(self.video_playback_Ui)
+        #self.ui.setCentralWidget(self.video_playback_Ui)
         self.ui.show()
+        
 
     def tearDown(self):
         # Clean up the database and close the connection
@@ -65,7 +72,8 @@ class TestVideoPlayBack(unittest.TestCase):
         lr = 1# or False, depending on what you want to test
         self.video_playback.load_frame(lr)
         self.video_playback.update_frame(lr)
-        time.sleep(2)
+        self.app.exec()
+        #time.sleep(2)
 
 
 if __name__ == '__main__':
