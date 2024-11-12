@@ -12,6 +12,7 @@ import av
 import logging
 import time
 from io import StringIO
+import pandas as pd
 
 
 models = [Swing,Config,Session,LMData]
@@ -23,6 +24,17 @@ class TestVideoPlayBack(unittest.TestCase):
         self.db.create_tables(models)  # Replace YourModel with your actual model class
         self.swing = Swing.get_by_id(3)
         self.logger.debug(f"swn: {self.swing.name}")
+
+
+    def setupDF(self,maybe_trc):
+        df = []
+        try:
+            df = pd.read_csv(StringIO(maybe_trc))
+            
+            return df
+        except Exception as e:  
+            self.logger.error(f"Error reading trc data: {e}")
+            return
         
     def setUp(self):
         # setup logger
@@ -39,6 +51,10 @@ class TestVideoPlayBack(unittest.TestCase):
         self.setupDb() 
         # setup qt app
 
+        self.facedf = self.setupDF(self.swing.faceTrc)
+        self.dtldf = self.setupDF(self.swing.dtlTrc)
+        self.rhip = self.dtldf.filter(regex='RHip')
+        self.logger.debug(f"df: {self.rhip.head()}")
         self.app = QApplication(sys.argv)
         self.ui = QMainWindow()
         #self.video_clip = av.open('c:/Files/test_swings/20241111-150119-left.mp4')

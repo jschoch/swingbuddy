@@ -33,8 +33,9 @@ class WorkerThread(QThread):
         vid_stream.thread_type = 'AUTO' 
         frames = self.clip.decode(vid_stream) 
         i = 0
+        print("Frames: ")
         for frame in frames: 
-            print(f"frame {i}")
+            print(f" {i} ",end="")
             i = i + 1
             scaled_image = self.process_frame(frame) 
             qimage_frames.append(scaled_image)
@@ -68,7 +69,7 @@ class WorkerThread(QThread):
         vid_stream = self.clip.streams.video[0] 
         vid_stream.thread_type = 'AUTO' 
         frames = self.clip.decode(vid_stream) 
-        i = 0
+        print("frames: ")
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
             future_to_frame = {
                 executor.submit(self.process_frame, i,frame): (i, frame) for i,frame in enumerate(frames)
@@ -77,7 +78,7 @@ class WorkerThread(QThread):
                 (frame,frame_index) = future_to_frame[future]
                 try:
                     (data,idx) = future.result()
-                    print(f"frame: {idx}")
+                    print(f" {idx} ",end="")
                     results[idx] = data
                 except Exception as e:
                     print(f'Generated an exception: {e}')

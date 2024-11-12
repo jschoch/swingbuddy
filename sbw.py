@@ -63,7 +63,7 @@ class MessageReceivedSignal(QObject):
     doany = Signal()
     serverConnect = Signal()
     serverDisconnect = Signal()
-    got_trc_for_swing = Signal(int)
+    got_trc_for_swing = Signal(object)
 
 #  this is what flask uses to bridget into the QT app
 
@@ -185,10 +185,16 @@ class FlaskThread(QThread):
 
         try: 
             swing = Swing.get_by_id(data['swingid'])
-            swing.faceTrc = data['trc_txt']
-            log.debug(f"got some crap {swing.faceTrc[:100]}")
+            if(data['vtype'] == "face"):
+                log.debug("got vtype face")
+                swing.faceTrc = data['trc_txt']
+            if(data['vtype'] == "dtl"):
+                swing.dtlTrc = data['trc_txt']
+                log.debug("got vtype dtl")
+            #log.debug(f"got some crap {swing.faceTrc[:100]}")
             swing.save()
-            shared_object.message_signal.got_trc_for_swing.emit(swing.id)
+            obj = (swing.id, data['vtype'])
+            shared_object.message_signal.got_trc_for_swing.emit(obj)
             
         except Exception as e:
             log.error(f"Error getting swing by id: {e}")
@@ -376,13 +382,25 @@ class SBW(QMainWindow):
 
 
     @Slot()
-    def do_got_trc_for_swing(self, swingid):
+    def do_got_trc_for_swing(self, obj):
+        (swingid,vtype) = obj
         if self.current_swing.id == swingid:
             self.logger.debug(f"do_got_trc_for_swing()  fetching saved trc data {swingid}")
             #self.current_swing = Swing.get(swingid)
             self.load_swing(swingid)
         else:
             self.logger.debug(f"do_got_trc_for_swing()  current swing changed, skipping TRC load \nold: {swingid} new: {self.current_swing.id}")
+        
+
+        if(vtype == 'face'): 
+            self.logger.debug("getting dtl TRC")
+            request_data = {
+                'file_path' : self.current_swing.dtlVid,
+                'vtype': 'dtl',
+                'swingid' : swingid
+            }
+            request_txt = json.dumps(request_data)
+            socketio.emit('do_vid',request_txt) 
 
     @Slot()
     def server_connect(self):
@@ -478,12 +496,16 @@ class SBW(QMainWindow):
 
     @Slot()
     def ws_request_trc(self,swingid):
+        if not swingid:
+            swingid = self.current_swing.id
         self.logger.info(f"Requesting TRC for swing {swingid}")
         request_data = {
             'file_path' : self.current_swing.faceVid,
+            'vtype': 'face',
             'swingid' : swingid
         }
         request_txt = json.dumps(request_data)
+        self.logger.debug(f"ws_request_trc: request {request_data}")
         socketio.emit('do_vid',request_txt)
 
 
