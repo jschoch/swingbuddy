@@ -450,11 +450,11 @@ class SBW(QMainWindow):
         
 
     @Slot()
-    def ws_request_trc(self):
-        self.logger.info(f"Requesting TRC for swing {self.current_swing.id}")
+    def ws_request_trc(self,swingid):
+        self.logger.info(f"Requesting TRC for swing {swingid}")
         request_data = {
             'file_path' : self.current_swing.faceVid,
-            'swingid' : self.current_swing.id
+            'swingid' : swingid
         }
         request_txt = json.dumps(request_data)
         socketio.emit('do_vid',request_txt)
@@ -738,7 +738,7 @@ class SBW(QMainWindow):
         if(self.config.enableTRC):
             self.logger.debug("auto trc, fetching")
             #self.add_task(self.current_swing.id)
-            self.ws_request_trc()
+            self.ws_request_trc(swing.id)
 
         if(self.config.enableScreen ):
             self.do_screen_timer()
