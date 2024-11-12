@@ -10,6 +10,8 @@ from PySide6.QtWidgets import (QMainWindow, QListView, QPushButton, QTextEdit,QS
 import threading
 import queue
 import concurrent.futures
+from util import load_pipes
+
 
     
 class WorkerThread(QThread):
@@ -48,19 +50,21 @@ class WorkerThread(QThread):
         """
         This draws the starting hip position on every frame 
         """
-        pen = QPen(Qt.green, 4)
-        painter.setPen(pen)
-        x_pos, y_pos = self.get_pose_data(0)
-        painter.drawLine(x_pos, 0, x_pos, height) 
+        if self.dtldf is not None and not self.dtldf.empty: 
+            pen = QPen(Qt.green, 4)
+            painter.setPen(pen)
+            x_pos = self.dtldf['HipMiddle_x'].iloc[0]
+            painter.drawLine(x_pos, 0, x_pos, height) 
 
     def process_frame(self,index,frame):
-        x_pos, y_pos = self.get_pose_data(index)
+        
         img = frame.to_image()
         q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
         my_transform = QTransform()
         my_transform.rotate(-90)
         q_image = q_image.transformed(my_transform)
         if self.lr:
+            x_pos, y_pos = self.get_pose_data(index)
             painter = QPainter(q_image)
             self.draw_hip_start(painter,q_image.height())
             pen = QPen(Qt.red, 2)
@@ -102,10 +106,15 @@ class WorkerThread(QThread):
         self.isRunning = False 
      
     def get_pose_data(self, frame_number):
-        x = self.dtldf.iloc[frame_number]
-        y = 100
-        print(f"*{frame_number} _ {x}*",end="")
-        return x,y
+        if self.dtldf is not None and not self.dtldf.empty: 
+            row = self.dtldf.iloc[frame_number]
+            #print(f" trying to get fn {frame_number} \n{row.to_dict()}")
+            x = row['HipMiddle_x']
+            y = 100
+            #print(f"*{frame_number} _ {x}*",end="")
+            return x,y
+        else:
+            return 0,0
 
     def run(self):
         """Override run method

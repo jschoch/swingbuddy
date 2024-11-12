@@ -23,7 +23,7 @@ from swingdb import Swing, Session,Config,LMData
 from peewee import *
 from wlog import QtWindowHandler
 import av
-from util import find_swing, fetch_trc,get_pairs
+from util import find_swing, fetch_trc,get_pairs,load_pipes
 import pyqtgraph as pg
 import numpy as np
 import json
@@ -688,6 +688,18 @@ class SBW(QMainWindow):
         df = []
         try:
             df = pd.read_csv(StringIO(maybe_trc))
+            pipes = load_pipes()
+            for pipe in pipes:
+                pipe.preprocess_df(df)
+            self.video_playback.facedf = df
+            
+            if(self.current_swing.dtlTrc!= "no trc"):
+                df = pd.read_csv(StringIO(self.current_swing.dtlTrc))
+                pipes = load_pipes()
+                for pipe in pipes:
+                    pipe.preprocess_df(df)
+                self.video_playback.dtldf = df
+                
         except Exception as e:  
             self.logger.error(f"Error reading trc data: {e}")
             return

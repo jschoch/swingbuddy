@@ -13,6 +13,7 @@ import logging
 import time
 from io import StringIO
 import pandas as pd
+from util import load_pipes
 
 
 models = [Swing,Config,Session,LMData]
@@ -30,7 +31,10 @@ class TestVideoPlayBack(unittest.TestCase):
         df = []
         try:
             df = pd.read_csv(StringIO(maybe_trc))
-            
+            pipes = load_pipes()
+            for pipe in pipes:
+                pipe.preprocess_df(df)
+            self.logger.debug(f"df post pipes {df.head()}") 
             return df
         except Exception as e:  
             self.logger.error(f"Error reading trc data: {e}")
@@ -53,16 +57,8 @@ class TestVideoPlayBack(unittest.TestCase):
 
         self.facedf = self.setupDF(self.swing.faceTrc)
         self.dtldf = self.setupDF(self.swing.dtlTrc)
-        rx = self.dtldf['RHip_x'] * 1000
-        lx = self.dtldf['LHip_x'] * 1000
-        mx = (rx + lx) / 2
-        self.logger.debug(f" MX: {mx.head()}")
-        self.rhip = self.dtldf.filter(regex='RHip')
-        self.logger.debug(f"df: {self.rhip.head()}")
         self.app = QApplication(sys.argv)
         self.ui = QMainWindow()
-        #self.video_clip = av.open('c:/Files/test_swings/20241111-150119-left.mp4')
-        #self.video_clip2 = av.open('c:/Files/test_swings/20241111-150119-left.mp4')
         self.video_clip = av.open(self.swing.faceVid)
         self.video_clip2 = av.open(self.swing.dtlVid)
         
@@ -70,8 +66,8 @@ class TestVideoPlayBack(unittest.TestCase):
         # Initialize VideoPlayBack instance
         self.video_playback_Ui = VideoPlayBackUi()
         self.video_playback = VideoPlayBack(self.video_playback_Ui, None)
-        self.video_playback.facedf = mx
-        self.video_playback.dtldf = mx
+        self.video_playback.facedf = self.facedf
+        self.video_playback.dtldf = self.dtldf
         
 
         self.video_playback.video_clip = self.video_clip
