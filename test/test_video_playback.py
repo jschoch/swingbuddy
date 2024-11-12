@@ -43,20 +43,13 @@ class TestVideoPlayBack(unittest.TestCase):
 
         central_widget = QWidget()
         h = QHBoxLayout()
-        #self.ui.horizontalLayout.addWidget(self.video_playback_Ui)
         lbl = QLabel('Video Playback',self.ui)
         h.addWidget(lbl)
         central_widget.setLayout(h)
-
-        #self.ui.setCentralWidget(central_widget)
         self.ui.setCentralWidget(self.video_playback_Ui)
-        #self.video_playback_Ui.setLayout(self.ui.horizontalLayout)
-
         self.video_playback.logger = logger
         self.video_playback_Ui.video_label2.setPixmap(QPixmap())
         self.video_playback_Ui.video_label1.setPixmap(QPixmap())
-        #central_widget.show()
-        #self.ui.setCentralWidget(self.video_playback_Ui)
         self.ui.show()
         
 
