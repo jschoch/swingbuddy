@@ -3,10 +3,13 @@
 # if __name__ == "__main__":
 #     pass
 from PySide6.QtCore import QObject, QThread, Signal,  Qt,QPoint, Slot,QTimer,QThreadPool,QRunnable,QStringListModel
-from PySide6.QtGui import QAction,QIcon,QMovie, QStandardItemModel, QStandardItem,QImage, QPixmap,QPainter,QTransform
+from PySide6.QtGui import QAction,QIcon,QMovie,QPen, QStandardItemModel, QStandardItem,QImage, QPixmap,QPainter,QTransform
 from PySide6.QtWidgets import (QMainWindow, QListView, QPushButton, QTextEdit,QSlider,QFileDialog,
     QHBoxLayout, QWidget, QVBoxLayout, QLabel,QDialog,QDialogButtonBox,
     QSizePolicy, QMessageBox,QDialog, QGridLayout, QTextEdit)
+import threading
+import queue
+import concurrent.futures
 
     
 class WorkerThread(QThread):
@@ -19,21 +22,72 @@ class WorkerThread(QThread):
         self.lr = lr
         self.isRunning = False
 
+    def do_work3(self):
+        """
+        works but shoudl delete in favor of mulltithreading version 
+        """
+        self.isRunning = True
+        qimage_frames = []
+        #container = av.open(path, mode='r', format='mp4') 
+        vid_stream = self.clip.streams.video[0] 
+        vid_stream.thread_type = 'AUTO' 
+        frames = self.clip.decode(vid_stream) 
+        i = 0
+        for frame in frames: 
+            print(f"frame {i}")
+            i = i + 1
+            scaled_image = self.process_frame(frame) 
+            qimage_frames.append(scaled_image)
+        obj = (qimage_frames,self.lr)
+        self.result.emit(obj)
+        self.isRunning = False 
+
+    def process_frame(self,index,frame):
+        img = frame.to_image()
+        q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
+        my_transform = QTransform()
+        my_transform.rotate(-90)
+        q_image = q_image.transformed(my_transform)
+        height = 450
+        #height = self.parent_size.height() - 100
+        scaled_image = q_image.scaledToHeight(height,Qt.SmoothTransformation)
+        # TODO:  map this to the TRC data via some sort of pipeline
+        #  you should be able the chain them based on some config and or boolieans
+        x_pos, y_pos = self.get_pose_data(index)
+        painter = QPainter(scaled_image)
+        pen = QPen(Qt.red, 2)
+        painter.setPen(pen)
+        painter.drawLine(x_pos, 0, x_pos, q_image.height())
+        painter.end()
+        return (scaled_image,index)
+
     def do_work(self):
         self.isRunning = True
         qimage_frames = []
-        for frame in self.clip.decode(video=0):
-            img = frame.to_image()
-            q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
-            my_transform = QTransform()
-            my_transform.rotate(-90)
-            q_image = q_image.transformed(my_transform)
-            scaled_image = q_image.scaledToHeight(self.parent_size.height()-100,Qt.SmoothTransformation)
-            qimage_frames.append(scaled_image)
-
+        results = {}
+        vid_stream = self.clip.streams.video[0] 
+        vid_stream.thread_type = 'AUTO' 
+        frames = self.clip.decode(vid_stream) 
+        i = 0
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+            future_to_frame = {
+                executor.submit(self.process_frame, i,frame): (i, frame) for i,frame in enumerate(frames)
+            }
+            for future in concurrent.futures.as_completed(future_to_frame):
+                (frame,frame_index) = future_to_frame[future]
+                try:
+                    (data,idx) = future.result()
+                    print(f"frame: {idx}")
+                    results[idx] = data
+                except Exception as e:
+                    print(f'Generated an exception: {e}')
+        qimage_frames = [results[key] for key in sorted(results.keys())]
         obj = (qimage_frames,self.lr)
         self.result.emit(obj)
-        self.isRunning = False
+        self.isRunning = False 
+     
+    def get_pose_data(self, frame_number):
+        return 30,30                
 
     def run(self):
         """Override run method

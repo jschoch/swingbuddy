@@ -330,12 +330,17 @@ class SBW(QMainWindow):
 
         self.ui.cw.reload_signal.connect(self.reload_config)
         # TODO: make a signal/slot to reload teh swing data when you update the swing object
+        self.av_options = {
+            'threads': 'auto',
+            #'buffer_size': 10 * 1024 * 1024,  # Adjust the buffer size as needed
+        }
 
         self.current_swing = None
         try:
             lastswing = Swing.select().order_by(Swing.id.desc()).get()
             #id = 
             self.load_swing(lastswing.id)
+            self.logger.debug(f"Load Swing id: {lastswing.id}, waiting for threads.  SBW init should be done")
         except Exception as e:
             self.logger.error(f"No Swing found to load default on init ya {e}")
 
@@ -420,12 +425,6 @@ class SBW(QMainWindow):
             return
         parent_size = self.screenlabel.parent().size()
         self.logger.debug(f"parent size: {parent_size} qimage {qimage}")
-        # TODO: figure out why scaling this crashes
-        #scaled_image = qimage.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
-        #pixmap = QPixmap.fromImage(scaled_image)
-        #pixmap = QPixmap.fromImage(qimage)
-        #self.logger.debug("setting pixmap label")
-        #self.screenlabel.setPixmap(pixmap)
         return fname
       except Exception as e:
            self.logger.error(f"HORRROR error taking screenshot: {e}")
@@ -550,6 +549,8 @@ class SBW(QMainWindow):
         if self.video_playback != None and self.video_playback.is_playing:
             self.main_pause_signal.emit()
             
+
+        self.logger.debug("resetting swing UI")
         # reset stuff
         self.video_clip = None
         self.video_clip2 = None
@@ -574,19 +575,22 @@ class SBW(QMainWindow):
         if not hasattr(self, 'of1w') or not self.of1w.isRunning():
             self.of1w = Worker(self.open_file,self.current_swing.faceVid)
             self.of1w.signals.result.connect(self.of1wdone)
-            #self.threadpool.start(self.of1w)
-            QThreadPool.globalInstance().start(self.of1w)
+            self.threadpool.start(self.of1w)
+            self.logger.debug("starting of1w")
+            #QThreadPool.globalInstance().start(self.of1w)
         else:
             self.logger.debug("already loading file 1")
 
         if not hasattr(self, 'of2w') or not self.of2w.isRunning():
             self.of2w = Worker(self.open_file2,self.current_swing.dtlVid)
             self.of2w.signals.result.connect(self.of1wdone)
-            QThreadPool.globalInstance().start(self.of2w)
-            #self.threadpool.start(self.of2w)
+            self.logger.debug("starting of2w")
+            #QThreadPool.globalInstance().start(self.of2w)
+            self.threadpool.start(self.of2w)
             None
         else:
             self.logger.debug("already loading file 2") 
+        self.logger.debug("Done loading video load_swing_video()")
 
     def load_swing(self,id):
         if(self.current_swing is not None and self.current_swing.id == id):
@@ -751,6 +755,7 @@ class SBW(QMainWindow):
 
 
 
+
     # Function to open a video file
     def open_file(self,file_path):
         if file_path is None or file_path == False:
@@ -760,10 +765,13 @@ class SBW(QMainWindow):
             return "OF1 no file "
 
         #self.logger.debug(f" file path: {file_path}")
-        clip = av.open(file_path)
+        self.logger.debug(f"Starting AV load 1 of {file_path}")
+        
+        clip = av.open(file_path,mode='r',options=self.av_options)
         obj = (clip,1)
         self.clip_loaded.emit(obj)
-        self.of1w.signals.result.emit("done of1")
+        #self.of1w.signals.result.emit("done of1")
+        
 
 
     def open_file2(self,file_path):
@@ -774,10 +782,11 @@ class SBW(QMainWindow):
             return "OF1 no file "
 
         #self.logger.debug(f"file path2: {file_path}")
-        clip = av.open(file_path)
+        self.logger.debug(f"Starting AV load 2 of {file_path}")
+        clip = av.open(file_path,mode='r',options=self.av_options)
         obj = (clip,2)
         self.clip_loaded.emit(obj)
-        self.of1w.signals.result.emit("done of2")
+        #self.of1w.signals.result.emit("done of2")
 
 
     @Slot()
