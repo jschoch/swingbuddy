@@ -593,12 +593,15 @@ class SBW(QMainWindow):
             self.logger.debug("current swing already loaded getting refresh from db!")
             self.current_swing = Swing.get_by_id(id)
         else:
+            self.logger.debug(f"loading new swing {id}")
             swing = Swing.get_by_id(id)
             if swing is None:
                 self.logger.error(f"cant' find the swing id {id}")
                 return
             self.current_swing = swing
             self.load_swing_videos(swing)
+        
+        self.ui.label.setText(f"Swings:  Current Swing: {id}")
 
         maybe_trc = self.current_swing.faceTrc
 
@@ -620,10 +623,10 @@ class SBW(QMainWindow):
                 self.logger.debug(f"No path for screen {image_path}")
 
 
-        if(maybe_trc != "no trc" and maybe_trc != None):
+        if(maybe_trc != "no trc" and maybe_trc is not None):
             self.logger.debug(f"found trc")
         else:
-            self.logger.error("no trc data")
+            self.logger.error("no trc data, returning!?")
             return
 
         # TODO: move pre-speed and stuff from server here and update teh plot
