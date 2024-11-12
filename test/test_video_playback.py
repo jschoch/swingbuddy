@@ -4,7 +4,7 @@ import unittest
 from vplayer import OverlayWidget, VideoPlayBackUi,VideoPlayBack
 from peewee import SqliteDatabase
 from swingdb import Swing, Session,Config,LMData
-from PySide6.QtWidgets import QApplication, QWidget, QHBoxLayout,QMainWindow
+from PySide6.QtWidgets import QApplication, QWidget, QHBoxLayout,QMainWindow,QLabel
 from PySide6.QtGui import QAction,QIcon,QMovie, QStandardItemModel, QStandardItem,QImage, QPixmap,QPainter,QTransform
 
 import sys
@@ -25,11 +25,6 @@ class TestVideoPlayBack(unittest.TestCase):
 
         self.app = QApplication(sys.argv)
         self.ui = QMainWindow()
-
-        # Create a central widget
-        #central_widget = QWidget()
-        #self.ui.setCentralWidget(central_widget)
-
         self.video_clip = av.open('c:/Files/test_swings/20241111-150119-left.mp4')
         self.video_clip2 = av.open('c:/Files/test_swings/20241111-150119-left.mp4')
         logger = logging.getLogger()
@@ -40,7 +35,6 @@ class TestVideoPlayBack(unittest.TestCase):
         logger.addHandler(stE)
         logger.info('Hello World!')
 
-
         # Initialize VideoPlayBack instance
         self.video_playback_Ui = VideoPlayBackUi()
         self.video_playback = VideoPlayBack(self.video_playback_Ui, None)
@@ -48,8 +42,8 @@ class TestVideoPlayBack(unittest.TestCase):
         self.video_playback.video_clip2 = self.video_clip2
         self.ui.horizontalLayout = QHBoxLayout()
         self.ui.horizontalLayout.addWidget(self.video_playback_Ui)
-        #self.ui.setCentralWidget(self.video_playback_Ui)
-        #central_widget.setLayout(self.ui.horizontalLayout) 
+        lbl = QLabel('Video Playback')
+        self.ui.horizontalLayout.addWidget(lbl)
         self.ui.setLayout(self.ui.horizontalLayout)
 
         self.video_playback.logger = logger
@@ -58,8 +52,6 @@ class TestVideoPlayBack(unittest.TestCase):
         #central_widget.show()
         self.ui.setCentralWidget(self.video_playback_Ui)
         self.ui.show()
-        central_widget.show()
-        self.video_playback_Ui.show()
 
     def tearDown(self):
         # Clean up the database and close the connection
