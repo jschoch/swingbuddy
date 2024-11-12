@@ -66,6 +66,10 @@ class TestVideoPlayBack(unittest.TestCase):
         # Initialize VideoPlayBack instance
         self.video_playback_Ui = VideoPlayBackUi()
         self.video_playback = VideoPlayBack(self.video_playback_Ui, None)
+        self.video_playback.facedf = self.rhip
+        self.video_playback.dtldf = self.rhip
+        
+
         self.video_playback.video_clip = self.video_clip
         self.video_playback.video_clip2 = self.video_clip2
 

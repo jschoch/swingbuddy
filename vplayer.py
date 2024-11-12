@@ -15,11 +15,12 @@ import concurrent.futures
 class WorkerThread(QThread):
     result = Signal(object)
 
-    def __init__(self, clip, parent_size, lr):
+    def __init__(self, clip, parent_size, lr,dtldf):
         super().__init__()
         self.clip = clip
         self.parent_size = parent_size
         self.lr = lr
+        self.dtldf = dtldf
         self.isRunning = False
 
     def do_work3(self):
@@ -44,22 +45,24 @@ class WorkerThread(QThread):
         self.isRunning = False 
 
     def process_frame(self,index,frame):
+        x_pos, y_pos = self.get_pose_data(index)
         img = frame.to_image()
         q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
         my_transform = QTransform()
         my_transform.rotate(-90)
         q_image = q_image.transformed(my_transform)
+        painter = QPainter(q_image)
+        pen = QPen(Qt.red, 2)
+        painter.setPen(pen)
+        painter.drawLine(x_pos, 0, x_pos, q_image.height())
+        painter.end()
         height = 450
         #height = self.parent_size.height() - 100
         scaled_image = q_image.scaledToHeight(height,Qt.SmoothTransformation)
         # TODO:  map this to the TRC data via some sort of pipeline
         #  you should be able the chain them based on some config and or boolieans
-        x_pos, y_pos = self.get_pose_data(index)
-        painter = QPainter(scaled_image)
-        pen = QPen(Qt.red, 2)
-        painter.setPen(pen)
-        painter.drawLine(x_pos, 0, x_pos, q_image.height())
-        painter.end()
+        
+        
         return (scaled_image,index)
 
     def do_work(self):
@@ -88,7 +91,13 @@ class WorkerThread(QThread):
         self.isRunning = False 
      
     def get_pose_data(self, frame_number):
-        return 30,30                
+        row = self.dtldf.iloc[frame_number]
+        x = row.iloc[1] 
+        y = row.iloc[2] 
+        x = x * 1000
+        y = y * -1000
+        print(f"*{x}*",end="")
+        return x,y
 
     def run(self):
         """Override run method
@@ -106,10 +115,12 @@ class VideoPlayBack:
         self.qimage_frames2 = []
         self.current_frame_index = 0
         self.is_playing = False
+        self.dtldf = []
+        self.facedf = []
         self.playback_speed = 1.0
         #self.lr = lr
-        self.t1 = WorkerThread(None, 0, 0)
-        self.t0 = WorkerThread(None, 0, 0)
+        self.t1 = WorkerThread(None, 0, 0,[])
+        self.t0 = WorkerThread(None, 0, 0,[])
         self.timer = QTimer()
         self.start()
 
@@ -123,39 +134,32 @@ class VideoPlayBack:
             self.qimage_frames2 = []
             video_clip = self.video_clip2
             #self.video_playback_ui.vid2_text.setText(f"Begin Loading!\n{self.video_clip2.format.name}")
+            if self.t1.isRunning:
+                self.logger.error("t1 is already running")
+                return
+            
+            self.t1 = WorkerThread(video_clip, parent_size, lr,self.dtldf)
+            self.t1.result.connect(self.frames_done)
+            self.t1.finished.connect(self.t1.deleteLater)
+            self.t1.start()
+
 
         else:
             self.qimage_frames = []
             video_clip = self.video_clip
             #self.video_playback_ui.vid1_text.setText(f"Begin Loading!\n{self.video_clip.format.name}")
-
-        if video_clip is None:
-            self.logger.debug("class: VideoPlayBack, fun: load_frame: video_clip is Null")
-            return
-
-        video_stream = video_clip.streams.video[0]
-        print(f" meta:\n {video_stream.metadata}")
-
-        #t1.start() 
-        if lr:
-            if self.t1.isRunning:
-                self.logger.error("t1 is already running")
-                return
-            
-            self.t1 = WorkerThread(video_clip, parent_size, lr)
-            self.t1.result.connect(self.frames_done)
-            self.t1.finished.connect(self.t1.deleteLater)
-            self.t1.start()
-        else:
             if self.t0.isRunning:
                 self.logger.error("t0 is already running")
                 return
 
-            self.t0 = WorkerThread(video_clip, parent_size, lr)
+            self.t0 = WorkerThread(video_clip, parent_size, lr,self.facedf)
             self.t0.result.connect(self.frames_done)
             self.t0.finished.connect(self.t0.deleteLater)
             self.t0.start()
 
+        if video_clip is None:
+            self.logger.debug("class: VideoPlayBack, fun: load_frame: video_clip is Null")
+            return
 
         self.logger.debug("VideoPlayBack load_frames() done loading framse")
 
