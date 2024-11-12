@@ -7,4 +7,5 @@ if __name__ == "__main__":
     data = "Sample Data"
 
     df = run_predf_pipes()
-    print(df.to_dict())
+    print(f"Columns\n{df.columns}")
+    print(df.head())
