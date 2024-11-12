@@ -27,8 +27,8 @@ class TestVideoPlayBack(unittest.TestCase):
         self.ui = QMainWindow()
 
         # Create a central widget
-        central_widget = QWidget()
-        self.ui.setCentralWidget(central_widget)
+        #central_widget = QWidget()
+        #self.ui.setCentralWidget(central_widget)
 
         self.video_clip = av.open('c:/Files/test_swings/20241111-150119-left.mp4')
         self.video_clip2 = av.open('c:/Files/test_swings/20241111-150119-left.mp4')
@@ -49,7 +49,8 @@ class TestVideoPlayBack(unittest.TestCase):
         self.ui.horizontalLayout = QHBoxLayout()
         self.ui.horizontalLayout.addWidget(self.video_playback_Ui)
         #self.ui.setCentralWidget(self.video_playback_Ui)
-        central_widget.setLayout(self.ui.horizontalLayout) 
+        #central_widget.setLayout(self.ui.horizontalLayout) 
+        self.ui.setLayout(self.ui.horizontalLayout)
 
         self.video_playback.logger = logger
         self.video_playback_Ui.video_label2.setPixmap(QPixmap())
