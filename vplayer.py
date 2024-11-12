@@ -43,6 +43,15 @@ class WorkerThread(QThread):
         obj = (qimage_frames,self.lr)
         self.result.emit(obj)
         self.isRunning = False 
+    
+    def draw_hip_start(self,painter,height):
+        """
+        This draws the starting hip position on every frame 
+        """
+        pen = QPen(Qt.green, 4)
+        painter.setPen(pen)
+        x_pos, y_pos = self.get_pose_data(0)
+        painter.drawLine(x_pos, 0, x_pos, height) 
 
     def process_frame(self,index,frame):
         x_pos, y_pos = self.get_pose_data(index)
@@ -51,11 +60,13 @@ class WorkerThread(QThread):
         my_transform = QTransform()
         my_transform.rotate(-90)
         q_image = q_image.transformed(my_transform)
-        painter = QPainter(q_image)
-        pen = QPen(Qt.red, 2)
-        painter.setPen(pen)
-        painter.drawLine(x_pos, 0, x_pos, q_image.height())
-        painter.end()
+        if self.lr:
+            painter = QPainter(q_image)
+            self.draw_hip_start(painter,q_image.height())
+            pen = QPen(Qt.red, 2)
+            painter.setPen(pen)
+            painter.drawLine(x_pos, 0, x_pos, q_image.height())
+            painter.end()
         height = 450
         #height = self.parent_size.height() - 100
         scaled_image = q_image.scaledToHeight(height,Qt.SmoothTransformation)
@@ -91,12 +102,9 @@ class WorkerThread(QThread):
         self.isRunning = False 
      
     def get_pose_data(self, frame_number):
-        row = self.dtldf.iloc[frame_number]
-        x = row.iloc[0] 
-        y = row.iloc[1] 
-        x = x * 1000
-        y = y * -1000
-        print(f"*{x}*",end="")
+        x = self.dtldf.iloc[frame_number]
+        y = 100
+        print(f"*{frame_number} _ {x}*",end="")
         return x,y
 
     def run(self):

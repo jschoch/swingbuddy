@@ -54,8 +54,9 @@ class TestVideoPlayBack(unittest.TestCase):
         self.facedf = self.setupDF(self.swing.faceTrc)
         self.dtldf = self.setupDF(self.swing.dtlTrc)
         rx = self.dtldf['RHip_x'] * 1000
-        lx = self.dtldf['LHip_x'] * -1000
+        lx = self.dtldf['LHip_x'] * 1000
         mx = (rx + lx) / 2
+        self.logger.debug(f" MX: {mx.head()}")
         self.rhip = self.dtldf.filter(regex='RHip')
         self.logger.debug(f"df: {self.rhip.head()}")
         self.app = QApplication(sys.argv)
@@ -85,6 +86,8 @@ class TestVideoPlayBack(unittest.TestCase):
         self.video_playback.logger = self.logger
         self.video_playback_Ui.video_label2.setPixmap(QPixmap())
         self.video_playback_Ui.video_label1.setPixmap(QPixmap())
+        self.video_playback_Ui.play_button.setEnabled(True)
+        self.video_playback_Ui.slider.setEnabled(True)
         self.ui.show()
         
 
