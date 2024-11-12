@@ -20,6 +20,14 @@ class QtWindowHandler(logging.Handler):
         self.window.textEdit.append(self.format(record))
         self.window.textEdit.moveCursor(QTextCursor.End)
 
+    def close_handler(self):
+        logger = logging.getLogger(__name__)
+        if self in logger.handlers:
+            logger.removeHandler(self)
+
+        print("Closing handler")
+        self.window.close()
+
 
 class Window(QWidget):
     def __init__(self):

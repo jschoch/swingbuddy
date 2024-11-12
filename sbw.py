@@ -42,6 +42,8 @@ from showswing import SwingWidget
 import os
 from qwid import QwStatusWidget
 from dataa import pre_speed, gen_speed
+import threading
+import signal
 
 app2 = Flask(__name__)
 socketio = SocketIO(app2, cors_allowed_origins="*")
@@ -91,6 +93,11 @@ class FlaskThread(QThread):
         shared_object.message_signal.msg_to_send.connect(self.on_msg_to_send)
         shared_object.message_signal.doany.connect(self.on_do_any)
         log.debug("Flask Run finished")
+    
+    def do_stop(self):
+        log.debug("wow, no apparent way to shut this off")
+        #self.stop()
+        #self.exit()
 
     @app2.route('/')
     def index():
@@ -171,6 +178,7 @@ class FlaskThread(QThread):
             return
         try:
             data = json.loads(data_txt)
+            log.debug(f"Got trc data for swing id: {data['swingid']}")
         except Exception as e:
             log.error(f"Error parsing json: {e}\n{data_txt[:200]}")
             return
@@ -193,12 +201,15 @@ class SBW(QMainWindow):
     main_play_signal = Signal()
     main_pause_signal = Signal()
     clip_loaded = Signal(object)
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, log_window_handler=None):
         super().__init__(parent)
         self.ui = Ui_SBW()
         self.ui.setupUi(self)
         self.logger =  logging.getLogger("__main__")
         self.threadpool = QThreadPool()
+        if log_window_handler:
+            self.log_window_handler = log_window_handler
+            #self.ui.closeButton.clicked.connect(self.shutdown_logger)
 
 
 
@@ -346,6 +357,22 @@ class SBW(QMainWindow):
 
     # Connect the main window's close event to a method in the debug window
     #self.closeEvent.connect(self.on_main_window_close)
+    def closeEvent(self, event):
+        # Perform actions before closing the window
+        print("Window is closing...")
+        self.shutdown_logger()
+        event.accept()
+
+    @Slot()
+    def shutdown_logger(self):
+        logger = logging.getLogger(__name__)
+        if self.log_window_handler in logger.handlers:
+            logger.removeHandler(self.log_window_handler)
+        self.logger.debug("closing flask maybe")
+        self.flask_thread.quit()
+        self.logger.debug("calling close_handler")
+        self.log_window_handler.close_handler()
+
 
     @Slot()
     def do_got_trc_for_swing(self, swingid):
@@ -1133,15 +1160,12 @@ if __name__ == "__main__":
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     f = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(message)s')
-    window_handler = QtWindowHandler()
-    window_handler.setFormatter(f)
-    logger.addHandler(window_handler)
+    log_window_handler = QtWindowHandler()
+    log_window_handler.setFormatter(f)
+    logger.addHandler(log_window_handler)
+    #logger = logging.getLogger(__name__)
+    #widget = SBW()
+    widget = SBW(parent=None, log_window_handler=log_window_handler)
 
-    logger = logging.getLogger(__name__)
-    #logger.debug("test debug")
-    #logger.info("test info")
-    #logger.warning("test warn")
-
-    widget = SBW()
     widget.show()
     sys.exit(app.exec())
