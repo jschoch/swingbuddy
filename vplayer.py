@@ -92,8 +92,8 @@ class WorkerThread(QThread):
      
     def get_pose_data(self, frame_number):
         row = self.dtldf.iloc[frame_number]
-        x = row.iloc[1] 
-        y = row.iloc[2] 
+        x = row.iloc[0] 
+        y = row.iloc[1] 
         x = x * 1000
         y = y * -1000
         print(f"*{x}*",end="")
