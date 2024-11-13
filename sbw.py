@@ -46,7 +46,6 @@ import threading
 import signal
 from lib.enums import LoadHint, TrcT
 from lib.swing_loader import SwingLoader
-import traceback
 from lib.wait_connection_dialog import ConnectionDialog
 
 app2 = Flask(__name__)
@@ -1211,16 +1210,17 @@ class SineWavePlot(QWidget):
     @Slot()
     #def update_data(self, new_y_data):
     def update_data(self,df, df2 = None, df3 = None):
-        self.y = df['Speed_filtered'].to_list()
+        self.y = df['LWrist_Speed_filtered'].to_list()
         self.x = list(range(len(self.y)))
         self.plot_item.setData(self.x, self.y, pen={'color': 'cyan', 'width': 4})
-        self.y2 = df['Speed'].to_list()
+        self.y2 = df['LWrist_Speed'].to_list()
         pen = {'color': 'r', 'width': 1}
         self.plot_item2.setData(self.x,self.y2,pen=pen)
 
-        if df2 is not None and not df2.empty:
-            self.logger.debug("Got some Shoulder data! now you have to update the plot and add the ui stuff to toggle and stuff")
-            self.hip_plot_item.setData(self.x, df2['Speed'],pen={'color':'g','width':2})
+        # TODO: implement as a pipe
+        #if df2 is not None and not df2.empty:
+            #self.logger.debug("Got some Shoulder data! now you have to update the plot and add the ui stuff to toggle and stuff")
+            #self.hip_plot_item.setData(self.x, df2['Speed'],pen={'color':'g','width':2})
 
         #brush = {'color': (0, 255, 255), 'alpha': 0.5}  # Neon green with alpha=0.7
         #brush = {'color':'r','alpha': 0.5}

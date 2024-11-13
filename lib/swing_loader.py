@@ -51,6 +51,7 @@ class SwingLoader():
                 self.parse_trc(swing,trcT,hint)
                 self.sl_load_pipes(swing,trcT,hint)
                 self.load_frames(swing,trcT,hint)
+                self.load_plot(swing,trcT,hint)
             case _:
                 self.logger.debug("ERROR unknown hint")
         None
@@ -179,5 +180,8 @@ class SwingLoader():
             for pipe in pipes:
                 pipe.preprocess_df(self.w.video_playback.dtldf)
             self.logger.debug(f"load pipes swingid: {swing.id} hint {hint}  trcT {trcT}\n{self.w.video_playback.dtldf.head()}")
+    def load_plot(self,swing,trcT,hint):
+        #TODO: this shoudl be in a subclass of Pipes
+        self.w.plot.update_data(self.w.video_playback.facedf)
         
     
