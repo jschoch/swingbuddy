@@ -6,7 +6,7 @@ from playhouse.shortcuts import model_to_dict, dict_to_model
 
 from vplayer import OverlayWidget, VideoPlayBackUi,VideoPlayBack
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QPixmap,QStandardItemModel, QStandardItem
 import os
 from util import find_swing, fetch_trc,get_pairs,load_pipes
 import pandas as pd
@@ -24,10 +24,11 @@ class SwingLoader():
     def load_swing(self,swing, hint,trcT=None):
         match hint:
             case LoadHint.NEW:
-                self.logger.debug("Loading new swing")
-                self.logger.debug("Loading existing swing")
+                self.logger.debug("Loading brand new swing")
                 self.unload_swing(swing)
                 self.check_swing(swing)
+                self.start_screen_timer(swing)
+                self.add_swing_to_view_model(swing,hint)
                 self.w.ws_request_face_trc(swing)
                 self.set_current_swing(swing)
                 self.load_clips(swing,hint)
@@ -38,11 +39,13 @@ class SwingLoader():
                 self.check_swing(swing)
                 self.set_current_swing(swing)
                 self.load_clips(swing,hint)
-            case LoadHint.NEW_DTL_TRC:
-                self.logger.debug("Loading new swing with detailed trace")
+            case LoadHint.NEW_TRC:
+                self.logger.debug("TRC found, reloading frames and plots")
                 self.parse_trc(swing,trcT,hint)
+                self.unload_pipes(swing,trcT,hint)
                 self.sl_load_pipes(swing,trcT,hint)
                 self.load_frames(swing,trcT,hint)
+                #self.load_plot(swing,trcT,hint)
 
             case LoadHint.NEW_CLIP:
                 self.logger.debug("Loading new clip")
@@ -57,6 +60,11 @@ class SwingLoader():
             case _:
                 self.logger.debug("ERROR unknown hint")
         None
+
+    def start_screen_timer(self,swing):
+        if self.w.config.enableScreen:
+            self.w.do_screen_timer()
+
     def unload_swing(self,swing):
         self.logger.debug("maybe Unloading swing")
         if(self.w.current_swing is not None):
@@ -67,8 +75,8 @@ class SwingLoader():
                 self.w.video_playback_Ui.video_label2.setPixmap(QPixmap())
                 self.w.video_playback_Ui.video_label1.setPixmap(QPixmap())
                 self.w.plot.reset_data()
-
-                self.w.video_playback = VideoPlayBack(self.w.video_playback_Ui, None,logger)
+                self.w.video_playback.shutdown()
+                self.w.video_playback = VideoPlayBack(self.w.video_playback_Ui, self.logger)
                 self.w.video_playback.logger = self.logger
 
                 self.w.main_play_signal.connect(self.w.video_playback.play)
@@ -77,6 +85,13 @@ class SwingLoader():
                 self.w.video_playback.facedf = pd.DataFrame()
             else:
                 self.logger.debug("No swing to unload")
+
+    def unload_pipes(self, swing,trcT,hint):
+        if trcT == TrcT.DTL:
+            self.w.video_playback.dtldf = pd.DataFrame()
+        else:
+            self.w.video_playback.facedf = pd.DataFrame()
+        
     def check_swing(self,swing):
         if not os.path.exists(swing.faceVid):
             self.logger.error(f"no path for {swing.faceVid}")
@@ -140,6 +155,11 @@ class SwingLoader():
     
     def update_model(self,swing):
         self.logger.debug("updating list view model")
+    
+    def add_swing_to_view_model(self,swing,hint):
+        i = QStandardItem(f"{swing.id} --- {swing.name}")
+        i.setData(swing.id,Qt.UserRole)
+        self.w.fuckyoumodel.insertRow(0,[i])
         
     def parse_trc(self,swing,trcT,hint):
         try:
@@ -174,8 +194,12 @@ class SwingLoader():
             case LoadHint.LOAD_CLIP:
                 self.logger.debug(f"load pipes load_clip {swing.id}")
                 self.do_load_pipes(swing,trcT,hint)
+            case LoadHint.NEW_TRC:
+
+                self.do_load_pipes(swing,trcT,hint)
             case _:
-                self.logger.debug(f"load pipes HORROR {model_to_dict(swing)}")
+                #self.logger.debug(f"load pipes HORROR {model_to_dict(swing)}")
+                self.logger.error(f"HORROR {swing.id} {trcT} {hint}")
     
     def do_load_pipes(self,swing,trcT,hint):
         if(trcT == TrcT.FACE):

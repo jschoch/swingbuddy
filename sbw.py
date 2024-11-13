@@ -181,7 +181,7 @@ class FlaskThread(QThread):
             return
         try:
             data = json.loads(data_txt)
-            log.debug(f"Got trc data for swing id: {data['swingid']}")
+            log.debug(f"Got trc data for swing id: {data['swingid']} type: {data['vtype']}")
         except Exception as e:
             log.error(f"Error parsing json: {e}\n{data_txt[:200]}")
             return
@@ -389,7 +389,22 @@ class SBW(QMainWindow):
     @Slot()
     def do_got_trc_for_swing(self,obj):
         (swing,vtype) = obj
-        self.logger.debug("TODO finsish me")
+        self.logger.debug(f"do_got_trc_for_swing Loading TRC {vtype}")
+        if vtype == 'face':
+            self.logger.debug("do_got_trc_foor_swing Face TRC, loading data and requesting DTL trc")
+            self.swingloader.load_swing(swing,LoadHint.NEW_TRC,TrcT.FACE)
+            self.logger.debug("getting dtl TRC")
+            request_data = {
+                'file_path' : self.current_swing.dtlVid,
+                'vtype': 'dtl',
+                'swingid' : swing.id
+            }
+            request_txt = json.dumps(request_data)
+            socketio.emit('do_vid',request_txt) 
+        else:
+            self.logger.debug("do_got_trc_foor_swing DTL TRC, loading data")
+            self.swingloader.load_swing(swing,LoadHint.NEW_TRC,TrcT.DTL)
+        self.ui.sw.set_swing_data(swing)
 
     @Slot()
     def do_got_trc_for_swing_TODO_DEPRICATE(self, obj):
@@ -548,6 +563,9 @@ class SBW(QMainWindow):
 
     @Slot()
     def ws_request_face_trc(self,swing):
+        """
+        sends to server, should see a signal called got_trc_for_swing, connected to do_got_trc_for_swing
+        """
         request_data = {
             'file_path' : swing.faceVid,
             'vtype': 'face',
@@ -641,7 +659,8 @@ class SBW(QMainWindow):
 
         item_id = item.data(Qt.UserRole)
         self.logger.debug(f"item {item} id: {item_id}")
-        self.load_swing(item_id)
+        swing = Swing.get_by_id(item_id)
+        self.swingloader.load_swing(swing,LoadHint.LOAD)
 
     def unload_swing_video(self):
         if self.video_playback != None and self.video_playback.is_playing:
@@ -685,7 +704,7 @@ class SBW(QMainWindow):
             self.logger.debug("already loading file 2") 
         self.logger.debug("Done loading video load_swing_video()")
 
-    def load_swing(self,id):
+    def load_swing_TODO_DEPIRCATION(self,id):
         if(self.current_swing is not None and self.current_swing.id == id):
             self.logger.debug("current swing already loaded getting refresh from db!")
             self.current_swing = Swing.get_by_id(id)
@@ -806,8 +825,46 @@ class SBW(QMainWindow):
             self.add_and_load_swing(swings)
         else:
             self.logger.debug("http_process_swing() s was not a string")
-
+            
     def add_and_load_swing(self,files, maybeScreen=False,autoTrc=False, autoScreen=False):
+        dtlVid = [file for file in files if 'left.mp4' in file]
+        faceVid = [file for file in files if 'right.mp4' in file]
+        screen = [file for file in files if 'screen.png' in file]
+        swing = None
+
+        if len(dtlVid) > 0:
+            dtlVid = dtlVid[0]
+        else:
+            self.logger.error("no face on vid found")
+            dtlVid = Swing.dtlVid.default
+        if len(faceVid) > 0:
+            faceVid = faceVid[0]
+        else:
+            self.logger.error("no down the line vid found")
+            faceVid = Swing.faceVid.default
+        if len(screen) > 0:
+            screen = screen[0]
+        else:
+            self.logger.debug(f"no screen found {files}")
+            screen = Swing.screen.default
+        try:
+            lmdata = LMData.create()
+            parts = faceVid.split('-')[:2]
+            sname = "-".join(parts)
+            swing = Swing.create(session = self.session,
+                name = sname,
+                dtlVid = dtlVid,
+                lmdata= lmdata,
+                faceVid = faceVid,
+                screen = screen)
+        except Exception as e:
+            self.logger.error(f"add_and_load_swing()  db excption {e}")
+            if swing is not None:
+                self.logger.error(f"swing {model_to_dict(swing)}")
+            return
+        self.swingloader.load_swing(swing,LoadHint.NEW)
+
+    def add_and_load_swing_TODO_DEPRICATE(self,files, maybeScreen=False,autoTrc=False, autoScreen=False):
         """
         takes array of file paths [swing1,swing2,screnshot1], creates db objects and loads the videos/screens/trc
         autoXXX will attempt to process trc and screenshots
@@ -925,8 +982,13 @@ class SBW(QMainWindow):
             return
         self.logger.debug(f"load_video: {clip} type: {trcT} id: {swing.id} adding clips")
         if(trcT == TrcT.FACE):
+            if self.video_playback.video_clip is not None:
+                self.video_playback.video_clip.close()
             self.video_playback.video_clip = clip
         if(trcT == TrcT.DTL):
+            #TODO:  rename these videoclips!!!
+            if self.video_playback.video_clip2 is not None:
+                self.video_playback.video_clip2.close()
             self.video_playback.video_clip2 = clip
 
         if hint == LoadHint.LOAD:

@@ -12,6 +12,7 @@ import queue
 import concurrent.futures
 from util import load_pipes
 import pandas as pd
+import traceback
 
 class WorkerError(Exception):
     pass
@@ -32,27 +33,6 @@ class WorkerThread(QThread):
         print(f"worker init: {clip} {parent_size} {lr} {df.head()}")
         self.isRunning = False
 
-    def do_work3(self):
-        """
-        works but shoudl delete in favor of mulltithreading version 
-        """
-        self.isRunning = True
-        qimage_frames = []
-        #container = av.open(path, mode='r', format='mp4') 
-        vid_stream = self.clip.streams.video[0] 
-        vid_stream.thread_type = 'AUTO' 
-        frames = self.clip.decode(vid_stream) 
-        i = 0
-        print("Frames: ")
-        for frame in frames: 
-            print(f" {i} ",end="")
-            i = i + 1
-            scaled_image = self.process_frame(frame) 
-            qimage_frames.append(scaled_image)
-        obj = (qimage_frames,self.lr)
-        self.result.emit(obj)
-        self.isRunning = False 
-    
     def draw_hip_start(self,painter,height):
         """
         This draws the starting hip position on every frame 
@@ -62,9 +42,6 @@ class WorkerThread(QThread):
             painter.setPen(pen)
             x_pos = self.df['HipMiddle_x'].iloc[0]
             painter.drawLine(x_pos, 0, x_pos, height) 
-        else: 
-            if self.lr == 1:
-                print(f" {self.lr} {self.df.empty} ")
 
     def process_frame(self,index,frame):
         
@@ -96,6 +73,7 @@ class WorkerThread(QThread):
         results = {}
         vid_stream = self.clip.streams.video[0] 
         vid_stream.thread_type = 'AUTO' 
+        #vid_stream
         frames = self.clip.decode(vid_stream) 
         print(f"{self.lr} {self.df.empty} frames: ")
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
@@ -106,13 +84,16 @@ class WorkerThread(QThread):
                 (frame,frame_index) = future_to_frame[future]
                 try:
                     (data,idx) = future.result()
-                    print(f" {idx} ",end="")
+                    #print(f" {idx} ",end="")
                     results[idx] = data
                 except Exception as e:
                     print(f'Generated an exception: {e}')
+                    tb = traceback.format_exc()
+                    print(tb)
         qimage_frames = [results[key] for key in sorted(results.keys())]
         obj = (qimage_frames,self.lr)
         self.result.emit(obj)
+        vid_stream.close()
         self.isRunning = False 
      
     def get_pose_data(self, frame_number):
@@ -155,6 +136,11 @@ class VideoPlayBack:
         self.logger = logger
         self.start()
 
+    def shutdown(self):
+        if self.video_clip is not None:
+            self.video_clip.close()
+        if self.video_clip2 is not None:
+            self.video_clip2.close()
     # Function to load frames from the video clip
     def load_frame(self,lr):
         self.logger.debug(f"load_frame() starting to load {lr}")
