@@ -73,6 +73,8 @@ class SwingLoader():
 
                 self.w.main_play_signal.connect(self.w.video_playback.play)
                 self.w.main_pause_signal.connect(self.w.video_playback.pause)
+                self.w.video_playback.dtldf = pd.DataFrame()
+                self.w.video_playback.facedf = pd.DataFrame()
             else:
                 self.logger.debug("No swing to unload")
     def check_swing(self,swing):
