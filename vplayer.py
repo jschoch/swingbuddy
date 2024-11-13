@@ -20,7 +20,7 @@ class WorkerError(Exception):
 class WorkerThread(QThread):
     result = Signal(object)
 
-    def __init__(self, clip, parent_size, lr,df):
+    def __init__(self, clip, parent_size, lr,df,reload=False):
         super().__init__()
         self.clip = clip
         if clip is None and (parent_size == 0 and lr == 0 and df.empty):
@@ -32,6 +32,8 @@ class WorkerThread(QThread):
         self.df = df
         print(f"worker init: {clip} {parent_size} {lr} {df.head()}")
         self.isRunning = False
+        self.reload = reload
+        self.frames = []
 
     def draw_hip_start(self,painter,height):
         """
@@ -70,6 +72,45 @@ class WorkerThread(QThread):
     def do_work(self):
         try:
             self.isRunning = True
+            frames = self.rawFrames
+            results = []
+            print(f"{self.lr} {self.df.empty} frames:  {len(frames)}")
+            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+                future_to_frame = {
+                    executor.submit(self.process_frame, i,frame): (i, frame) for i,frame in enumerate(frames)
+                }
+                for future in concurrent.futures.as_completed(future_to_frame):
+                    (frame,frame_index) = future_to_frame[future]
+                    try:
+                        (data,idx) = future.result()
+                        print(f" {idx} ",end="")
+                        results[idx] = data
+                    except Exception as e:
+                        print(f'Generated an exception: {e}')
+                        tb = traceback.format_exc()
+                        print(tb)
+            qimage_frames = [results[key] for key in sorted(results.keys())]
+            obj = (qimage_frames,self.lr)
+            self.result.emit(obj)
+            self.isRunning = False 
+        except Exception as e:
+            print(f'Generated an exception: {e}')
+            self.isRunning = False
+     
+    def get_pose_data(self, frame_number):
+        if  not self.df.empty and self.lr == 1: 
+            row = self.df.iloc[frame_number]
+            #print(f" trying to get fn {frame_number} \n{row.to_dict()}")
+            x = row['HipMiddle_x']
+            y = 100
+            #print(f"*{frame_number} _ {x}*",end="")
+            return x,y
+        else:
+            return 0,0
+
+    def get_raw_frames(self):
+        try:
+            self.isRunning = True
             qimage_frames = []
             results = {}
             vid_stream = self.clip.streams.video[0] 
@@ -100,23 +141,19 @@ class WorkerThread(QThread):
         except Exception as e:
             print(f'Generated an exception: {e}')
             self.isRunning = False
-     
-    def get_pose_data(self, frame_number):
-        if  not self.df.empty and self.lr == 1: 
-            row = self.df.iloc[frame_number]
-            #print(f" trying to get fn {frame_number} \n{row.to_dict()}")
-            x = row['HipMiddle_x']
-            y = 100
-            #print(f"*{frame_number} _ {x}*",end="")
-            return x,y
-        else:
-            return 0,0
+
+    def process_raw_frames(self,i,frame):
+        img = frame.to_image()
+        return (img,i)
 
     def run(self):
         """Override run method
         """
         print("starting worker do_work()")
-        self.do_work()
+        if(self.reload):
+            self.do_work()
+        else:
+            self.get_raw_frames()
 
 
 # Video playback class responsible for managing the actual playback of the video.
