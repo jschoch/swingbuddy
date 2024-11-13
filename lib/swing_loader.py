@@ -42,8 +42,9 @@ class SwingLoader():
             case LoadHint.NEW_TRC:
                 self.logger.debug("TRC found, reloading frames and plots")
                 self.parse_trc(swing,trcT,hint)
-                self.unload_pipes(swing,trcT,hint)
+                #self.unload_pipes(swing,trcT,hint)
                 self.sl_load_pipes(swing,trcT,hint)
+                self.w.main_pause_signal.emit()
                 self.load_frames(swing,trcT,hint)
                 #self.load_plot(swing,trcT,hint)
 
@@ -195,7 +196,7 @@ class SwingLoader():
                 self.logger.debug(f"load pipes load_clip {swing.id}")
                 self.do_load_pipes(swing,trcT,hint)
             case LoadHint.NEW_TRC:
-
+                self.logger.debug(f"load pipes new_trc {swing.id}")
                 self.do_load_pipes(swing,trcT,hint)
             case _:
                 #self.logger.debug(f"load pipes HORROR {model_to_dict(swing)}")
@@ -212,12 +213,13 @@ class SwingLoader():
             self.logger.debug(f"load pipes swingid: {swing.id} hint {hint}  trcT {trcT}\n{self.w.video_playback.facedf.head()}")
         if(trcT == TrcT.DTL):
             if self.w.video_playback.dtldf.empty:
-                self.logger.error("empty DTL DF")
+                self.logger.error(f"empty DTL DF for swing {swing.id}, hint {hint}  skipping load_pipes\n{self.w.video_playback.dtldf}")
                 return
             pipes = load_pipes()
             for pipe in pipes:
                 pipe.preprocess_df(self.w.video_playback.dtldf)
             self.logger.debug(f"load pipes swingid: {swing.id} hint {hint}  trcT {trcT}\n{self.w.video_playback.dtldf.head()}")
+
     def load_plot(self,swing,trcT,hint):
         #TODO: this shoudl be in a subclass of Pipes
         self.w.plot.update_data(self.w.video_playback.facedf)

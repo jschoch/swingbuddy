@@ -68,33 +68,38 @@ class WorkerThread(QThread):
         return (scaled_image,index)
 
     def do_work(self):
-        self.isRunning = True
-        qimage_frames = []
-        results = {}
-        vid_stream = self.clip.streams.video[0] 
-        vid_stream.thread_type = 'AUTO' 
-        #vid_stream
-        frames = self.clip.decode(vid_stream) 
-        print(f"{self.lr} {self.df.empty} frames: ")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
-            future_to_frame = {
-                executor.submit(self.process_frame, i,frame): (i, frame) for i,frame in enumerate(frames)
-            }
-            for future in concurrent.futures.as_completed(future_to_frame):
-                (frame,frame_index) = future_to_frame[future]
-                try:
-                    (data,idx) = future.result()
-                    #print(f" {idx} ",end="")
-                    results[idx] = data
-                except Exception as e:
-                    print(f'Generated an exception: {e}')
-                    tb = traceback.format_exc()
-                    print(tb)
-        qimage_frames = [results[key] for key in sorted(results.keys())]
-        obj = (qimage_frames,self.lr)
-        self.result.emit(obj)
-        vid_stream.close()
-        self.isRunning = False 
+        try:
+            self.isRunning = True
+            qimage_frames = []
+            results = {}
+            vid_stream = self.clip.streams.video[0] 
+            vid_stream.thread_type = 'AUTO' 
+            #vid_stream
+            frames = self.clip.decode(vid_stream) 
+            #print(f"{self.lr} {self.df.empty} frames: {len(frames)}")
+            print(f"{self.lr} {self.df.empty} frames: ")
+            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+                future_to_frame = {
+                    executor.submit(self.process_frame, i,frame): (i, frame) for i,frame in enumerate(frames)
+                }
+                for future in concurrent.futures.as_completed(future_to_frame):
+                    (frame,frame_index) = future_to_frame[future]
+                    try:
+                        (data,idx) = future.result()
+                        print(f" {idx} ",end="")
+                        results[idx] = data
+                    except Exception as e:
+                        print(f'Generated an exception: {e}')
+                        tb = traceback.format_exc()
+                        print(tb)
+            qimage_frames = [results[key] for key in sorted(results.keys())]
+            obj = (qimage_frames,self.lr)
+            self.result.emit(obj)
+            vid_stream.close()
+            self.isRunning = False 
+        except Exception as e:
+            print(f'Generated an exception: {e}')
+            self.isRunning = False
      
     def get_pose_data(self, frame_number):
         if  not self.df.empty and self.lr == 1: 
@@ -110,6 +115,7 @@ class WorkerThread(QThread):
     def run(self):
         """Override run method
         """
+        print("starting worker do_work()")
         self.do_work()
 
 
@@ -148,8 +154,13 @@ class VideoPlayBack:
 
         #video_clip = None
         if(lr):
+            if self.video_clip is None:
+                self.logger.error("DTL clip was NONE!!!!!!!!!!!")
+                return
             self.qimage_frames2 = []
             video_clip = self.video_clip2
+            self.logger.debug(f"the clip: {video_clip}  ")
+            #self.logger.debug(f"the clip was closed? {video_clip.closed}")
             #self.video_playback_ui.vid2_text.setText(f"Begin Loading!\n{self.video_clip2.format.name}")
             if self.t1.isRunning:
                 self.logger.error("t1 is already running")
@@ -194,7 +205,7 @@ class VideoPlayBack:
 
     def frames_done(self,obj):
         (frames, lr) = obj
-        
+        self.logger.debug(f"frames done count: {len(frames)} lr: {lr}") 
         if lr: 
             self.qimage_frames2 = frames
             self.update_frame(lr)
