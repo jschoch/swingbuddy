@@ -9,6 +9,7 @@ class LoadHint(Enum):
     NEW_OCR = auto()
     LOAD = auto()
     NEW_CLIP = auto()
+    LOAD_CLIP = auto()
 
 class TrcT(Enum):
     FACE = auto()

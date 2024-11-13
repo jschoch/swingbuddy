@@ -46,6 +46,8 @@ import threading
 import signal
 from lib.enums import LoadHint, TrcT
 from lib.swing_loader import SwingLoader
+import traceback
+from lib.wait_connection_dialog import ConnectionDialog
 
 app2 = Flask(__name__)
 socketio = SocketIO(app2, cors_allowed_origins="*")
@@ -195,7 +197,7 @@ class FlaskThread(QThread):
                 log.debug("got vtype dtl")
             #log.debug(f"got some crap {swing.faceTrc[:100]}")
             swing.save()
-            obj = (swing.id, data['vtype'])
+            obj = (swing, data['vtype'])
             shared_object.message_signal.got_trc_for_swing.emit(obj)
             
         except Exception as e:
@@ -322,7 +324,7 @@ class SBW(QMainWindow):
 
         self.pairs = []
 
-        self.ui.run_a_btn.clicked.connect(self.ws_request_trc)
+        self.ui.run_a_btn.clicked.connect(self.ws_request_face_trc)
         self.ui.run_a_btn.setEnabled(False)
         self.ui.add_btn.clicked.connect(self.add_swing_clicked)
 
@@ -350,6 +352,9 @@ class SBW(QMainWindow):
 
         self.current_swing = None
         self.swingloader = SwingLoader(self)
+        self.cd = None
+
+    def load_last_swing(self):
         try:
             lastswing = Swing.select().order_by(Swing.id.desc()).get()
             #self.load_swing(lastswing.id)
@@ -357,7 +362,12 @@ class SBW(QMainWindow):
             self.logger.debug(f"Load Swing id: {lastswing.id}, waiting for threads.  SBW init should be done")
         except Exception as e:
             self.logger.error(f"No Swing found to load default on init ya {e}")
+            tb = traceback.format_exc()
+            self.logger.error(tb)
 
+    def show_connection_dialog(self):
+        self.cd = ConnectionDialog(self)
+        self.cd.show()
     # Connect the main window's close event to a method in the debug window
     #self.closeEvent.connect(self.on_main_window_close)
     def closeEvent(self, event):
@@ -377,9 +387,13 @@ class SBW(QMainWindow):
         self.logger.debug("calling close_handler")
         self.log_window_handler.close_handler()
 
+    @Slot()
+    def do_got_trc_for_swing(self,obj):
+        (swing,vtype) = obj
+        self.logger.debug("TODO finsish me")
 
     @Slot()
-    def do_got_trc_for_swing(self, obj):
+    def do_got_trc_for_swing_TODO_DEPRICATE(self, obj):
         (swingid,vtype) = obj
         self.unload_swing_video()
         if self.current_swing.id == swingid:
@@ -441,6 +455,8 @@ class SBW(QMainWindow):
 
     @Slot()
     def server_connect(self):
+        self.cd.got_connection()
+        self.load_last_swing()
         self.ui.run_a_btn.setEnabled(True)
         self.ui.do_ocr_btn.setEnabled(True)
         #self.ui.w
@@ -532,17 +548,14 @@ class SBW(QMainWindow):
         
 
     @Slot()
-    def ws_request_trc(self,swingid):
-        if not swingid:
-            swingid = self.current_swing.id
-        self.logger.info(f"Requesting TRC for swing {swingid}")
+    def ws_request_face_trc(self,swing):
         request_data = {
-            'file_path' : self.current_swing.faceVid,
+            'file_path' : swing.faceVid,
             'vtype': 'face',
-            'swingid' : swingid
+            'swingid' : swing.id
         }
         request_txt = json.dumps(request_data)
-        self.logger.debug(f"ws_request_trc: request {request_data}")
+        self.logger.debug(f"ws_request_face_trc: request {request_data}")
         socketio.emit('do_vid',request_txt)
 
 
@@ -840,7 +853,7 @@ class SBW(QMainWindow):
         if(self.config.enableTRC):
             self.logger.debug("auto trc, fetching")
             #self.add_task(self.current_swing.id)
-            self.ws_request_trc(swing.id)
+            self.ws_request_face_trc(swing.id)
 
         if(self.config.enableScreen ):
             self.do_screen_timer()
@@ -886,20 +899,20 @@ class SBW(QMainWindow):
         self.clip_loaded.emit(obj)
         #self.of1w.signals.result.emit("done of2")
 
-    def do_open_file(self,swing,fpath,trcT):
+    def do_open_file(self,swing,fpath,trcT,hint):
         if not os.path.exists(fpath):
             return "can't find FACE video file"
         clip = av.open(fpath,mode='r',options=self.av_options)
-        obj = (clip,swing,trcT)
+        obj = (clip,swing,trcT,hint)
         self.clip_loaded.emit(obj)
     
-    def open_file_worker(self,swing,trcT):
+    def open_file_worker(self,swing,trcT,hint):
         match trcT:
             case TrcT.FACE:
                 #TODO:  make the threads again
-                self.do_open_file(swing,swing.faceVid,trcT)        
+                self.do_open_file(swing,swing.faceVid,trcT,hint)        
             case TrcT.DTL:
-                self.do_open_file(swing,swing.dtlVid,trcT)
+                self.do_open_file(swing,swing.dtlVid,trcT,hint)
         
 
     @Slot()
@@ -907,7 +920,7 @@ class SBW(QMainWindow):
         """
         this is connected via self.clip_loaded.emit(obj) 
         """
-        (clip,swing,trcT) = obj
+        (clip,swing,trcT,hint) = obj
         if clip is None:
             self.logger.error(f"No clip {swing.id} {trcT}")
             return
@@ -917,7 +930,10 @@ class SBW(QMainWindow):
         if(trcT == TrcT.DTL):
             self.video_playback.video_clip2 = clip
 
-        self.swingloader.load_swing(swing,LoadHint.NEW_CLIP,trcT)
+        if hint == LoadHint.LOAD:
+            self.swingloader.load_swing(swing,LoadHint.LOAD_CLIP,trcT)
+        if hint == LoadHint.NEW:
+            self.swingloader.load_swing(swing,LoadHint.NEW_CLIP,trcT)
         return
 
     @Slot()
@@ -1270,6 +1286,9 @@ if __name__ == "__main__":
     #logger = logging.getLogger(__name__)
     #widget = SBW()
     widget = SBW(parent=None, log_window_handler=log_window_handler)
-
     widget.show()
+    #widget.show_connection_dialog(widget)
+    cd = ConnectionDialog(widget)
+    widget.cd = cd
+    cd.show()
     sys.exit(app.exec())

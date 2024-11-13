@@ -21,8 +21,8 @@ class NXY(BasePipe):
         df.at[0,'LWrist_Distance'] = None
         df.at[0,'LWrist_Speed'] = None
         df['LWrist_Distance'] = df.apply(lambda row: euclidean_distance((row['LWrist_x'], row['LWrist_y']),
-        (df.iloc[row.name-1]['LWrist_x'], df.iloc[row.name-1]['LWrist_y']) 
-        if row.name > 0 else None), axis=1)
+            (df.iloc[row.name-1]['LWrist_x'], df.iloc[row.name-1]['LWrist_y']) 
+            if row.name > 0 else None), axis=1)
         
         
         # TODO:  should lookup and load a config for stuff like this

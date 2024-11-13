@@ -11,6 +11,7 @@ import threading
 import queue
 import concurrent.futures
 from util import load_pipes
+import pandas as pd
 
 class WorkerError(Exception):
     pass
@@ -18,17 +19,17 @@ class WorkerError(Exception):
 class WorkerThread(QThread):
     result = Signal(object)
 
-    #TODO: why is dtldf hard coded here?
-    def __init__(self, clip, parent_size, lr,dtldf):
+    def __init__(self, clip, parent_size, lr,df):
         super().__init__()
         self.clip = clip
-        if clip is None and (parent_size == 0 and lr == 0 and dtldf == []):
+        if clip is None and (parent_size == 0 and lr == 0 and df.empty):
             print("no logger :(  worker init)")
         elif clip is None:
             raise WorkerError(f"Need the clip yo {lr}")
         self.parent_size = parent_size
         self.lr = lr
-        self.dtldf = dtldf
+        self.df = df
+        print(f"worker init: {clip} {parent_size} {lr} {df.head()}")
         self.isRunning = False
 
     def do_work3(self):
@@ -56,11 +57,14 @@ class WorkerThread(QThread):
         """
         This draws the starting hip position on every frame 
         """
-        if self.dtldf is not None and self.dtldf != [] and not self.dtldf.empty: 
+        if not self.df.empty and self.lr == 1: 
             pen = QPen(Qt.green, 4)
             painter.setPen(pen)
-            x_pos = self.dtldf['HipMiddle_x'].iloc[0]
+            x_pos = self.df['HipMiddle_x'].iloc[0]
             painter.drawLine(x_pos, 0, x_pos, height) 
+        else: 
+            if self.lr == 1:
+                print(f" {self.lr} {self.df.empty} ")
 
     def process_frame(self,index,frame):
         
@@ -93,7 +97,7 @@ class WorkerThread(QThread):
         vid_stream = self.clip.streams.video[0] 
         vid_stream.thread_type = 'AUTO' 
         frames = self.clip.decode(vid_stream) 
-        print("frames: ")
+        print(f"{self.lr} {self.df.empty} frames: ")
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
             future_to_frame = {
                 executor.submit(self.process_frame, i,frame): (i, frame) for i,frame in enumerate(frames)
@@ -112,8 +116,8 @@ class WorkerThread(QThread):
         self.isRunning = False 
      
     def get_pose_data(self, frame_number):
-        if self.dtldf is not None and self.dtldf != [] and not self.dtldf.empty: 
-            row = self.dtldf.iloc[frame_number]
+        if  not self.df.empty and self.lr == 1: 
+            row = self.df.iloc[frame_number]
             #print(f" trying to get fn {frame_number} \n{row.to_dict()}")
             x = row['HipMiddle_x']
             y = 100
@@ -140,19 +144,20 @@ class VideoPlayBack:
         self.qimage_frames2 = []
         self.current_frame_index = 0
         self.is_playing = False
-        self.dtldf = []
-        self.facedf = []
+        self.dtldf = pd.DataFrame()
+        self.facedf = pd.DataFrame() 
         self.playback_speed = 1.0
         #self.lr = lr
-        self.t1 = WorkerThread(None, 0, 0,[])
-        self.t0 = WorkerThread(None, 0, 0,[])
+        
+        self.t1 = WorkerThread(None, 0, 0,pd.DataFrame())
+        self.t0 = WorkerThread(None, 0, 0,pd.DataFrame())
         self.timer = QTimer()
         self.logger = logger
         self.start()
 
     # Function to load frames from the video clip
     def load_frame(self,lr):
-        self.logger.debug("load_frame() starting to load")
+        self.logger.debug(f"load_frame() starting to load {lr}")
         parent_size = self.video_playback_ui.parent().size()
 
         #video_clip = None
@@ -164,6 +169,8 @@ class VideoPlayBack:
                 self.logger.error("t1 is already running")
                 return
             
+            if self.dtldf.empty:
+                self.logger.error("vp load_frames dtldf is empty")
             self.t1 = WorkerThread(video_clip, parent_size, lr,self.dtldf)
             self.t1.result.connect(self.frames_done)
             self.t1.finished.connect(self.t1.deleteLater)
@@ -181,6 +188,10 @@ class VideoPlayBack:
             if video_clip is None:
                 self.logger.error("video_clip is None lr: {lr}")
                 return
+            
+            if self.facedf.empty:
+                self.logger.error("vp load_frames facedf is empty")
+                
             self.t0 = WorkerThread(video_clip, parent_size, lr,self.facedf)
             self.t0.result.connect(self.frames_done)
             self.t0.finished.connect(self.t0.deleteLater)

@@ -23,7 +23,7 @@ class TestVideoPlayBack(unittest.TestCase):
         self.db = SqliteDatabase('swingbuddy_test.db')
         self.db.connect()
         self.db.create_tables(models)  # Replace YourModel with your actual model class
-        self.swing = Swing.get_by_id(3)
+        self.swing = Swing.get_by_id(2)
         self.logger.debug(f"swn: {self.swing.name}")
 
 
