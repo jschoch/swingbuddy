@@ -5,6 +5,7 @@ from peewee import *
 from playhouse.shortcuts import model_to_dict, dict_to_model
 
 from vplayer import OverlayWidget, VideoPlayBackUi,VideoPlayBack
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 import os
 from util import find_swing, fetch_trc,get_pairs,load_pipes
@@ -48,6 +49,7 @@ class SwingLoader():
                 self.load_frames(swing,trcT,hint)
             case LoadHint.LOAD_CLIP:
                 self.logger.debug("Loading existing clip")
+                self.load_screen(swing,hint)
                 self.parse_trc(swing,trcT,hint)
                 self.sl_load_pipes(swing,trcT,hint)
                 self.load_frames(swing,trcT,hint)
@@ -118,10 +120,20 @@ class SwingLoader():
     def parse_ocr(self,swing,ocr_txt):
         None
     
-    def load_screen(self,swing):
-        None
-        
-    def load_plot(self,swing):
+    def load_screen(self,swing,hint):
+        image_path = swing.screen
+        if image_path == "no Screen":
+            self.logger.debug("no screen")
+
+        else:
+            self.logger.debug(f"Screenshot path {image_path}")
+            if (os.path.exists(image_path)):
+                pixmap_big = QPixmap(image_path)
+                parent_size = self.w.screenlabel.parent().size()
+                pixmap = pixmap_big.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
+                self.w.video_playback_Ui.screen_label2.setPixmap(pixmap)
+            else:
+                self.logger.debug(f"No path for screen {image_path}")
         None
     
     def update_model(self,swing):
