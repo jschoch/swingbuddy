@@ -12,14 +12,20 @@ import queue
 import concurrent.futures
 from util import load_pipes
 
-
+class WorkerError(Exception):
+    pass
     
 class WorkerThread(QThread):
     result = Signal(object)
 
+    #TODO: why is dtldf hard coded here?
     def __init__(self, clip, parent_size, lr,dtldf):
         super().__init__()
         self.clip = clip
+        if clip is None and (parent_size == 0 and lr == 0 and dtldf == []):
+            print("no logger :(  worker init)")
+        elif clip is None:
+            raise WorkerError(f"Need the clip yo {lr}")
         self.parent_size = parent_size
         self.lr = lr
         self.dtldf = dtldf
@@ -50,7 +56,7 @@ class WorkerThread(QThread):
         """
         This draws the starting hip position on every frame 
         """
-        if self.dtldf is not None and not self.dtldf.empty: 
+        if self.dtldf is not None and self.dtldf != [] and not self.dtldf.empty: 
             pen = QPen(Qt.green, 4)
             painter.setPen(pen)
             x_pos = self.dtldf['HipMiddle_x'].iloc[0]
@@ -106,7 +112,7 @@ class WorkerThread(QThread):
         self.isRunning = False 
      
     def get_pose_data(self, frame_number):
-        if self.dtldf is not None and not self.dtldf.empty: 
+        if self.dtldf is not None and self.dtldf != [] and not self.dtldf.empty: 
             row = self.dtldf.iloc[frame_number]
             #print(f" trying to get fn {frame_number} \n{row.to_dict()}")
             x = row['HipMiddle_x']
@@ -124,9 +130,11 @@ class WorkerThread(QThread):
 
 # Video playback class responsible for managing the actual playback of the video.
 class VideoPlayBack:
-    def __init__(self, video_playback_ui, video_clip):
+    def __init__(self, video_playback_ui, logger):
         self.video_playback_ui = video_playback_ui
-        self.video_clip = video_clip
+
+        #TODO: rename clips to something more descriptive.
+        self.video_clip = None
         self.video_clip2 = None
         self.qimage_frames = []
         self.qimage_frames2 = []
@@ -139,6 +147,7 @@ class VideoPlayBack:
         self.t1 = WorkerThread(None, 0, 0,[])
         self.t0 = WorkerThread(None, 0, 0,[])
         self.timer = QTimer()
+        self.logger = logger
         self.start()
 
     # Function to load frames from the video clip
@@ -146,7 +155,7 @@ class VideoPlayBack:
         self.logger.debug("load_frame() starting to load")
         parent_size = self.video_playback_ui.parent().size()
 
-        video_clip = None
+        #video_clip = None
         if(lr):
             self.qimage_frames2 = []
             video_clip = self.video_clip2
@@ -169,16 +178,16 @@ class VideoPlayBack:
                 self.logger.error("t0 is already running")
                 return
 
+            if video_clip is None:
+                self.logger.error("video_clip is None lr: {lr}")
+                return
             self.t0 = WorkerThread(video_clip, parent_size, lr,self.facedf)
             self.t0.result.connect(self.frames_done)
             self.t0.finished.connect(self.t0.deleteLater)
             self.t0.start()
 
-        if video_clip is None:
-            self.logger.debug("class: VideoPlayBack, fun: load_frame: video_clip is Null")
-            return
 
-        self.logger.debug("VideoPlayBack load_frames() done loading framse")
+        self.logger.debug("VideoPlayBack load_frames() done queueing framse")
 
         if(lr):
             self.video_playback_ui.vid2_text.setText(f"{self.video_clip2}")

@@ -44,6 +44,8 @@ from qwid import QwStatusWidget
 from dataa import pre_speed, gen_speed
 import threading
 import signal
+from lib.enums import LoadHint, TrcT
+from lib.swing_loader import SwingLoader
 
 app2 = Flask(__name__)
 socketio = SocketIO(app2, cors_allowed_origins="*")
@@ -215,9 +217,6 @@ class SBW(QMainWindow):
         self.threadpool = QThreadPool()
         if log_window_handler:
             self.log_window_handler = log_window_handler
-            #self.ui.closeButton.clicked.connect(self.shutdown_logger)
-
-
 
         #  Flask stuff
 
@@ -239,14 +238,12 @@ class SBW(QMainWindow):
 
         self.ui.sw = SwingWidget()
         self.ui.verticalLayout_6.addWidget(self.ui.sw)
-        self.video_clip = None
         self.video_playback_Ui = VideoPlayBackUi()
         vpbusize_policy = self.video_playback_Ui.sizePolicy()
         vpbusize_policy.setHorizontalPolicy(QSizePolicy.Expanding)
         vpbusize_policy.setVerticalPolicy(QSizePolicy.Expanding)
         self.video_playback_Ui.setSizePolicy(vpbusize_policy)
-        #self.video_playback = None
-        self.video_playback = VideoPlayBack(self.video_playback_Ui, None)
+        self.video_playback = VideoPlayBack(self.video_playback_Ui, self.logger)
         self.ui.horizontalLayout.addWidget(self.video_playback_Ui)
 
         # Adding MenuBar with File, Tool, and Help menus
@@ -261,7 +258,7 @@ class SBW(QMainWindow):
         self.open_action.triggered.connect(self.open_file)
         self.file_menu.addAction(self.open_action)
 
-        self.clip_loaded.connect(self.load_video)
+        self.clip_loaded.connect(self.post_load_video_clip)
 
         self.open_action2 = QAction("&Open2", self)
         self.open_action2.setShortcut("Ctrl+O")
@@ -275,7 +272,6 @@ class SBW(QMainWindow):
 
         # Setup share obj for flask messages
         self.shared_object = shared_object
-        #self.message_signal = MessageReceivedSignal()
         self.shared_object.message_signal.messageReceived.connect(self.http_process_swing, Qt.QueuedConnection)
         self.shared_object.message_signal.wsSignal.connect(self.ws_sig,Qt.QueuedConnection)
         self.shared_object.message_signal.serverConnect.connect(self.server_connect)
@@ -353,10 +349,11 @@ class SBW(QMainWindow):
         }
 
         self.current_swing = None
+        self.swingloader = SwingLoader(self)
         try:
             lastswing = Swing.select().order_by(Swing.id.desc()).get()
-            #id = 
-            self.load_swing(lastswing.id)
+            #self.load_swing(lastswing.id)
+            self.swingloader.load_swing(lastswing,LoadHint.LOAD)
             self.logger.debug(f"Load Swing id: {lastswing.id}, waiting for threads.  SBW init should be done")
         except Exception as e:
             self.logger.error(f"No Swing found to load default on init ya {e}")
@@ -384,9 +381,49 @@ class SBW(QMainWindow):
     @Slot()
     def do_got_trc_for_swing(self, obj):
         (swingid,vtype) = obj
+        self.unload_swing_video()
         if self.current_swing.id == swingid:
             self.logger.debug(f"do_got_trc_for_swing()  fetching saved trc data {swingid}")
-            #self.current_swing = Swing.get(swingid)
+            swing = Swing.get_by_id(swingid)
+
+            df = pd.DataFrame([])
+            #df = None
+            try: 
+                if vtype == "face":
+                    df = pd.read_csv(StringIO(swing.faceTrc))
+                else:
+                    df = pd.read_csv(StringIO(swing.dtlTrc))
+
+                if df.empty:
+                    self.logger.error(f"Empty dataframe received for swing {swingid}")
+                    self.load_swing(swingid)
+                    return
+            except Exception as e:
+                self.logger.error(f"Error reading dataframe for swing {swingid}: {e}")
+                return
+
+            self.logger.debug(f"do_got... loading_pipes {df.head()}")
+
+            pipes = load_pipes()
+            for pipe in pipes:
+                pipe.preprocess_df(df)
+
+            self.logger.debug(f"post pipes {df.head()}")
+
+            if vtype == "face":
+                self.video_playback.facedf = df
+                if self.video_playback.t0.isRunning:
+                    self.logger.debug("frames loading, have to skip paint for faceTrc")
+                else:
+                    self.logger.debug("load_frames 0 in do_got")
+                    self.video_playback.load_frame(0)
+            else:
+                self.video_playback.dtldf = df
+                if self.video_playback.t1.isRunning:
+                    self.logger.debug("frames loading, have to skip paint for dtlTrc")
+                else:
+                    self.video_playback.load_frame(1)
+            self.logger.debug("do_got calling load_swing next")
             self.load_swing(swingid)
         else:
             self.logger.debug(f"do_got_trc_for_swing()  current swing changed, skipping TRC load \nold: {swingid} new: {self.current_swing.id}")
@@ -594,25 +631,14 @@ class SBW(QMainWindow):
         self.logger.debug(f"item {item} id: {item_id}")
         self.load_swing(item_id)
 
-    def load_swing_videos(self,swing):
-        self.logger.debug(f"loading videos for {swing}")
+    def unload_swing_video(self):
         if self.video_playback != None and self.video_playback.is_playing:
             self.main_pause_signal.emit()
-            
-
         self.logger.debug("resetting swing UI")
-        # reset stuff
-        self.video_clip = None
-        self.video_clip2 = None
-
-        self.qimage_frames = []
-        self.qimage_frames2 = []
         self.video_playback_Ui.video_label2.setPixmap(QPixmap())
         self.video_playback_Ui.video_label1.setPixmap(QPixmap())
         self.plot.reset_data()
-
-        
-        #self.video_playback = VideoPlayBack(self.video_playback_Ui, self.video_clip)
+        self.video_playback = VideoPlayBack(self.video_playback_Ui, None)
         self.main_play_signal.connect(self.video_playback.play)
         self.main_pause_signal.connect(self.video_playback.pause)
         self.video_playback.logger = self.logger
@@ -621,6 +647,11 @@ class SBW(QMainWindow):
         self.video_playback_Ui.speed_slider.setRange(50, 200)
         self.video_playback_Ui.speed_slider.setValue(100)
         self.video_playback_Ui.speed_slider.setEnabled(True)
+
+    def load_swing_videos(self,swing):
+        self.logger.debug(f"loading videos for {swing}")
+        self.unload_swing_video()
+        
 
         if not hasattr(self, 'of1w') or not self.of1w.isRunning():
             self.of1w = Worker(self.open_file,self.current_swing.faceVid)
@@ -662,6 +693,7 @@ class SBW(QMainWindow):
         # this setups the swing data in the tab
         self.ui.sw.set_swing_data(self.current_swing)
 
+        
         image_path = self.current_swing.screen
         if image_path == "no Screen":
             self.logger.debug("no screen")
@@ -685,6 +717,7 @@ class SBW(QMainWindow):
 
         # TODO: move pre-speed and stuff from server here and update teh plot
         self.logger.error("TODO: fix the plots")
+        #df = pd.DataFrame([])
         df = []
         try:
             df = pd.read_csv(StringIO(maybe_trc))
@@ -693,12 +726,15 @@ class SBW(QMainWindow):
                 pipe.preprocess_df(df)
             self.video_playback.facedf = df
             
-            if(self.current_swing.dtlTrc!= "no trc"):
+            if(self.current_swing.dtlTrc != "no trc"):
+                #self.qimage_frames2 = []
                 df = pd.read_csv(StringIO(self.current_swing.dtlTrc))
                 pipes = load_pipes()
                 for pipe in pipes:
                     pipe.preprocess_df(df)
                 self.video_playback.dtldf = df
+                #self.video_playback.load_frame(1)
+                #self.video_playback.update_frame(1)
                 
         except Exception as e:  
             self.logger.error(f"Error reading trc data: {e}")
@@ -850,9 +886,42 @@ class SBW(QMainWindow):
         self.clip_loaded.emit(obj)
         #self.of1w.signals.result.emit("done of2")
 
+    def do_open_file(self,swing,fpath,trcT):
+        if not os.path.exists(fpath):
+            return "can't find FACE video file"
+        clip = av.open(fpath,mode='r',options=self.av_options)
+        obj = (clip,swing,trcT)
+        self.clip_loaded.emit(obj)
+    
+    def open_file_worker(self,swing,trcT):
+        match trcT:
+            case TrcT.FACE:
+                #TODO:  make the threads again
+                self.do_open_file(swing,swing.faceVid,trcT)        
+            case TrcT.DTL:
+                self.do_open_file(swing,swing.dtlVid,trcT)
+        
 
     @Slot()
-    def load_video(self, obj):
+    def post_load_video_clip(self, obj):
+        """
+        this is connected via self.clip_loaded.emit(obj) 
+        """
+        (clip,swing,trcT) = obj
+        if clip is None:
+            self.logger.error(f"No clip {swing.id} {trcT}")
+            return
+        self.logger.debug(f"load_video: {clip} type: {trcT} id: {swing.id} adding clips")
+        if(trcT == TrcT.FACE):
+            self.video_playback.video_clip = clip
+        if(trcT == TrcT.DTL):
+            self.video_playback.video_clip2 = clip
+
+        self.swingloader.load_swing(swing,LoadHint.NEW_CLIP,trcT)
+        return
+
+    @Slot()
+    def load_video_clip_TODO(self, obj):
         (clip,id) = obj
         self.logger.debug(f"load_video: {clip} id: {id}")
 
