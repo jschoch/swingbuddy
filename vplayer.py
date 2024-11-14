@@ -61,14 +61,14 @@ class WorkerThread(QThread):
             painter.setPen(pen)
             painter.drawLine(x_pos, 0, x_pos, q_image.height())
             painter.end()
-        height = 450
+        #height = 450
         #height = self.parent_size.height() - 100
-        scaled_image = q_image.scaledToHeight(height,Qt.SmoothTransformation)
+        #scaled_image = q_image.scaledToHeight(height,Qt.SmoothTransformation)
         # TODO:  map this to the TRC data via some sort of pipeline
         #  you should be able the chain them based on some config and or boolieans
         
         
-        return (scaled_image,index)
+        return (q_image,index)
 
     def do_work(self):
         try:
@@ -293,13 +293,20 @@ class VideoPlayBack:
         if self.current_frame_index < len(qimage_frames):
             qimage_frame = qimage_frames[self.current_frame_index]
             pixmap = QPixmap.fromImage(qimage_frame)
+            #h = self.video_playback_ui.video_label1.parent_size.height()
+            #pixmap = pixmap.scaled(320, 240)
+            pixmap = pixmap.scaled(self.video_playback_ui.video_label1.width(), self.video_playback_ui.video_label1.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            
 
             if(lr):
                 self.video_playback_ui.video_label2.setPixmap(pixmap)
-                self.video_playback_ui.video_label2.setAlignment(Qt.AlignLeft)
+                #self.video_playback_ui.video_label2.setScaledContents(True)
+                #self.video_playback_ui.video_label2.setAlignment(Qt.AlignLeft)
             else:
                 self.video_playback_ui.video_label1.setPixmap(pixmap)
-                self.video_playback_ui.video_label1.setAlignment(Qt.AlignLeft)
+                #self.video_playback_ui.video_label1.setScaledContents(True)
+
+                #self.video_playback_ui.video_label1.setAlignment(Qt.AlignLeft)
             self.video_playback_ui.slider.setValue(self.current_frame_index)
         else:
             self.current_frame_index = 0
@@ -397,30 +404,38 @@ class VideoPlayBackUi(QWidget):
         self.speed_slider_label = QLabel("Playback Speed:")
 
         # Create grid layout for video labels
-        self.vid_layout = QGridLayout()
+        #self.vid_layout = QGridLayout()
+        self.vid_layout = QHBoxLayout()
 
         # Create video labels
+        max_height = 800
         self.video_label1 = QLabel()
+        self.video_label1.setScaledContents(True)
+        self.video_label1.setMaximumHeight(max_height)
         self.video_label1.setStyleSheet("border: 1px solid red;")
-        self.video_label1.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.video_label1.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # Ensure it expands
+        #self.video_label1.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        #self.video_label1.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)  # Ensure it expands
 
         self.video_label2 = QLabel()
+        self.video_label2.setScaledContents(True)
+        self.video_label2.setMaximumHeight(max_height)
         self.video_label2.setStyleSheet("border: 1px solid black;")
-        self.video_label2.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.video_label2.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # Ensure it expands
+        #self.video_label2.setAlignment(Qt.AlignmentFlag.AlignRight)
+        #self.video_label2.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)  # Ensure it expands
 
         # Add widgets to video layout
         self.vid1_text = QLabel("No Vid1 Loaded")
-        self.vid_layout.addWidget(self.vid1_text, 0, 0, alignment=Qt.AlignLeft)  # Placeholder for video file name
-        self.vid_layout.addWidget(self.video_label1, 1, 0, alignment=Qt.AlignLeft)
+        #self.vid_layout.addWidget(self.vid1_text, 0, 0, alignment=Qt.AlignLeft)  # Placeholder for video file name
+        #self.vid_layout.addWidget(self.video_label1, 1, 0, alignment=Qt.AlignLeft)
+        self.vid_layout.addWidget(self.video_label1, alignment=Qt.AlignLeft)  # Placeholder for video file name
 
         self.vid2_text = QLabel("No Vid2 Loaded")
-        self.vid_layout.addWidget(self.vid2_text, 0, 1, alignment=Qt.AlignRight)  # Placeholder for video file name
-        self.vid_layout.addWidget(self.video_label2, 1, 1, alignment=Qt.AlignRight)
+        #self.vid_layout.addWidget(self.vid2_text, 0, 1, alignment=Qt.AlignRight)  # Placeholder for video file name
+        #self.vid_layout.addWidget(self.video_label2, 1, 1, alignment=Qt.AlignRight)
+        self.vid_layout.addWidget(self.video_label2, alignment=Qt.AlignRight)  # Placeholder for video file name
 
         self.screen_label2 = QLabel()
-        self.vid_layout.addWidget(self.screen_label2,1,2)
+        self.vid_layout.addWidget(self.screen_label2)
 
         # Create layout and add widgets
         video_button_layout = QHBoxLayout()

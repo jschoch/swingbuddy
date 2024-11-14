@@ -14,8 +14,8 @@ from ui_form import Ui_SBW
 from PySide6.QtCore import QObject, QThread, Signal,  Qt,QPoint, Slot,QTimer,QThreadPool,QRunnable,QStringListModel,QSettings
 from PySide6.QtGui import QAction,QIcon,QMovie, QStandardItemModel, QStandardItem,QImage, QPixmap,QPainter,QTransform
 from PySide6.QtWidgets import (QMainWindow, QListView, QPushButton, QTextEdit,QSlider,QFileDialog,
-    QHBoxLayout, QWidget, QVBoxLayout, QLabel,QDialog,QDialogButtonBox,
-    QSizePolicy, QMessageBox,QDialog, QGridLayout, QTextEdit)
+    QHBoxLayout, QWidget, QVBoxLayout, QLabel,QDialog,QDialogButtonBox,QDockWidget,
+    QSizePolicy, QMessageBox,QDialog, QGridLayout, QTextEdit,QTabWidget)
 from flask import Flask, request,jsonify
 from flask_socketio import SocketIO, emit, send,join_room
 import logging
@@ -222,6 +222,62 @@ class SBW(QMainWindow):
         self.ui = Ui_SBW()
         self.ui.setupUi(self)
         
+        # UI hacking
+
+        self.central_widget = QWidget()
+        self.grid_layout = QGridLayout(self.central_widget)
+        self.testl = QLabel("TEST123")
+        self.grid_layout.addWidget(self.testl, 0, 0)
+        self.setCentralWidget(self.central_widget)
+
+        self.tabWidget_main = QTabWidget(self.central_widget)
+        self.tab_main_vid = QWidget()
+        self.testl2 = QLabel("main tab vid")
+        self.tabWidget_main.addTab(self.tab_main_vid, "Video")
+        self.tab_main_vid_l = QHBoxLayout()
+        self.tab_main_vid.setLayout(self.tab_main_vid_l)
+        self.grid_layout.addWidget(self.tabWidget_main, 1, 0)    
+
+        self.tab_main_swing= QWidget()
+        self.tab_main_swing_l = QVBoxLayout()
+        self.tab_main_swing.setLayout(self.tab_main_swing_l)
+        self.tabWidget_main.addTab(self.tab_main_swing, "Swing Data")
+        
+        self.tab_main_config = QWidget()
+        self.tab_main_config_l = QVBoxLayout()
+        self.tab_main_config.setLayout(self.tab_main_config_l)
+        self.tabWidget_main.addTab(self.tab_main_config, "Config")
+        #self.grid_layout.addWidget(self., 0, 0)
+
+
+        # a list for the swings from the db
+        self.dock_swing_list = QDockWidget("Swing List", self)
+        self.dock_swing_list.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
+        # Add a QTextEdit to the dock widget
+        dock_swing_list_text_edit = QTextEdit("this is a test")
+        self.dock_swing_list.setWidget(dock_swing_list_text_edit)
+        # Add the dock widget to the main window
+        self.addDockWidget(Qt.RightDockWidgetArea, self.dock_swing_list)
+
+        # a list for the lm data from the db
+        self.dock_lmdata = QDockWidget("LM Data", self)
+        self.dock_lmdata.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
+        dock_lmdata_text_edit = QTextEdit("lmdata goes here")
+        self.dock_lmdata.setWidget(dock_lmdata_text_edit)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.dock_lmdata)
+
+        
+        # the dock for plots
+        self.dock_plot= QDockWidget("Plots", self)
+        self.dock_plot.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
+        dock_plot_testlabel = QLabel("Plots goes here")
+        dock_plot_widget = QWidget()
+        self.dock_plot_l = QHBoxLayout()
+        self.dock_plot.setWidget(dock_plot_widget)
+        dock_plot_widget.setLayout(self.dock_plot_l)
+        self.dock_plot_l.addWidget(dock_plot_testlabel)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.dock_plot)
+        
         self.threadpool = QThreadPool()
         if log_window_handler:
             self.log_window_handler = log_window_handler
@@ -237,7 +293,10 @@ class SBW(QMainWindow):
         self.create_db()
         self.ui.cw = ConfigWindow()
         self.ui.cw.logger = self.logger
-        self.ui.verticalLayout_5.addWidget(self.ui.cw)
+
+        #  TODO1
+        #self.ui.verticalLayout_5.addWidget(self.ui.cw)
+        self.tab_main_config_l.addWidget(self.ui.cw)
         self.config = self.ui.cw.load_config()
 
         
@@ -245,14 +304,19 @@ class SBW(QMainWindow):
         self.timer = QTimer(self, singleShot=True)
 
         self.ui.sw = SwingWidget()
-        self.ui.verticalLayout_6.addWidget(self.ui.sw)
+        # TODO1
+        #self.ui.verticalLayout_6.addWidget(self.ui.sw)
+        #self.grid_layout.addWidget(self.ui.sw, 0, 0)
+        self.tab_main_swing_l.addWidget(self.ui.sw)
         self.video_playback_Ui = VideoPlayBackUi()
         vpbusize_policy = self.video_playback_Ui.sizePolicy()
         vpbusize_policy.setHorizontalPolicy(QSizePolicy.Expanding)
         vpbusize_policy.setVerticalPolicy(QSizePolicy.Expanding)
         self.video_playback_Ui.setSizePolicy(vpbusize_policy)
         self.video_playback = VideoPlayBack(self.video_playback_Ui, self.logger)
-        self.ui.horizontalLayout.addWidget(self.video_playback_Ui)
+        #TODO1
+        #self.ui.horizontalLayout.addWidget(self.video_playback_Ui)
+        self.tab_main_vid_l.addWidget(self.video_playback_Ui)
 
         # Adding MenuBar with File, Tool, and Help menus
         self.menu_bar = self.menuBar()
@@ -339,14 +403,17 @@ class SBW(QMainWindow):
         # graph stuff
 
         self.plot = SineWavePlot(self.logger,self)
-        self.ui.gridLayout.addWidget(self.plot)
+        self.dock_plot_l.addWidget(self.plot)
+        #TODO1
+        #self.ui.gridLayout.addWidget(self.plot)
 
         #self.slider.valueChanged.connect(self.update_vline)
         self.video_playback_Ui.slider.valueChanged.connect(self.plot.update_vline)
-        self.loading_widget = LoadingWidget(self.logger)
 
         self.screenlabel = QLabel()
-        self.ui.horizontalLayout.addWidget(self.screenlabel)
+        #TODO1
+        #self.ui.horizontalLayout.addWidget(self.screenlabel)
+        self.tab_main_vid_l.addWidget(self.screenlabel)
         self.ui.stop_btn.clicked.connect(self.take_screen)
 
         self.ui.cw.reload_signal.connect(self.reload_config)
@@ -957,41 +1024,6 @@ class Worker(QRunnable):
     @Slot()
     def isRunning(self):
         return self.running
-
-class LoadingThread(QThread):
-    status_update = Signal(str)
-
-    def __init__(self):
-        super().__init__()
-
-
-    def run(self):
-        self.status_update.emit(f"Loading file ...")
-
-class LoadingWidget(QWidget):
-    def __init__(self, logger):
-        super().__init__()
-
-        # Create layout
-        layout = QVBoxLayout()
-        self.setLayout(layout)
-        self.logger = logger
-
-        # Create loading animation
-        self.movie = QMovie("loading.gif")  # Replace with your GIF path
-        self.movie_label = QLabel()
-        self.movie_label.setMovie(self.movie)
-        self.movie.start()
-        layout.addWidget(self.movie_label)
-
-        # Create status label
-        self.status_label = QLabel("Loading...")
-        layout.addWidget(self.status_label)
-
-        # Create loading thread
-        self.thread = LoadingThread()
-        self.thread.start()
-        self.logger.debug("LW init done")
 
 
 class SineWavePlot(QWidget):
