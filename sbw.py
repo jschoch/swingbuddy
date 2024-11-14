@@ -343,7 +343,6 @@ class SBW(QMainWindow):
         self.ui.stop_btn.clicked.connect(self.take_screen)
 
         self.ui.cw.reload_signal.connect(self.reload_config)
-        # TODO: make a signal/slot to reload teh swing data when you update the swing object
         self.av_options = {
             'threads': 'auto',
             #'buffer_size': 10 * 1024 * 1024,  # Adjust the buffer size as needed
@@ -406,67 +405,7 @@ class SBW(QMainWindow):
             self.swingloader.load_swing(swing,LoadHint.NEW_TRC,TrcT.DTL)
         self.ui.sw.set_swing_data(swing)
 
-    @Slot()
-    def do_got_trc_for_swing_TODO_DEPRICATE(self, obj):
-        (swingid,vtype) = obj
-        self.unload_swing_video()
-        if self.current_swing.id == swingid:
-            self.logger.debug(f"do_got_trc_for_swing()  fetching saved trc data {swingid}")
-            swing = Swing.get_by_id(swingid)
-
-            df = pd.DataFrame([])
-            #df = None
-            try: 
-                if vtype == "face":
-                    df = pd.read_csv(StringIO(swing.faceTrc))
-                else:
-                    df = pd.read_csv(StringIO(swing.dtlTrc))
-
-                if df.empty:
-                    self.logger.error(f"Empty dataframe received for swing {swingid}")
-                    self.load_swing(swingid)
-                    return
-            except Exception as e:
-                self.logger.error(f"Error reading dataframe for swing {swingid}: {e}")
-                return
-
-            self.logger.debug(f"do_got... loading_pipes {df.head()}")
-
-            pipes = load_pipes()
-            for pipe in pipes:
-                pipe.preprocess_df(df)
-
-            self.logger.debug(f"post pipes {df.head()}")
-
-            if vtype == "face":
-                self.video_playback.facedf = df
-                if self.video_playback.t0.isRunning:
-                    self.logger.debug("frames loading, have to skip paint for faceTrc")
-                else:
-                    self.logger.debug("load_frames 0 in do_got")
-                    self.video_playback.load_frame(0)
-            else:
-                self.video_playback.dtldf = df
-                if self.video_playback.t1.isRunning:
-                    self.logger.debug("frames loading, have to skip paint for dtlTrc")
-                else:
-                    self.video_playback.load_frame(1)
-            self.logger.debug("do_got calling load_swing next")
-            self.load_swing(swingid)
-        else:
-            self.logger.debug(f"do_got_trc_for_swing()  current swing changed, skipping TRC load \nold: {swingid} new: {self.current_swing.id}")
-        
-
-        if(vtype == 'face'): 
-            self.logger.debug("getting dtl TRC")
-            request_data = {
-                'file_path' : self.current_swing.dtlVid,
-                'vtype': 'dtl',
-                'swingid' : swingid
-            }
-            request_txt = json.dumps(request_data)
-            socketio.emit('do_vid',request_txt) 
-
+    
     @Slot()
     def server_connect(self):
         self.cd.got_connection()
@@ -707,80 +646,6 @@ class SBW(QMainWindow):
             self.logger.debug("already loading file 2") 
         self.logger.debug("Done loading video load_swing_video()")
 
-    def load_swing_TODO_DEPIRCATION(self,id):
-        if(self.current_swing is not None and self.current_swing.id == id):
-            self.logger.debug("current swing already loaded getting refresh from db!")
-            self.current_swing = Swing.get_by_id(id)
-        else:
-            self.logger.debug(f"loading new swing {id}")
-            swing = Swing.get_by_id(id)
-            if swing is None:
-                self.logger.error(f"cant' find the swing id {id}")
-                return
-            self.current_swing = swing
-            self.load_swing_videos(swing)
-        
-        self.ui.label.setText(f"Swings:  Current Swing: {id}")
-
-        maybe_trc = self.current_swing.faceTrc
-
-        # this setups the swing data in the tab
-        self.ui.sw.set_swing_data(self.current_swing)
-
-        
-        image_path = self.current_swing.screen
-        if image_path == "no Screen":
-            self.logger.debug("no screen")
-
-        else:
-            self.logger.debug(f"Screenshot path {image_path}")
-            if (os.path.exists(image_path)):
-                pixmap_big = QPixmap(image_path)
-                parent_size = self.screenlabel.parent().size()
-                pixmap = pixmap_big.scaledToHeight(parent_size.height()-100,Qt.SmoothTransformation)
-                self.video_playback_Ui.screen_label2.setPixmap(pixmap)
-            else:
-                self.logger.debug(f"No path for screen {image_path}")
-
-
-        if(maybe_trc != "no trc" and maybe_trc is not None):
-            self.logger.debug(f"found trc")
-        else:
-            self.logger.error("no trc data, returning!?")
-            return
-
-        # TODO: move pre-speed and stuff from server here and update teh plot
-        self.logger.error("TODO: fix the plots")
-        #df = pd.DataFrame([])
-        df = []
-        try:
-            df = pd.read_csv(StringIO(maybe_trc))
-            pipes = load_pipes()
-            for pipe in pipes:
-                pipe.preprocess_df(df)
-            self.video_playback.facedf = df
-            
-            if(self.current_swing.dtlTrc != "no trc"):
-                #self.qimage_frames2 = []
-                df = pd.read_csv(StringIO(self.current_swing.dtlTrc))
-                pipes = load_pipes()
-                for pipe in pipes:
-                    pipe.preprocess_df(df)
-                self.video_playback.dtldf = df
-                #self.video_playback.load_frame(1)
-                #self.video_playback.update_frame(1)
-                
-        except Exception as e:  
-            self.logger.error(f"Error reading trc data: {e}")
-            return
-
-        #self.logger.debug(f"dff info {df.info()} df head: {df.head()}")
-        wrist = df.filter(regex='LWrist')
-        #self.logger.debug(f"wrist head: {wrist.head()}")
-        wrist_with_speed = gen_speed(wrist)
-        #self.logger.debug(f"with speed {wrist_with_speed.head()}")
-        self.plot.update_data(wrist_with_speed)
-
 
     def of1wdone(self,result):
         self.logger.debug(f"of1wdone done {result}")
@@ -867,63 +732,6 @@ class SBW(QMainWindow):
             return
         self.swingloader.load_swing(swing,LoadHint.NEW)
 
-    def add_and_load_swing_TODO_DEPRICATE(self,files, maybeScreen=False,autoTrc=False, autoScreen=False):
-        """
-        takes array of file paths [swing1,swing2,screnshot1], creates db objects and loads the videos/screens/trc
-        autoXXX will attempt to process trc and screenshots
-        maybeScreen may start the screen shot timer
-        
-        """    
-        #TODO, how to allow for user naming scheme?
-        dtlVid = [file for file in files if 'left.mp4' in file]
-        faceVid = [file for file in files if 'right.mp4' in file]
-        screen = [file for file in files if 'screen.png' in file]
-        swing = None
-
-        if len(dtlVid) > 0:
-            dtlVid = dtlVid[0]
-        else:
-            self.logger.error("no face on vid found")
-            dtlVid = Swing.dtlVid.default
-        if len(faceVid) > 0:
-            faceVid = faceVid[0]
-        else:
-            self.logger.error("no down the line vid found")
-            faceVid = Swing.faceVid.default
-        if len(screen) > 0:
-            screen = screen[0]
-        else:
-            self.logger.error(f"no screen found {files}")
-            screen = Swing.screen.default
-        try:
-            lmdata = LMData.create()
-            parts = faceVid.split('-')[:2]
-            sname = "-".join(parts)
-            swing = Swing.create(session = self.session,
-                name = sname,
-                dtlVid = dtlVid,
-                lmdata= lmdata,
-                faceVid = faceVid,
-                screen = screen)
-        except Exception as e:
-            self.logger.error(f"add_and_load_swing()  db excption {e} {model_to_dict(swing)}")
-            return
-        
-        if(self.config.enableTRC):
-            self.logger.debug("auto trc, fetching")
-            #self.add_task(self.current_swing.id)
-            self.ws_request_face_trc(swing.id)
-
-        if(self.config.enableScreen ):
-            self.do_screen_timer()
-        else:
-            self.logger.debug(f"enable screen was set to {self.config.enableScreen}")        
-
-        #self.current_swing.save()
-        self.add_swing_to_model(self.current_swing)
-        self.load_swing(swing.id)
-
-
 
 
     # Function to open a video file
@@ -1001,36 +809,7 @@ class SBW(QMainWindow):
         if hint == LoadHint.NEW:
             self.swingloader.load_swing(swing,LoadHint.NEW_CLIP,trcT)
         return
-
-    @Slot()
-    def load_video_clip_TODO(self, obj):
-        (clip,id) = obj
-        self.logger.debug(f"load_video: {clip} id: {id}")
-
-        if id == 2:
-            self.video_clip2 = clip
-            self.video_playback.video_clip2 = self.video_clip2
-            self.logger.debug("trying to load the frame2")
-            self.video_playback.load_frame(1)
-            #self.video_playback.update_frame(1)
-            self.logger.debug("done loading frame2")
-        if id == 1:
-           self.video_clip = clip
-           self.video_playback.video_clip = self.video_clip
-           self.logger.debug("trying to load the frame")
-           self.video_playback.load_frame(0)
-           #self.video_playback.update_frame(0)
-           if self.video_playback.qimage_frames == None or self.video_playback.qimage_frames == []:
-               self.logger.error("no quimageframes in open_file() return")
-               #return
-           self.video_playback_Ui.slider.setRange(0, len(self.video_playback.qimage_frames) )
-           self.logger.debug("done loading frame")
-            
-        
-        if(self.config.autoplay):
-            if not self.video_playback.is_playing:
-                self.video_playback.is_playing = True
-        
+       
     # Function to play the video
     @Slot()
     def play(self):
