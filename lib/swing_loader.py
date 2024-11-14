@@ -46,7 +46,7 @@ class SwingLoader():
                 self.sl_load_pipes(swing,trcT,hint)
                 self.w.main_pause_signal.emit()
                 self.reload_frames(swing,trcT,hint)
-                #self.load_plot(swing,trcT,hint)
+                self.load_plot(swing,trcT,hint)
 
             case LoadHint.NEW_CLIP:
                 self.logger.debug("Loading new clip")

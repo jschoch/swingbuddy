@@ -1277,12 +1277,15 @@ class SineWavePlot(QWidget):
     @Slot()
     #def update_data(self, new_y_data):
     def update_data(self,df, df2 = None, df3 = None):
-        self.y = df['LWrist_Speed_filtered'].to_list()
-        self.x = list(range(len(self.y)))
-        self.plot_item.setData(self.x, self.y, pen={'color': 'cyan', 'width': 4})
-        self.y2 = df['LWrist_Speed'].to_list()
-        pen = {'color': 'r', 'width': 1}
-        self.plot_item2.setData(self.x,self.y2,pen=pen)
+        if 'LWrist_Speed_filtered' in df.columns:
+            self.y = df['LWrist_Speed_filtered'].to_list()
+            self.x = list(range(len(self.y)))
+            self.plot_item.setData(self.x, self.y, pen={'color': 'cyan', 'width': 4})
+            self.y2 = df['LWrist_Speed'].to_list()
+            pen = {'color': 'r', 'width': 1}
+            self.plot_item2.setData(self.x,self.y2,pen=pen)
+        else:
+            self.logger.error("update_data df not found for swing {swing.id}")
 
         # TODO: implement as a pipe
         #if df2 is not None and not df2.empty:
