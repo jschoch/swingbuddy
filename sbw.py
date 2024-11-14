@@ -397,7 +397,7 @@ class SBW(QMainWindow):
         # graph stuff
 
         self.plot = SineWavePlot(self.logger,self)
-        #self.dock_plot_l.addWidget(self.plot)
+        self.dock_plot_l.addWidget(self.plot)
         #TODO1
         #self.ui.gridLayout.addWidget(self.plot)
 
