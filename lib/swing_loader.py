@@ -182,14 +182,14 @@ class SwingLoader():
                     return
 
                 self.w.video_playback.facedf = pd.read_csv(StringIO(swing.faceTrc))
-                self.logger.debug(f"pd for DTL head {self.w.video_playback.facedf.head()}")
+                #self.logger.debug(f"pd for DTL head {self.w.video_playback.facedf.head()}")
             elif trcT == TrcT.DTL:
                 if swing.dtlTrc == Swing.dtlTrc.default:
                     self.logger.debug("no dtl trc data found")
                     return
 
                 self.w.video_playback.dtldf = pd.read_csv(StringIO(swing.dtlTrc))
-                self.logger.debug(f"pd for DTL head {self.w.video_playback.dtldf.head()}")
+                #self.logger.debug(f"pd for DTL head {self.w.video_playback.dtldf.head()}")
             else:
                 self.logger.error(f"Unknown type {trcT}  {hint}")
 
@@ -221,7 +221,7 @@ class SwingLoader():
             pipes = load_pipes()
             for pipe in pipes:
                 pipe.preprocess_df(self.w.video_playback.facedf)
-            self.logger.debug(f"load pipes swingid: {swing.id} hint {hint}  trcT {trcT}\n{self.w.video_playback.facedf.head()}")
+            #self.logger.debug(f"load pipes swingid: {swing.id} hint {hint}  trcT {trcT}\n{self.w.video_playback.facedf.head()}")
         if(trcT == TrcT.DTL):
             if self.w.video_playback.dtldf.empty:
                 self.logger.error(f"empty DTL DF for swing {swing.id}, hint {hint}  skipping load_pipes\n{self.w.video_playback.dtldf}")
@@ -229,7 +229,7 @@ class SwingLoader():
             pipes = load_pipes()
             for pipe in pipes:
                 pipe.preprocess_df(self.w.video_playback.dtldf)
-            self.logger.debug(f"load pipes swingid: {swing.id} hint {hint}  trcT {trcT}\n{self.w.video_playback.dtldf.head()}")
+            #self.logger.debug(f"load pipes swingid: {swing.id} hint {hint}  trcT {trcT}\n{self.w.video_playback.dtldf.head()}")
 
     def load_plot(self,swing,trcT,hint):
         #TODO: this shoudl be in a subclass of Pipes

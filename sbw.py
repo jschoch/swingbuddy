@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QApplication, QWidget
 
 
 from ui_form import Ui_SBW
-from PySide6.QtCore import QObject, QThread, Signal,  Qt,QPoint, Slot,QTimer,QThreadPool,QRunnable,QStringListModel
+from PySide6.QtCore import QObject, QThread, Signal,  Qt,QPoint, Slot,QTimer,QThreadPool,QRunnable,QStringListModel,QSettings
 from PySide6.QtGui import QAction,QIcon,QMovie, QStandardItemModel, QStandardItem,QImage, QPixmap,QPainter,QTransform
 from PySide6.QtWidgets import (QMainWindow, QListView, QPushButton, QTextEdit,QSlider,QFileDialog,
     QHBoxLayout, QWidget, QVBoxLayout, QLabel,QDialog,QDialogButtonBox,
@@ -212,9 +212,16 @@ class SBW(QMainWindow):
     clip_loaded = Signal(object)
     def __init__(self, parent=None, log_window_handler=None):
         super().__init__(parent)
+        
+        self.logger =  logging.getLogger("__main__")
+        # Restore the saved window geometry from a setting
+        settings = QSettings("schoch", "swingbuddy")
+        if settings.contains("windowPosition"):
+            self.logger.debug("Restoring window geometry from settings." )
+            self.window().setGeometry(settings.value("windowPosition"))
         self.ui = Ui_SBW()
         self.ui.setupUi(self)
-        self.logger =  logging.getLogger("__main__")
+        
         self.threadpool = QThreadPool()
         if log_window_handler:
             self.log_window_handler = log_window_handler
@@ -371,6 +378,9 @@ class SBW(QMainWindow):
     def closeEvent(self, event):
         # Perform actions before closing the window
         print("Window is closing...")
+        # Save the current window geometry to a setting
+        settings = QSettings("schoch", "swingbuddy")
+        settings.setValue("windowPosition", self.window().geometry())
         db.close()
         self.shutdown_logger()
         event.accept()
@@ -1135,6 +1145,7 @@ if __name__ == "__main__":
     #logger = logging.getLogger(__name__)
     #widget = SBW()
     widget = SBW(parent=None, log_window_handler=log_window_handler)
+    #time.sleep(1)
     widget.show()
     #widget.show_connection_dialog(widget)
     cd = ConnectionDialog(widget)

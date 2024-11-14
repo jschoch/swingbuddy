@@ -7,6 +7,7 @@ logger = logging.getLogger(__name__)
 
 from PySide6.QtWidgets import QWidget, QTextEdit, QPushButton, QVBoxLayout
 from PySide6.QtGui import QTextCursor
+from PySide6.QtCore import QSettings
 
 
 class QtWindowHandler(logging.Handler):
@@ -24,6 +25,11 @@ class QtWindowHandler(logging.Handler):
         logger = logging.getLogger(__name__)
         if self in logger.handlers:
             logger.removeHandler(self)
+        
+        # Save the current window geometry to a setting
+        settings = QSettings("schoch", "swingbuddy_debug")
+        #settings.setValue("windowPosition", self.window().geometry())
+        settings.setValue("windowPosition", self.window.geometry())
 
         print("Closing handler")
         self.window.close()
@@ -36,8 +42,7 @@ class Window(QWidget):
         # set the title
         self.setWindowTitle("Debugger")
 
-        # setting  the geometry of window
-        self.setGeometry(0, 0, 1500, 500)
+        
 
         # Layout
         self.textEdit = QTextEdit()
@@ -55,6 +60,18 @@ class Window(QWidget):
         # Connect button
         self.btn_debbugger.clicked.connect(self.initialize_thread_1)
         self.btn_clean_debbugger.clicked.connect(self.CleanUi)
+
+        # setting  the geometry of window
+        settings = QSettings("schoch", "swingbuddy_debug")
+        if settings.contains("windowPosition"):
+            #self.logger.debug("Restoring window geometry from settings." )
+            #self.restoreGeometry(settings.value("windowPosition"))
+            setting = settings.value("windowPosition")
+            self.setGeometry(setting)
+            #self.restoreGeometry(setting)
+            print(f" settings: {setting}")
+        else: 
+            self.setGeometry(0, 0, 1500, 500)
 
 
 

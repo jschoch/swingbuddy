@@ -30,7 +30,7 @@ class WorkerThread(QThread):
         self.parent_size = parent_size
         self.lr = lr
         self.df = df
-        print(f"worker init: {clip} {parent_size} {lr} {df.head()}")
+        #print(f"worker init: {clip} {parent_size} {lr} {df.head()}")
         self.isRunning = False
         self.reload = reload
         self.rawFrames = []
@@ -255,7 +255,7 @@ class VideoPlayBack:
 
     def frames_done(self,obj):
         (rawFrames,frames, lr) = obj
-        self.logger.debug(f"frames done count: {len(frames)} lr: {lr}") 
+        #self.logger.debug(f"frames done count: {len(frames)} lr: {lr}") 
         if lr: 
             self.dtlRawFrames = rawFrames
             if len(frames) > 0:
