@@ -264,13 +264,13 @@ class VideoPlayBack:
                 self.update_frame(lr)
             self.video_playback_ui.slider.setRange(0,len(self.dtlRawFrames)-1)
             self.update_frame(lr)
-            self.play()
+            #self.play()
         else:
             self.faceRawFrames = rawFrames
             if len(frames) > 0:
                 self.qimage_frames = frames
             self.video_playback_ui.slider.setRange(0,len(self.faceRawFrames)-1)
-            self.play()
+            #self.play()
             self.update_frame(lr)
 
     # Function to update the frame
@@ -402,22 +402,13 @@ class VideoPlayBackUi(QWidget):
         self.vid_layout = QHBoxLayout()
 
         # Create video labels
-        max_height = 800
         self.video_label1 = QLabel()
         self.video_label1.setScaledContents(True)
-        #self.video_label1.setMaximumHeight(max_height)
         self.video_label1.setStyleSheet("border: 1px solid red;")
-        #self.video_label1.resize(400, max_height)
-        #self.video_label1.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        #self.video_label1.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)  # Ensure it expands
 
         self.video_label2 = QLabel()
         self.video_label2.setScaledContents(True)
-        #self.video_label2.setMaximumHeight(max_height)
         self.video_label2.setStyleSheet("border: 1px solid black;")
-        #self.video_label2.resize(400, max_height)
-        #self.video_label2.setAlignment(Qt.AlignmentFlag.AlignRight)
-        #self.video_label2.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)  # Ensure it expands
 
         # Add widgets to video layout
         self.vid1_text = QLabel("No Vid1 Loaded")
@@ -448,7 +439,7 @@ class VideoPlayBackUi(QWidget):
 
         #ctrl_label_layout.addLayout(video_button_layout)
         ctrl_label = QLabel()
-        ctrl_label.setMaximumHeight(50)
+        ctrl_label.setMaximumHeight(75)
         ctrl_label.setStyleSheet("background-color: #f0f0f0;")
         #ctrl_label_layout = QHBoxLayout()
         ctrl_label.setLayout(video_button_layout)

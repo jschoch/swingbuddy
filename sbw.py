@@ -253,10 +253,8 @@ class SBW(QMainWindow):
         # a list for the swings from the db
         self.dock_swing_list = QDockWidget("Swing List", self)
         self.dock_swing_list.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
-        # Add a QTextEdit to the dock widget
-        dock_swing_list_text_edit = QTextEdit("this is a test")
-        self.dock_swing_list.setWidget(dock_swing_list_text_edit)
-        # Add the dock widget to the main window
+        self.swings_lv = QListView()
+        self.dock_swing_list.setWidget(self.swings_lv)
         self.addDockWidget(Qt.RightDockWidgetArea, self.dock_swing_list)
 
         # a list for the lm data from the db
@@ -406,7 +404,7 @@ class SBW(QMainWindow):
 
         self.screenlabel = QLabel()
         #TODO1
-        #self.ui.horizontalLayout.addWidget(self.screenlabel)
+        self.ui.horizontalLayout.addWidget(self.screenlabel)
         self.tab_main_vid_l.addWidget(self.screenlabel)
         self.ui.stop_btn.clicked.connect(self.take_screen)
 
@@ -662,8 +660,8 @@ class SBW(QMainWindow):
 
         # Set the model to the list view
 
-        self.ui.swings_lv.setModel(model)
-        self.ui.swings_lv.clicked.connect(self.item_clicked)
+        self.swings_lv.setModel(model)
+        self.swings_lv.clicked.connect(self.item_clicked)
 
     def item_clicked(self, index):
 
@@ -1030,6 +1028,7 @@ class SineWavePlot(QWidget):
 
         # Create a plot widget
         self.plot_widget = pg.PlotWidget()
+        self.plot_widget.setMaximumHeight(300)
         self.plot_item = self.plot_widget.plot(self.x, self.y, pen={'color': 'r', 'width': 4})
         self.plot_item2 = self.plot_widget.plot(self.x, self.y, pen={'color': 'g', 'width': 1})
         self.hip_plot_item = self.plot_widget.plot(self.x, self.y, pen={'color': 'g', 'width': 1})
