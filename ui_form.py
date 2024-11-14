@@ -31,7 +31,7 @@ class Ui_SBW(object):
         SBW.setSizePolicy(sizePolicy)
         self.formLayoutWidget = QWidget(SBW)
         self.formLayoutWidget.setObjectName(u"formLayoutWidget")
-        self.formLayoutWidget.setGeometry(QRect(0, 0, 861, 1101))
+        self.formLayoutWidget.setGeometry(QRect(0, 0, 861, 1224))
         self.formLayout = QFormLayout(self.formLayoutWidget)
         self.formLayout.setObjectName(u"formLayout")
         self.formLayout.setContentsMargins(0, 0, 0, 0)
@@ -48,6 +48,7 @@ class Ui_SBW(object):
 
         self.tabWidget_2 = QTabWidget(self.formLayoutWidget)
         self.tabWidget_2.setObjectName(u"tabWidget_2")
+        self.tabWidget_2.setMinimumSize(QSize(0, 600))
         self.tab_3 = QWidget()
         self.tab_3.setObjectName(u"tab_3")
         sizePolicy1.setHeightForWidth(self.tab_3.sizePolicy().hasHeightForWidth())
@@ -55,7 +56,7 @@ class Ui_SBW(object):
         self.tab_3.setMinimumSize(QSize(0, 430))
         self.horizontalLayoutWidget = QWidget(self.tab_3)
         self.horizontalLayoutWidget.setObjectName(u"horizontalLayoutWidget")
-        self.horizontalLayoutWidget.setGeometry(QRect(10, 10, 811, 421))
+        self.horizontalLayoutWidget.setGeometry(QRect(10, 10, 811, 561))
         self.horizontalLayout = QHBoxLayout(self.horizontalLayoutWidget)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
@@ -90,6 +91,7 @@ class Ui_SBW(object):
 
         self.LM_data_lv = QListView(self.formLayoutWidget)
         self.LM_data_lv.setObjectName(u"LM_data_lv")
+        self.LM_data_lv.setMaximumSize(QSize(16777215, 50))
 
         self.verticalLayout.addWidget(self.LM_data_lv)
 
@@ -131,7 +133,7 @@ class Ui_SBW(object):
         self.verticalLayout_4.setContentsMargins(-1, 10, -1, 10)
         self.widget = QWidget(self.formLayoutWidget)
         self.widget.setObjectName(u"widget")
-        self.widget.setMinimumSize(QSize(0, 300))
+        self.widget.setMinimumSize(QSize(0, 200))
         self.status_label = QLabel(self.widget)
         self.status_label.setObjectName(u"status_label")
         self.status_label.setGeometry(QRect(10, 0, 1081, 21))
