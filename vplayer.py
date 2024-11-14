@@ -390,7 +390,6 @@ class VideoPlayBackUi(QWidget):
         # Create play, pause, slider, speed slider, overlay, and save frame button
         self.play_button = QPushButton("Play")
         self.play_button.setEnabled(False)
-        self.play_reverse_button = QPushButton("Play Reverse")
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setEnabled(False)
         self.slider_label = QLabel("Frame Slider:")
@@ -413,6 +412,7 @@ class VideoPlayBackUi(QWidget):
         self.video_label1.setScaledContents(True)
         self.video_label1.setMaximumHeight(max_height)
         self.video_label1.setStyleSheet("border: 1px solid red;")
+        self.video_label1.resize(400, max_height)
         #self.video_label1.setAlignment(Qt.AlignmentFlag.AlignLeft)
         #self.video_label1.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)  # Ensure it expands
 
@@ -420,6 +420,7 @@ class VideoPlayBackUi(QWidget):
         self.video_label2.setScaledContents(True)
         self.video_label2.setMaximumHeight(max_height)
         self.video_label2.setStyleSheet("border: 1px solid black;")
+        self.video_label2.resize(400, max_height)
         #self.video_label2.setAlignment(Qt.AlignmentFlag.AlignRight)
         #self.video_label2.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)  # Ensure it expands
 
@@ -441,7 +442,6 @@ class VideoPlayBackUi(QWidget):
         video_button_layout = QHBoxLayout()
         slider_layout = QHBoxLayout()
         video_button_layout.addWidget(self.play_button, 1)
-        video_button_layout.addWidget(self.play_reverse_button, 1)
         video_button_layout.addWidget(self.slider_label)
         slider_layout.addWidget(self.slider, 5)
         video_button_layout.addWidget(self.speed_slider_label)

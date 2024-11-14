@@ -364,7 +364,6 @@ class SBW(QMainWindow):
         # Connect signals to slots
         self.video_playback_Ui.play_button.clicked.connect(self.play)
         self.play_rev_action.triggered.connect(self.play_reverse)
-        self.video_playback_Ui.play_reverse_button.clicked.connect(self.play_reverse)
         self.video_playback_Ui.slider.sliderMoved.connect(self.slider_moved)
         #self.video_playback_Ui.video_label.mousePressEvent = self.overlay_mouse_press
         #self.video_playback_Ui.video_label.mouseMoveEvent = self.overlay_mouse_move
@@ -892,14 +891,6 @@ class SBW(QMainWindow):
     def play(self):
         self.main_play_signal.emit()
 
-
-    # Function to play the video in reverse
-    @Slot()
-    def play_reverse(self):
-        if self.video_clip is None:
-            QMessageBox.warning(self, "File not found", "Load the video file first")
-            return
-        self.video_playback.reverse_play()
 
     # Function to handle slider movement
     def slider_moved(self, position):
