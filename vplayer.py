@@ -13,6 +13,7 @@ import concurrent.futures
 from util import load_pipes
 import pandas as pd
 import traceback
+import math
 
 class WorkerError(Exception):
     pass
@@ -262,6 +263,7 @@ class VideoPlayBack:
                 self.qimage_frames2 = frames
                 self.update_frame(lr)
             self.video_playback_ui.slider.setRange(0,len(self.dtlRawFrames)-1)
+            self.update_frame(lr)
             self.play()
         else:
             self.faceRawFrames = rawFrames
@@ -273,18 +275,15 @@ class VideoPlayBack:
 
     # Function to update the frame
     def update_frame(self,lr):
+
         qimage_frames = None
 
-        
-        #  dont start stop the timer, just don't update if it is not playing
-
-        
         if(lr):
             qimage_frames = self.qimage_frames2
         else:
             qimage_frames = self.qimage_frames
 
-        if qimage_frames == None or qimage_frames == []:
+        if qimage_frames is None or len(qimage_frames) == 0:
             return
 
 
@@ -292,21 +291,17 @@ class VideoPlayBack:
             self.current_frame_index = 0
         if self.current_frame_index < len(qimage_frames):
             qimage_frame = qimage_frames[self.current_frame_index]
-            pixmap = QPixmap.fromImage(qimage_frame)
-            #h = self.video_playback_ui.video_label1.parent_size.height()
-            #pixmap = pixmap.scaled(320, 240)
-            pixmap = pixmap.scaled(self.video_playback_ui.video_label1.width(), self.video_playback_ui.video_label1.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            
+            _pixmap = QPixmap.fromImage(qimage_frame)
+            desired_height = self.video_playback_ui.video_label1.parent().height() - 200
+            new_width = math.floor(_pixmap.width() * desired_height / _pixmap.height())
+            pixmap = _pixmap.scaled(new_width, desired_height, Qt.KeepAspectRatio)
 
             if(lr):
+                self.video_playback_ui.video_label2.clear()
                 self.video_playback_ui.video_label2.setPixmap(pixmap)
-                #self.video_playback_ui.video_label2.setScaledContents(True)
-                #self.video_playback_ui.video_label2.setAlignment(Qt.AlignLeft)
             else:
+                self.video_playback_ui.video_label1.clear()
                 self.video_playback_ui.video_label1.setPixmap(pixmap)
-                #self.video_playback_ui.video_label1.setScaledContents(True)
-
-                #self.video_playback_ui.video_label1.setAlignment(Qt.AlignLeft)
             self.video_playback_ui.slider.setValue(self.current_frame_index)
         else:
             self.current_frame_index = 0
@@ -410,17 +405,17 @@ class VideoPlayBackUi(QWidget):
         max_height = 800
         self.video_label1 = QLabel()
         self.video_label1.setScaledContents(True)
-        self.video_label1.setMaximumHeight(max_height)
+        #self.video_label1.setMaximumHeight(max_height)
         self.video_label1.setStyleSheet("border: 1px solid red;")
-        self.video_label1.resize(400, max_height)
+        #self.video_label1.resize(400, max_height)
         #self.video_label1.setAlignment(Qt.AlignmentFlag.AlignLeft)
         #self.video_label1.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)  # Ensure it expands
 
         self.video_label2 = QLabel()
         self.video_label2.setScaledContents(True)
-        self.video_label2.setMaximumHeight(max_height)
+        #self.video_label2.setMaximumHeight(max_height)
         self.video_label2.setStyleSheet("border: 1px solid black;")
-        self.video_label2.resize(400, max_height)
+        #self.video_label2.resize(400, max_height)
         #self.video_label2.setAlignment(Qt.AlignmentFlag.AlignRight)
         #self.video_label2.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)  # Ensure it expands
 
@@ -439,6 +434,8 @@ class VideoPlayBackUi(QWidget):
         self.vid_layout.addWidget(self.screen_label2)
 
         # Create layout and add widgets
+        
+
         video_button_layout = QHBoxLayout()
         slider_layout = QHBoxLayout()
         video_button_layout.addWidget(self.play_button, 1)
@@ -449,14 +446,23 @@ class VideoPlayBackUi(QWidget):
 
         video_button_layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
 
+        #ctrl_label_layout.addLayout(video_button_layout)
+        ctrl_label = QLabel()
+        ctrl_label.setMaximumHeight(50)
+        ctrl_label.setStyleSheet("background-color: #f0f0f0;")
+        #ctrl_label_layout = QHBoxLayout()
+        ctrl_label.setLayout(video_button_layout)
         # Create main layout and add layouts
         self.main_layout = QVBoxLayout()
 
         self.setLayout(self.main_layout)
 
         self.main_layout.addLayout(self.vid_layout)
-        self.main_layout.addLayout(video_button_layout)
+        #self.main_layout.addLayout(ctrl_label_layout)
+        self.main_layout.addWidget(ctrl_label)
         self.main_layout.addLayout(slider_layout)
+        
+
 
 
         # Set size policy on main widget
