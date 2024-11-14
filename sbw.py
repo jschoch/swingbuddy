@@ -350,10 +350,6 @@ class SBW(QMainWindow):
         self.shared_object.message_signal.serverDisconnect.connect(self.server_disconnect)
         self.shared_object.message_signal.got_trc_for_swing.connect(self.do_got_trc_for_swing)
         
-        # Add action to the Tool menu
-        self.play_rev_action = QAction("&Play Reverse", self)
-        self.play_rev_action.setShortcut("Ctrl+R")
-        self.tool_menu.addAction(self.play_rev_action)
 
         # Add action to the Help menu
         self.shortcut_help_action = QAction("&Shortcut Help", self)
@@ -363,7 +359,6 @@ class SBW(QMainWindow):
 
         # Connect signals to slots
         self.video_playback_Ui.play_button.clicked.connect(self.play)
-        self.play_rev_action.triggered.connect(self.play_reverse)
         self.video_playback_Ui.slider.sliderMoved.connect(self.slider_moved)
         #self.video_playback_Ui.video_label.mousePressEvent = self.overlay_mouse_press
         #self.video_playback_Ui.video_label.mouseMoveEvent = self.overlay_mouse_move
@@ -928,7 +923,7 @@ class SBW(QMainWindow):
         text_edit.setPlainText("Shortcuts:\n"
                                "Open: Ctrl + O\n"
                                "Quit: Ctrl + Q\n"
-                               "Play Reverse: Ctrl + R")
+                               )
         layout.addWidget(text_edit)
         dialog.setLayout(layout)
         dialog.exec_()
