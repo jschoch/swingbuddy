@@ -24,7 +24,7 @@ class WorkerThread(QThread):
         super().__init__()
         self.clip = clip
         if clip is None and (parent_size == 0 and lr == 0 and df.empty):
-            print("no logger :(  worker init)")
+            print("video player worker thread :(  worker init)")
         elif clip is None:
             raise WorkerError(f"Need the clip yo {lr}")
         self.parent_size = parent_size
@@ -75,7 +75,7 @@ class WorkerThread(QThread):
             self.isRunning = True
             frames = self.rawFrames
             results = {}
-            print(f"do_work {self.lr} {self.df.empty} frames:  {len(frames)}")
+            #print(f"do_work {self.lr} {self.df.empty} frames:  {len(frames)}")
             with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
                 future_to_frame = {
                     executor.submit(self.process_frame, i,frame): (i, frame) for i,frame in enumerate(frames)
@@ -84,7 +84,7 @@ class WorkerThread(QThread):
                     (frame,frame_index) = future_to_frame[future]
                     try:
                         (data,idx) = future.result()
-                        print(f" {idx} ",end="")
+                        #print(f" {idx} ",end="")
                         results[idx] = data
                     except Exception as e:
                         print(f'Generated an exception: {e}')
@@ -119,7 +119,7 @@ class WorkerThread(QThread):
             #vid_stream
             frames = self.clip.decode(vid_stream) 
             #print(f"{self.lr} {self.df.empty} frames: {len(frames)}")
-            print(f"get_raw_frames {self.lr} {self.df.empty} frames: ")
+            #print(f"get_raw_frames {self.lr} {self.df.empty} frames: ")
             with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
                 future_to_frame = {
                     executor.submit(self.process_raw_frame, i,frame): (i, frame) for i,frame in enumerate(frames)
@@ -128,7 +128,7 @@ class WorkerThread(QThread):
                     (frame,frame_index) = future_to_frame[future]
                     try:
                         (data,idx) = future.result()
-                        print(f" {idx} ",end="")
+                        #print(f" {idx} ",end="")
                         results[idx] = data
                     except Exception as e:
                         print(f'Generated an exception: {e}')
@@ -153,10 +153,10 @@ class WorkerThread(QThread):
         """Override run method
         """
         if(self.reload):
-            print("starting worker do_work()")
+            #print("starting worker do_work()")
             self.do_work()
         else:
-            print("starting worker get_raw_frames()")
+            #print("starting worker get_raw_frames()")
             self.get_raw_frames()
             self.do_work()
 
