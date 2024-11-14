@@ -262,11 +262,13 @@ class VideoPlayBack:
                 self.qimage_frames2 = frames
                 self.update_frame(lr)
             self.video_playback_ui.slider.setRange(0,len(self.dtlRawFrames)-1)
+            self.play()
         else:
             self.faceRawFrames = rawFrames
             if len(frames) > 0:
                 self.qimage_frames = frames
             self.video_playback_ui.slider.setRange(0,len(self.faceRawFrames)-1)
+            self.play()
             self.update_frame(lr)
 
     # Function to update the frame
