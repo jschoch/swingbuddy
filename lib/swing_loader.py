@@ -45,7 +45,7 @@ class SwingLoader():
                 #self.unload_pipes(swing,trcT,hint)
                 self.sl_load_pipes(swing,trcT,hint)
                 self.w.main_pause_signal.emit()
-                self.load_frames(swing,trcT,hint)
+                self.reload_frames(swing,trcT,hint)
                 #self.load_plot(swing,trcT,hint)
 
             case LoadHint.NEW_CLIP:
@@ -131,6 +131,17 @@ class SwingLoader():
         elif(trcT == TrcT.DTL):
             self.logger.debug(f"queued frame loading for DTL swingid {swing.id}")
             self.w.video_playback.load_frame(1)
+        else:
+            self.logger.debug(f"can't load frames for {trcT} swingid {swing.id}")
+
+    def reload_frames(self,swing,trcT,hint):
+        self.logger.debug(f"swingloader load_frames swing {swing.id} hint{hint} trcT{trcT}")
+        if(trcT == TrcT.FACE):
+            self.w.video_playback.load_frame(0,True)
+            self.logger.debug(f"queued frame loading for FACE swingid {swing.id}")
+        elif(trcT == TrcT.DTL):
+            self.logger.debug(f"queued frame loading for DTL swingid {swing.id}")
+            self.w.video_playback.load_frame(1,True)
         else:
             self.logger.debug(f"can't load frames for {trcT} swingid {swing.id}")
 

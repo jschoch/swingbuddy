@@ -33,7 +33,7 @@ class WorkerThread(QThread):
         print(f"worker init: {clip} {parent_size} {lr} {df.head()}")
         self.isRunning = False
         self.reload = reload
-        self.frames = []
+        self.rawFrames = []
 
     def draw_hip_start(self,painter,height):
         """
@@ -47,8 +47,9 @@ class WorkerThread(QThread):
 
     def process_frame(self,index,frame):
         
-        img = frame.to_image()
-        q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
+        #img = frame.to_image()
+        #q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
+        q_image = frame
         my_transform = QTransform()
         my_transform.rotate(-90)
         q_image = q_image.transformed(my_transform)
@@ -73,8 +74,8 @@ class WorkerThread(QThread):
         try:
             self.isRunning = True
             frames = self.rawFrames
-            results = []
-            print(f"{self.lr} {self.df.empty} frames:  {len(frames)}")
+            results = {}
+            print(f"do_work {self.lr} {self.df.empty} frames:  {len(frames)}")
             with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
                 future_to_frame = {
                     executor.submit(self.process_frame, i,frame): (i, frame) for i,frame in enumerate(frames)
@@ -90,7 +91,7 @@ class WorkerThread(QThread):
                         tb = traceback.format_exc()
                         print(tb)
             qimage_frames = [results[key] for key in sorted(results.keys())]
-            obj = (qimage_frames,self.lr)
+            obj = (self.rawFrames,qimage_frames,self.lr)
             self.result.emit(obj)
             self.isRunning = False 
         except Exception as e:
@@ -118,10 +119,10 @@ class WorkerThread(QThread):
             #vid_stream
             frames = self.clip.decode(vid_stream) 
             #print(f"{self.lr} {self.df.empty} frames: {len(frames)}")
-            print(f"{self.lr} {self.df.empty} frames: ")
+            print(f"get_raw_frames {self.lr} {self.df.empty} frames: ")
             with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
                 future_to_frame = {
-                    executor.submit(self.process_frame, i,frame): (i, frame) for i,frame in enumerate(frames)
+                    executor.submit(self.process_raw_frame, i,frame): (i, frame) for i,frame in enumerate(frames)
                 }
                 for future in concurrent.futures.as_completed(future_to_frame):
                     (frame,frame_index) = future_to_frame[future]
@@ -133,8 +134,9 @@ class WorkerThread(QThread):
                         print(f'Generated an exception: {e}')
                         tb = traceback.format_exc()
                         print(tb)
-            qimage_frames = [results[key] for key in sorted(results.keys())]
-            obj = (qimage_frames,self.lr)
+            rawFrames = [results[key] for key in sorted(results.keys())]
+            obj = (rawFrames,[],self.lr)
+            self.rawFrames = rawFrames
             self.result.emit(obj)
             vid_stream.close()
             self.isRunning = False 
@@ -142,18 +144,21 @@ class WorkerThread(QThread):
             print(f'Generated an exception: {e}')
             self.isRunning = False
 
-    def process_raw_frames(self,i,frame):
+    def process_raw_frame(self,i,frame):
         img = frame.to_image()
-        return (img,i)
+        q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
+        return (q_image,i)
 
     def run(self):
         """Override run method
         """
-        print("starting worker do_work()")
         if(self.reload):
+            print("starting worker do_work()")
             self.do_work()
         else:
+            print("starting worker get_raw_frames()")
             self.get_raw_frames()
+            self.do_work()
 
 
 # Video playback class responsible for managing the actual playback of the video.
@@ -166,6 +171,8 @@ class VideoPlayBack:
         self.video_clip2 = None
         self.qimage_frames = []
         self.qimage_frames2 = []
+        self.faceRawFrames = []
+        self.dtlRawFrames = []
         self.current_frame_index = 0
         self.is_playing = False
         self.dtldf = pd.DataFrame()
@@ -185,7 +192,7 @@ class VideoPlayBack:
         if self.video_clip2 is not None:
             self.video_clip2.close()
     # Function to load frames from the video clip
-    def load_frame(self,lr):
+    def load_frame(self,lr,reload=False):
         self.logger.debug(f"load_frame() starting to load {lr}")
         parent_size = self.video_playback_ui.parent().size()
 
@@ -207,6 +214,9 @@ class VideoPlayBack:
                 self.logger.error("vp load_frames dtldf is empty")
             self.t1 = WorkerThread(video_clip, parent_size, lr,self.dtldf)
             self.t1.result.connect(self.frames_done)
+            if reload:
+                self.t1.rawFrames = self.dtlRawFrames
+                self.t1.reload = True
             self.t1.finished.connect(self.t1.deleteLater)
             self.t1.start()
 
@@ -228,6 +238,9 @@ class VideoPlayBack:
                 
             self.t0 = WorkerThread(video_clip, parent_size, lr,self.facedf)
             self.t0.result.connect(self.frames_done)
+            if reload:
+                self.t0.rawFrames = self.faceRawFrames
+                self.t0.reload = True
             self.t0.finished.connect(self.t0.deleteLater)
             self.t0.start()
 
@@ -241,15 +254,19 @@ class VideoPlayBack:
         return
 
     def frames_done(self,obj):
-        (frames, lr) = obj
+        (rawFrames,frames, lr) = obj
         self.logger.debug(f"frames done count: {len(frames)} lr: {lr}") 
         if lr: 
-            self.qimage_frames2 = frames
-            self.update_frame(lr)
-            self.video_playback_ui.slider.setRange(0,len(self.qimage_frames2)-1)
+            self.dtlRawFrames = rawFrames
+            if len(frames) > 0:
+                self.qimage_frames2 = frames
+                self.update_frame(lr)
+            self.video_playback_ui.slider.setRange(0,len(self.dtlRawFrames)-1)
         else:
-            self.qimage_frames = frames
-            self.video_playback_ui.slider.setRange(0,len(self.qimage_frames)-1)
+            self.faceRawFrames = rawFrames
+            if len(frames) > 0:
+                self.qimage_frames = frames
+            self.video_playback_ui.slider.setRange(0,len(self.faceRawFrames)-1)
             self.update_frame(lr)
 
     # Function to update the frame
