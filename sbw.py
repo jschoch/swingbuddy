@@ -254,6 +254,7 @@ class SBW(QMainWindow):
         self.dock_swing_list = QDockWidget("Swing List", self)
         self.dock_swing_list.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
         self.swings_lv = QListView()
+        self.swings_lv.setMinimumWidth(250)
         self.dock_swing_list.setWidget(self.swings_lv)
         self.addDockWidget(Qt.RightDockWidgetArea, self.dock_swing_list)
 
@@ -268,12 +269,10 @@ class SBW(QMainWindow):
         # the dock for plots
         self.dock_plot= QDockWidget("Plots", self)
         self.dock_plot.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
-        dock_plot_testlabel = QLabel("Plots goes here")
         dock_plot_widget = QWidget()
         self.dock_plot_l = QHBoxLayout()
         self.dock_plot.setWidget(dock_plot_widget)
         dock_plot_widget.setLayout(self.dock_plot_l)
-        self.dock_plot_l.addWidget(dock_plot_testlabel)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.dock_plot)
         
         self.threadpool = QThreadPool()
@@ -366,7 +365,18 @@ class SBW(QMainWindow):
         self.session = Session(name="Default Session")
         self.session.save()
 
-        self.ui.del_swing_btn.clicked.connect(self.del_swing)
+        self.ctrl_btn_l = QHBoxLayout()
+        self.del_swing_btn = QPushButton("Delete Swing")
+        self.add_swing_btn = QPushButton("Add Swing")
+        self.add_swing_btn.clicked.connect(self.add_swing_clicked)
+        #self.
+        self.ctrl_btn_l.addWidget(self.del_swing_btn)
+        self.ctrl_btn_l.addWidget(self.add_swing_btn)
+        self.grid_layout.addLayout(self.ctrl_btn_l, 2, 0, 1, 2)
+        self.del_swing_btn.clicked.connect(self.del_swing)
+        
+
+        #TODO: consider adding tehse somewhere
         self.ui.do_ocr_btn.setEnabled(False)
         self.ui.do_ocr_btn.clicked.connect(self.test_ws)
         self.ui.sw_btn.clicked.connect(self.do_screen_timer)
@@ -388,7 +398,7 @@ class SBW(QMainWindow):
 
         self.ui.run_a_btn.clicked.connect(self.ws_request_face_trc)
         self.ui.run_a_btn.setEnabled(False)
-        self.ui.add_btn.clicked.connect(self.add_swing_clicked)
+        
 
         self.logger.debug("end of widget init")
 
@@ -463,7 +473,7 @@ class SBW(QMainWindow):
             self.swingloader.load_swing(swing,LoadHint.NEW_TRC,TrcT.FACE)
             self.logger.debug("getting dtl TRC")
             request_data = {
-                'file_path' : self.current_swing.dtlVid,
+                'file_path' : swing.dtlVid,
                 'vtype': 'dtl',
                 'swingid' : swing.id
             }
@@ -594,7 +604,6 @@ class SBW(QMainWindow):
         if not self.timer.isActive():
             #self.timer.disconnect(self.)
             self.timer.timeout.disconnect(self.dst_done)
-            #self.timer.timeout.connect(lambda: self.dst_done( self.current_swing.id))
             self.timer.timeout.connect(self.dst_done)
             self.timer.start(self.config.screen_timeout * 1000)
         else:
@@ -629,10 +638,11 @@ class SBW(QMainWindow):
         # ...
 
     def del_swing(self):
-        self.logger.debug(f" current swing: {model_to_dict(self.current_swing)}")
+        self.logger.debug(f"DELETE current swing: {self.current_swing.id}")
         #TODO delete from the list
         # do you need to unloadswing?
         self.current_swing.delete_instance()
+        self.current_swing = None
         self.load_last_swing()
         self.find_swings()
 
@@ -696,7 +706,7 @@ class SBW(QMainWindow):
         
 
         if not hasattr(self, 'of1w') or not self.of1w.isRunning():
-            self.of1w = Worker(self.open_file,self.current_swing.faceVid)
+            self.of1w = Worker(self.open_file,swing.faceVid)
             self.of1w.signals.result.connect(self.of1wdone)
             self.threadpool.start(self.of1w)
             self.logger.debug("starting of1w")
@@ -705,7 +715,7 @@ class SBW(QMainWindow):
             self.logger.debug("already loading file 1")
 
         if not hasattr(self, 'of2w') or not self.of2w.isRunning():
-            self.of2w = Worker(self.open_file2,self.current_swing.dtlVid)
+            self.of2w = Worker(self.open_file2,self.swing.dtlVid)
             self.of2w.signals.result.connect(self.of1wdone)
             self.logger.debug("starting of2w")
             #QThreadPool.globalInstance().start(self.of2w)
@@ -1031,7 +1041,7 @@ class SineWavePlot(QWidget):
         self.plot_widget.setMaximumHeight(300)
         self.plot_item = self.plot_widget.plot(self.x, self.y, pen={'color': 'r', 'width': 4})
         self.plot_item2 = self.plot_widget.plot(self.x, self.y, pen={'color': 'g', 'width': 1})
-        self.hip_plot_item = self.plot_widget.plot(self.x, self.y, pen={'color': 'g', 'width': 1})
+        #self.hip_plot_item = self.plot_widget.plot(self.x, self.y, pen={'color': 'g', 'width': 1})
         # Create a vertical line item
         self.vline = pg.InfiniteLine(angle=90, movable=False)
         self.plot_widget.addItem(self.vline)
@@ -1054,7 +1064,7 @@ class SineWavePlot(QWidget):
         layout.addWidget(self.y_value_label)
 
         self.setLayout(layout)
-        self.plot_item.scene().sigMouseMoved.connect(self.mouse_moved)
+        #self.plot_item.scene().sigMouseMoved.connect(self.mouse_moved)
 
     def update_vline(self, value):
         # Update the position of the vertical line based on the slider value
@@ -1077,7 +1087,13 @@ class SineWavePlot(QWidget):
     @Slot()
     def reset_data(self):
         self.y = self.oy
-        self.x = list(range(len(self.oy)))
+        slen = len(self.oy)
+        self.x = list(range(slen))
+        self.slider.setRange(0, slen)
+
+        #self.plot_item.setXRange(0, slen, padding=0)
+        #self.plot_item2.setXRange(0, slen, padding=0)
+
         self.plot_item.setData(self.x, self.y, pen={'color': 'r', 'width': 2})
         self.plot_item2.setData(self.x, self.y, pen={'color': 'r', 'width': 2})
     @Slot()
@@ -1085,11 +1101,22 @@ class SineWavePlot(QWidget):
     def update_data(self,df, df2 = None, df3 = None):
         if 'LWrist_Speed_filtered' in df.columns:
             self.y = df['LWrist_Speed_filtered'].to_list()
-            self.x = list(range(len(self.y)))
-            self.plot_item.setData(self.x, self.y, pen={'color': 'cyan', 'width': 4})
+            slen = len(self.y)
+            self.x = list(range(slen))
+            
             self.y2 = df['LWrist_Speed'].to_list()
             pen = {'color': 'r', 'width': 1}
+            self.slider.setRange(0, slen)
+            
+            
+
+            self.plot_item.setData(self.x, self.y, pen={'color': 'cyan', 'width': 4})
             self.plot_item2.setData(self.x,self.y2,pen=pen)
+
+            #self.plot_item.setXRange(0, slen, padding=0)
+            #self.plot_item2.setXRange(0, slen, padding=0)
+            self.plot_item.getViewBox().setXRange(0, slen)
+            self.plot_item2.getViewBox().setXRange(0,slen)
         else:
             self.logger.error("update_data df not found for swing {swing.id}")
 

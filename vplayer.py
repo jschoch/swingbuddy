@@ -248,11 +248,6 @@ class VideoPlayBack:
 
         self.logger.debug("VideoPlayBack load_frames() done queueing framse")
 
-        if(lr):
-            self.video_playback_ui.vid2_text.setText(f"{self.video_clip2}")
-        else:
-            self.video_playback_ui.vid1_text.setText(f"{self.video_clip}")
-        return
 
     def frames_done(self,obj):
         (rawFrames,frames, lr) = obj
