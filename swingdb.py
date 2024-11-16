@@ -66,7 +66,7 @@ class Config(BaseModel):
     autoplay = BooleanField(default=True)
     screen_timeout = IntegerField(default=12)
     screen_coords = CharField(default = "0,0,600,600") # will be split into (a,b,c,d)
-    kinoveaDir = CharField(default=r"C:/files/kinovea_swings")
+    #kinoveaDir = CharField(default=r"C:/files/kinovea_swings")
     #migrate(
         #migrator.add_column('config','kinoveaDir',kinoveaDir)
     #)

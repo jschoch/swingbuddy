@@ -213,7 +213,7 @@ class VideoPlayBack:
             
             if self.dtldf.empty:
                 self.logger.error("vp load_frames dtldf is empty")
-            self.t1 = WorkerThread(video_clip, parent_size, lr,self.dtldf)
+            self.t1 = WorkerThread(video_clip, parent_size, lr,self.dtldf.copy())
             self.t1.result.connect(self.frames_done)
             if reload:
                 self.t1.rawFrames = self.dtlRawFrames
@@ -237,7 +237,7 @@ class VideoPlayBack:
             if self.facedf.empty:
                 self.logger.error("vp load_frames facedf is empty")
                 
-            self.t0 = WorkerThread(video_clip, parent_size, lr,self.facedf)
+            self.t0 = WorkerThread(video_clip, parent_size, lr,self.facedf.copy())
             self.t0.result.connect(self.frames_done)
             if reload:
                 self.t0.rawFrames = self.faceRawFrames
@@ -259,13 +259,13 @@ class VideoPlayBack:
                 self.update_frame(lr)
             self.video_playback_ui.slider.setRange(0,len(self.dtlRawFrames)-1)
             self.update_frame(lr)
-            #self.play()
+            self.play()
         else:
             self.faceRawFrames = rawFrames
             if len(frames) > 0:
                 self.qimage_frames = frames
             self.video_playback_ui.slider.setRange(0,len(self.faceRawFrames)-1)
-            #self.play()
+            self.play()
             self.update_frame(lr)
 
     # Function to update the frame
