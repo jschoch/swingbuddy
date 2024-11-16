@@ -27,6 +27,7 @@ class SwingLoader():
                 self.logger.debug("Loading brand new swing")
                 self.unload_swing(swing)
                 self.check_swing(swing)
+                self.move_new_swing(swing)
                 self.start_screen_timer(swing)
                 self.add_swing_to_view_model(swing,hint)
                 self.w.ws_request_face_trc(swing)
@@ -60,6 +61,9 @@ class SwingLoader():
                 self.load_plot(swing,trcT,hint)
             case _:
                 self.logger.debug("ERROR unknown hint")
+        None
+
+    def move_new_swing(self,swing):
         None
 
     def start_screen_timer(self,swing):
