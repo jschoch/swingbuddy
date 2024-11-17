@@ -14,6 +14,7 @@ from util import load_pipes
 import pandas as pd
 import traceback
 import math
+import time
 
 class WorkerError(Exception):
     pass
@@ -35,6 +36,7 @@ class WorkerThread(QThread):
         self.isRunning = False
         self.reload = reload
         self.rawFrames = []
+        self.startT = time.time()
 
     def draw_hip_start(self,painter,height):
         """
@@ -113,14 +115,11 @@ class WorkerThread(QThread):
     def get_raw_frames(self):
         try:
             self.isRunning = True
-            qimage_frames = []
             results = {}
             vid_stream = self.clip.streams.video[0] 
             vid_stream.thread_type = 'AUTO' 
             #vid_stream
             frames = self.clip.decode(vid_stream) 
-            #print(f"{self.lr} {self.df.empty} frames: {len(frames)}")
-            #print(f"get_raw_frames {self.lr} {self.df.empty} frames: ")
             with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
                 future_to_frame = {
                     executor.submit(self.process_raw_frame, i,frame): (i, frame) for i,frame in enumerate(frames)
@@ -128,15 +127,18 @@ class WorkerThread(QThread):
                 for future in concurrent.futures.as_completed(future_to_frame):
                     (frame,frame_index) = future_to_frame[future]
                     try:
-                        (data,idx) = future.result()
+                        (raw_frame,idx,processed_frame) = future.result()
                         #print(f" {idx} ",end="")
-                        results[idx] = data
+                        results[idx] = (raw_frame,processed_frame)
                     except Exception as e:
                         print(f'Generated an exception: {e}')
                         tb = traceback.format_exc()
                         print(tb)
-            rawFrames = [results[key] for key in sorted(results.keys())]
-            obj = (rawFrames,[],self.lr)
+            #rawFrames = [results[key] for key in sorted(results.keys())]
+            sorted_data = dict(sorted(results.items()))
+            rawFrames = [value[0] for value in sorted_data.values()]
+            processedFrames = [value[1] for value in sorted_data.values()]
+            obj = (rawFrames,processedFrames,self.lr)
             self.rawFrames = rawFrames
             self.result.emit(obj)
             vid_stream.close()
@@ -147,8 +149,9 @@ class WorkerThread(QThread):
 
     def process_raw_frame(self,i,frame):
         img = frame.to_image()
-        q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
-        return (q_image,i)
+        raw_q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
+        (q_image, fooIdx) = self.process_frame(i,raw_q_image)
+        return (raw_q_image,i,q_image)
 
     def run(self):
         """Override run method
@@ -159,7 +162,7 @@ class WorkerThread(QThread):
         else:
             #print("starting worker get_raw_frames()")
             self.get_raw_frames()
-            self.do_work()
+            #self.do_work()
 
 
 # Video playback class responsible for managing the actual playback of the video.
@@ -252,6 +255,7 @@ class VideoPlayBack:
     def frames_done(self,obj):
         (rawFrames,frames, lr) = obj
         #self.logger.debug(f"frames done count: {len(frames)} lr: {lr}") 
+        #self.logger.debug(f"rf: \n{rawFrames}\nfr:{frames}")
         if lr: 
             self.dtlRawFrames = rawFrames
             if len(frames) > 0:
@@ -259,6 +263,7 @@ class VideoPlayBack:
                 self.update_frame(lr)
             self.video_playback_ui.slider.setRange(0,len(self.dtlRawFrames)-1)
             self.update_frame(lr)
+            self.logger.debug(f"done loading frames time was: {self.t1.startT - time.time()}")
             self.play()
         else:
             self.faceRawFrames = rawFrames

@@ -831,7 +831,10 @@ class SBW(QMainWindow):
         #self.logger.debug(f" file path: {file_path}")
         self.logger.debug(f"Starting AV load 1 of {file_path}")
         
+        start = time.time()
         clip = av.open(file_path,mode='r',options=self.av_options)
+        end = time.time()
+        self.logger.debug(f"AV load 1 took {end-start} seconds")
         obj = (clip,1)
         self.clip_loaded.emit(obj)
         #self.of1w.signals.result.emit("done of1")
@@ -847,7 +850,10 @@ class SBW(QMainWindow):
 
         #self.logger.debug(f"file path2: {file_path}")
         self.logger.debug(f"Starting AV load 2 of {file_path}")
+        start = time.time()
         clip = av.open(file_path,mode='r',options=self.av_options)
+        end = time.time()
+        self.logger.debug(f"AV load 2 took {end-start} seconds")
         obj = (clip,2)
         self.clip_loaded.emit(obj)
         #self.of1w.signals.result.emit("done of2")
@@ -855,7 +861,10 @@ class SBW(QMainWindow):
     def do_open_file(self,swing,fpath,trcT,hint):
         if not os.path.exists(fpath):
             return "can't find FACE video file"
+        start = time.time()
         clip = av.open(fpath,mode='r',options=self.av_options)
+        end = time.time()
+        self.logger.debug(f"AV load took {end-start} seconds")
         obj = (clip,swing,trcT,hint)
         self.clip_loaded.emit(obj)
     
