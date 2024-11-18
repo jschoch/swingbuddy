@@ -59,6 +59,7 @@ class TestVideoPlayBack(unittest.TestCase):
         self.dtldf = self.setupDF(self.swing.dtlTrc)
         self.app = QApplication(sys.argv)
         self.ui = QMainWindow()
+        self.ui.setGeometry(100, 100, 800, 600)
         self.face_video_clip = av.open(self.swing.faceVid)
         self.dtl_video_clip = av.open(self.swing.dtlVid)
         
@@ -76,7 +77,9 @@ class TestVideoPlayBack(unittest.TestCase):
         central_widget = QWidget()
         h = QHBoxLayout()
         lbl = QLabel('Video Playback',self.ui)
+        lbl.setMinimumHeight(400)
         h.addWidget(lbl)
+
         central_widget.setLayout(h)
         self.ui.setCentralWidget(self.video_playback_Ui)
         self.video_playback.logger = self.logger

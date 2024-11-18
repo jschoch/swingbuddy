@@ -196,58 +196,39 @@ class VideoPlayBack:
         if self.dtl_video_clip is not None:
             self.dtl_video_clip.close()
     # Function to load frames from the video clip
+    def do_load_frame(self,lr,reload,clip, worker):
+        
+        if clip is None:
+            self.logger.error(f"clip {lr} was NONE!!!!!!!!!!!")
+            return
+        #self.qimage_frames2 = []
+        self.logger.debug(f"{lr} the clip: {clip}  ")
+        #self.logger.debug(f"the clip was closed? {video_clip.closed}")
+        #self.video_playback_ui.vid2_text.setText(f"Begin Loading!\n{self.video_clip2.format.name}")
+        if worker.isRunning:
+            self.logger.error("worker is already running")
+            return
+        
+        
+        worker.result.connect(self.frames_done)
+        if reload:
+            if lr:
+                worker.rawFrames = self.dtlRawFrames
+            else:
+                worker.rawFrames = self.faceRawFrames
+            worker.reload = True
+        worker.finished.connect(self.t1.deleteLater)
+        worker.start()
+
     def load_frame(self,lr,reload=False):
         self.logger.debug(f"load_frame() starting to load {lr}")
-        parent_size = self.video_playback_ui.parent().size()
-
+        parent_size = self.video_playback_ui.parent().size() 
         if(lr):
-            #TODO refactor each into it's own function
-            # if this clip is deleted or closed while the worker threads are running we have problems
-            if self.dtl_video_clip is None:
-                self.logger.error("DTL clip was NONE!!!!!!!!!!!")
-                return
-            self.qimage_frames2 = []
-            video_clip = self.dtl_video_clip
-            self.logger.debug(f"the clip: {video_clip}  ")
-            #self.logger.debug(f"the clip was closed? {video_clip.closed}")
-            #self.video_playback_ui.vid2_text.setText(f"Begin Loading!\n{self.video_clip2.format.name}")
-            if self.t1.isRunning:
-                self.logger.error("t1 is already running")
-                return
-            
-            if self.dtldf.empty:
-                self.logger.error("vp load_frames dtldf is empty")
-            self.t1 = WorkerThread(video_clip, parent_size, lr,self.dtldf.copy())
-            self.t1.result.connect(self.frames_done)
-            if reload:
-                self.t1.rawFrames = self.dtlRawFrames
-                self.t1.reload = True
-            self.t1.finished.connect(self.t1.deleteLater)
-            self.t1.start()
-
-
+            self.t1 = WorkerThread(self.dtl_video_clip, parent_size, lr,self.dtldf.copy())
+            self.do_load_frame(lr,reload,self.dtl_video_clip, self.t1)
         else:
-            self.qimage_frames = []
-            video_clip = self.face_video_clip
-            #self.video_playback_ui.vid1_text.setText(f"Begin Loading!\n{self.video_clip.format.name}")
-            if self.t0.isRunning:
-                self.logger.error("t0 is already running")
-                return
-
-            if video_clip is None:
-                self.logger.error("video_clip is None lr: {lr}")
-                return
-            
-            if self.facedf.empty:
-                self.logger.error("vp load_frames facedf is empty")
-                
-            self.t0 = WorkerThread(video_clip, parent_size, lr,self.facedf.copy())
-            self.t0.result.connect(self.frames_done)
-            if reload:
-                self.t0.rawFrames = self.faceRawFrames
-                self.t0.reload = True
-            self.t0.finished.connect(self.t0.deleteLater)
-            self.t0.start()
+            self.t0 = WorkerThread(self.face_video_clip, parent_size, lr,self.facedf.copy())
+            self.do_load_frame(lr,reload,self.face_video_clip, self.t0)
 
 
         self.logger.debug("VideoPlayBack load_frames() done queueing framse")
