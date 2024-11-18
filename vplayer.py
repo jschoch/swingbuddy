@@ -242,6 +242,8 @@ class VideoPlayBack:
         (rawFrames,frames, lr) = obj
         #self.logger.debug(f"frames done count: {len(frames)} lr: {lr}") 
         #self.logger.debug(f"rf: \n{rawFrames}\nfr:{frames}")
+        
+
         if lr: 
             self.dtlRawFrames = rawFrames
             if len(frames) > 0:
@@ -250,12 +252,32 @@ class VideoPlayBack:
             self.video_playback_ui.slider.setRange(0,len(self.dtlRawFrames)-1)
             self.update_frame(lr)
             self.logger.debug(f"done loading frames time was: {self.t1.startT - time.time()}")
+            self.video_playback_ui.dtl_overlay.data = self.dtldf.copy() 
+            pixmaps = []
+            for frame in rawFrames:
+                opixmap = QPixmap.fromImage(frame)
+                transform = QTransform()
+                pixmap = opixmap.transformed(transform.rotate(-90))
+                pixmaps.append(pixmap)
+            self.video_playback_ui.dtl_overlay.raw_frames = pixmaps
+            self.logger.debug(f"DTL raw frames were: {len(self.dtlRawFrames)} ")
+            self.video_playback_ui.dtl_overlay.make_frames()
             self.play()
         else:
             self.faceRawFrames = rawFrames
             if len(frames) > 0:
                 self.qimage_frames = frames
             self.video_playback_ui.slider.setRange(0,len(self.faceRawFrames)-1)
+            self.video_playback_ui.dtl_overlay.data = self.dtldf.copy() 
+            pixmaps = []
+            for frame in rawFrames:
+                opixmap = QPixmap.fromImage(frame)
+                transform = QTransform()
+                pixmap = opixmap.transformed(transform.rotate(-90))
+                pixmaps.append(pixmap)
+            self.video_playback_ui.face_overlay.raw_frames = pixmaps
+            self.logger.debug(f"Face raw frames were: {len(self.faceRawFrames)} ")
+            self.video_playback_ui.face_overlay.make_frames()
             self.play()
             self.update_frame(lr)
 
@@ -266,6 +288,7 @@ class VideoPlayBack:
 
         if(lr):
             qimage_frames = self.qimage_frames2
+            
         else:
             qimage_frames = self.qimage_frames
 
@@ -287,9 +310,11 @@ class VideoPlayBack:
             if(lr):
                 self.video_playback_ui.video_label2.clear()
                 self.video_playback_ui.video_label2.setPixmap(pixmap)
+                self.video_playback_ui.dtl_overlay.update_frame(self.current_frame_index)
             else:
                 self.video_playback_ui.video_label1.clear()
                 self.video_playback_ui.video_label1.setPixmap(pixmap)
+                self.video_playback_ui.face_overlay.update_frame(self.current_frame_index)
             self.video_playback_ui.slider.setValue(self.current_frame_index)
         else:
             self.current_frame_index = 0

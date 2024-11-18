@@ -29,7 +29,7 @@ class ImageOverlay(QGraphicsView):
             self.scene.addItem(self.static_item)
             # Pre-render all frames
             self.frames = []
-            self.make_frames(self.raw_frames)
+            self.make_frames()
             # Create a QGraphicsPixmapItem for the overlay and add it to the scene
             self.overlay_item = QGraphicsPixmapItem(self.frames[self.index])
             self.scene.addItem(self.overlay_item)
@@ -51,14 +51,16 @@ class ImageOverlay(QGraphicsView):
         painter.end()
         return QGraphicsPixmapItem(frame_pixmap)
 
-    def make_frames(self,raw_frames):
-        for i in range(len(raw_frames)):
+    def make_frames(self):
+        frame_count = len(self.raw_frames)
+        print(f"makeing {frame_count} frames {len(self.data)} {self.raw_frames}")
+        for i in range(frame_count):
                 self.make_frame(i)
     
 
     def make_frame(self,i):
         
-        frame_pixmap = QPixmap(self.pixmap.size())
+        frame_pixmap = QPixmap(self.raw_frames[i].size())
         frame_pixmap.fill(QColor('transparent'))
         
         painter = QPainter(frame_pixmap)
@@ -70,7 +72,7 @@ class ImageOverlay(QGraphicsView):
             #ipainter.drawLine(0, random.randint(0, 600), point[0], point[1])
             h = frame_pixmap.height() 
             print(f" Xpos: {x_pos}, h: {h}")
-            painter.drawLine(x_pos/2, 0, x_pos/2, h)
+            painter.drawLine(x_pos, 0, x_pos, h)
             #painter.drawLine(0,0,800,800)
             painter.end()
         else:
@@ -85,6 +87,14 @@ class ImageOverlay(QGraphicsView):
         else:
             #self.timer.stop()  # Stop the timer when all frames have been displayed
             self.index = 0
+    def update_frame(self,idx):
+        if idx > len(self.raw_frames):
+            return
+        frame = self.frames[idx]
+        raw_frame = self.raw_frames[idx]
+        #print(f"updating frame {idx} {frame} {raw_frame}")
+        self.image_item.setPixmap(raw_frame)
+        self.overlay_item.setPixmap(frame)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

@@ -34,7 +34,7 @@ class TestVideoPlayBack(unittest.TestCase):
             pipes = load_pipes()
             for pipe in pipes:
                 pipe.preprocess_df(df)
-            self.logger.debug(f"df post pipes {df.head()}") 
+            #self.logger.debug(f"df post pipes {df.head()}") 
             return df
         except Exception as e:  
             self.logger.error(f"Error reading trc data: {e}")
@@ -69,7 +69,7 @@ class TestVideoPlayBack(unittest.TestCase):
         self.video_playback = VideoPlayBack(self.video_playback_Ui, None)
         self.video_playback.facedf = self.facedf
         self.video_playback.dtldf = self.dtldf
-        print(f"head\n{self.dtldf.head().to_dict()}") 
+        #print(f"head\n{self.dtldf.head().to_dict()}") 
 
         self.video_playback.face_video_clip = self.face_video_clip
         self.video_playback.dtl_video_clip = self.dtl_video_clip
