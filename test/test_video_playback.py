@@ -1,7 +1,7 @@
 # test_video_playback.py
 
 import unittest
-from vplayer import OverlayWidget, VideoPlayBackUi,VideoPlayBack
+from vplayer import  VideoPlayBackUi,VideoPlayBack
 from peewee import SqliteDatabase
 from swingdb import Swing, Session,Config,LMData
 from PySide6.QtWidgets import QApplication, QWidget, QHBoxLayout,QMainWindow,QLabel
@@ -69,7 +69,7 @@ class TestVideoPlayBack(unittest.TestCase):
         self.video_playback = VideoPlayBack(self.video_playback_Ui, None)
         self.video_playback.facedf = self.facedf
         self.video_playback.dtldf = self.dtldf
-        
+        print(f"head\n{self.dtldf.head().to_dict()}") 
 
         self.video_playback.face_video_clip = self.face_video_clip
         self.video_playback.dtl_video_clip = self.dtl_video_clip

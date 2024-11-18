@@ -15,6 +15,7 @@ import pandas as pd
 import traceback
 import math
 import time
+from lib.imageoverlay import ImageOverlay
 
 class WorkerError(Exception):
     pass
@@ -221,6 +222,9 @@ class VideoPlayBack:
         worker.start()
 
     def load_frame(self,lr,reload=False):
+        """
+        loads the workers up to process the frames 
+        """
         self.logger.debug(f"load_frame() starting to load {lr}")
         parent_size = self.video_playback_ui.parent().size() 
         if(lr):
@@ -274,9 +278,11 @@ class VideoPlayBack:
         if self.current_frame_index < len(qimage_frames):
             qimage_frame = qimage_frames[self.current_frame_index]
             _pixmap = QPixmap.fromImage(qimage_frame)
-            desired_height = self.video_playback_ui.video_label1.parent().height() - 200
-            new_width = math.floor(_pixmap.width() * desired_height / _pixmap.height())
-            pixmap = _pixmap.scaled(new_width, desired_height, Qt.KeepAspectRatio)
+
+            #TODO: ensure resize is working, this goes away likely
+            #desired_height = self.video_playback_ui.video_label1.parent().height() - 200
+            #new_width = math.floor(_pixmap.width() * desired_height / _pixmap.height())
+            pixmap = _pixmap.scaled(400, 600, Qt.KeepAspectRatio)
 
             if(lr):
                 self.video_playback_ui.video_label2.clear()
@@ -398,6 +404,13 @@ class VideoPlayBackUi(QWidget):
         self.screen_label2 = QLabel()
         self.vid_layout.addWidget(self.screen_label2)
 
+        loading_pixmap = QPixmap("loading.gif")  # Replace with your loading image path
+        self.dtl_overlay = ImageOverlay(loading_pixmap,pd.DataFrame(),[loading_pixmap])
+        self.vid_layout.addWidget(self.dtl_overlay)  # Add the overlay to the main layout
+
+        self.face_overlay = ImageOverlay(loading_pixmap,pd.DataFrame(),[loading_pixmap])
+        self.vid_layout.addWidget(self.face_overlay)  # Add the overlay to the main layout
+
         # Create layout and add widgets
         
 
@@ -427,6 +440,7 @@ class VideoPlayBackUi(QWidget):
         self.main_layout.addWidget(ctrl_label)
         self.main_layout.addLayout(slider_layout)
         
+        
 
 
 
@@ -436,27 +450,3 @@ class VideoPlayBackUi(QWidget):
             QSizePolicy.MinimumExpanding
         )
 
-class OverlayWidget(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setMouseTracking(True)
-        self.position = QPoint(10, 10)
-        self.overlay_image = QImage("Overlay.PNG")
-        self.overlay_image = self.overlay_image.scaledToWidth(100)
-        self.setFixedSize(self.overlay_image.size())
-
-    # Function to paint the overlay image
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.drawImage(self.rect(), self.overlay_image)
-
-    # Function to handle mouse press event
-    def mousePressEvent(self, event):
-        self.position = event.pos()
-        self.update()
-
-    # Function to handle mouse move event
-    def mouseMoveEvent(self, event):
-        if event.buttons() == Qt.LeftButton:
-            self.position = event.pos()
-            self.update()
