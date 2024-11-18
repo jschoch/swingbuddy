@@ -59,8 +59,8 @@ class TestVideoPlayBack(unittest.TestCase):
         self.dtldf = self.setupDF(self.swing.dtlTrc)
         self.app = QApplication(sys.argv)
         self.ui = QMainWindow()
-        self.video_clip = av.open(self.swing.faceVid)
-        self.video_clip2 = av.open(self.swing.dtlVid)
+        self.face_video_clip = av.open(self.swing.faceVid)
+        self.dtl_video_clip = av.open(self.swing.dtlVid)
         
 
         # Initialize VideoPlayBack instance
@@ -70,8 +70,8 @@ class TestVideoPlayBack(unittest.TestCase):
         self.video_playback.dtldf = self.dtldf
         
 
-        self.video_playback.video_clip = self.video_clip
-        self.video_playback.video_clip2 = self.video_clip2
+        self.video_playback.face_video_clip = self.face_video_clip
+        self.video_playback.dtl_video_clip = self.dtl_video_clip
 
         central_widget = QWidget()
         h = QHBoxLayout()

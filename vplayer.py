@@ -171,8 +171,8 @@ class VideoPlayBack:
         self.video_playback_ui = video_playback_ui
 
         #TODO: rename clips to something more descriptive.
-        self.video_clip = None
-        self.video_clip2 = None
+        self.face_video_clip = None
+        self.dtl_video_clip = None
         self.qimage_frames = []
         self.qimage_frames2 = []
         self.faceRawFrames = []
@@ -191,22 +191,23 @@ class VideoPlayBack:
         self.start()
 
     def shutdown(self):
-        if self.video_clip is not None:
-            self.video_clip.close()
-        if self.video_clip2 is not None:
-            self.video_clip2.close()
+        if self.face_video_clip is not None:
+            self.face_video_clip.close()
+        if self.dtl_video_clip is not None:
+            self.dtl_video_clip.close()
     # Function to load frames from the video clip
     def load_frame(self,lr,reload=False):
         self.logger.debug(f"load_frame() starting to load {lr}")
         parent_size = self.video_playback_ui.parent().size()
 
-        #video_clip = None
         if(lr):
-            if self.video_clip is None:
+            #TODO refactor each into it's own function
+            # if this clip is deleted or closed while the worker threads are running we have problems
+            if self.dtl_video_clip is None:
                 self.logger.error("DTL clip was NONE!!!!!!!!!!!")
                 return
             self.qimage_frames2 = []
-            video_clip = self.video_clip2
+            video_clip = self.dtl_video_clip
             self.logger.debug(f"the clip: {video_clip}  ")
             #self.logger.debug(f"the clip was closed? {video_clip.closed}")
             #self.video_playback_ui.vid2_text.setText(f"Begin Loading!\n{self.video_clip2.format.name}")
@@ -227,7 +228,7 @@ class VideoPlayBack:
 
         else:
             self.qimage_frames = []
-            video_clip = self.video_clip
+            video_clip = self.face_video_clip
             #self.video_playback_ui.vid1_text.setText(f"Begin Loading!\n{self.video_clip.format.name}")
             if self.t0.isRunning:
                 self.logger.error("t0 is already running")
@@ -356,18 +357,10 @@ class VideoPlayBack:
             self.timer.timeout.connect(self.update_all_frames)
             self.timer.start(1000/60)
 
-    # Function to play video in reverse
-    def reverse_play(self):
-        stream = self.video_clip.streams.video[0]
-        fps = int(stream.average_rate)
-        if self.video_clip is None:
-            QMessageBox.warning(self.video_playback_ui, "File not found", "Load the video file first")
-            return
-        self.timer.timeout.connect(self.reverse_frame)
-        self.timer.start(1000 / (fps * self.playback_speed))
 
     # Function to set playback speed
     def set_playback_speed(self, value):
+        #TODO get thsi working again
         self.speed_slider_label.setText(f"Speeed: {value}")
         self.playback_speed = value
 

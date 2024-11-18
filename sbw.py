@@ -888,16 +888,16 @@ class SBW(QMainWindow):
             return
         self.logger.debug(f"load_video: {clip} type: {trcT} id: {swing.id} adding clips")
         if(trcT == TrcT.FACE):
-            if self.video_playback.video_clip is not None:
+            if self.video_playback.face_video_clip is not None:
                 #self.video_playback.video_clip.close()
                 None
-            self.video_playback.video_clip = clip
+            self.video_playback.face_video_clip = clip
         if(trcT == TrcT.DTL):
             #TODO:  rename these videoclips!!!
-            if self.video_playback.video_clip2 is not None:
+            if self.video_playback.dtl_video_clip is not None:
                 #self.video_playback.video_clip2.close()
                 None
-            self.video_playback.video_clip2 = clip
+            self.video_playback.dtl_video_clip = clip
 
         if hint == LoadHint.LOAD:
             self.swingloader.load_swing(swing,LoadHint.LOAD_CLIP,trcT)
