@@ -386,57 +386,37 @@ class VideoPlayBackUi(QWidget):
         self.speed_slider_label = QLabel("Playback Speed:")
 
         # Create grid layout for video labels
-        #self.vid_layout = QGridLayout()
         self.vid_layout = QHBoxLayout()
 
-
-        #self.screen_label2 = QLabel()
-        #self.vid_layout.addWidget(self.screen_label2)
-
         loading_pixmap = QPixmap("loading.gif")  # Replace with your loading image path
-        self.dtl_overlay = ImageOverlay(loading_pixmap,pd.DataFrame(),[loading_pixmap])
+        self.dtl_overlay = ImageOverlay(loading_pixmap, pd.DataFrame(), [loading_pixmap])
         self.vid_layout.addWidget(self.dtl_overlay)  # Add the overlay to the main layout
 
-        self.face_overlay = ImageOverlay(loading_pixmap,pd.DataFrame(),[loading_pixmap])
+        self.face_overlay = ImageOverlay(loading_pixmap, pd.DataFrame(), [loading_pixmap])
         self.vid_layout.addWidget(self.face_overlay)  # Add the overlay to the main layout
 
         # Create layout and add widgets
-        
-
         video_button_layout = QHBoxLayout()
         slider_layout = QHBoxLayout()
+
         video_button_layout.addWidget(self.play_button, 1)
         video_button_layout.addWidget(self.slider_label)
         slider_layout.addWidget(self.slider, 5)
         video_button_layout.addWidget(self.speed_slider_label)
         video_button_layout.addWidget(self.speed_slider, 3)
 
-        video_button_layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
+        video_button_layout.setAlignment(Qt.AlignBottom)
 
-        #ctrl_label_layout.addLayout(video_button_layout)
-        ctrl_label = QLabel()
-        ctrl_label.setMaximumHeight(75)
-        ctrl_label.setStyleSheet("background-color: #f0f0f0;")
-        #ctrl_label_layout = QHBoxLayout()
-        ctrl_label.setLayout(video_button_layout)
+        # Create a QWidget to hold the controls
+        ctrl_widget = QWidget()
+        ctrl_widget.setLayout(video_button_layout)
+        ctrl_widget.setStyleSheet("background-color: #f0f0f0;")
+        ctrl_widget.setMaximumHeight(75)
+
         # Create main layout and add layouts
         self.main_layout = QVBoxLayout()
 
         self.setLayout(self.main_layout)
-
-        
-        #self.main_layout.addLayout(ctrl_label_layout)
-        self.main_layout.addWidget(ctrl_label)
+        self.main_layout.addWidget(ctrl_widget)
         self.main_layout.addLayout(slider_layout)
-        self.main_layout.addWidget(ctrl_label)
-        self.main_layout.addLayout(self.vid_layout) 
-        
-
-
-
-        # Set size policy on main widget
-        #self.setSizePolicy(
-        #    QSizePolicy.MinimumExpanding,
-        #    QSizePolicy.MinimumExpanding
-        #)
-
+        self.main_layout.addLayout(self.vid_layout)
