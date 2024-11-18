@@ -83,8 +83,6 @@ class TestVideoPlayBack(unittest.TestCase):
         central_widget.setLayout(h)
         self.ui.setCentralWidget(self.video_playback_Ui)
         self.video_playback.logger = self.logger
-        self.video_playback_Ui.video_label2.setPixmap(QPixmap())
-        self.video_playback_Ui.video_label1.setPixmap(QPixmap())
         self.video_playback_Ui.play_button.setEnabled(True)
         self.video_playback_Ui.slider.setEnabled(True)
         self.ui.show()

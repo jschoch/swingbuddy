@@ -299,21 +299,10 @@ class VideoPlayBack:
         if self.current_frame_index < 0:
             self.current_frame_index = 0
         if self.current_frame_index < len(qimage_frames):
-            qimage_frame = qimage_frames[self.current_frame_index]
-            _pixmap = QPixmap.fromImage(qimage_frame)
-
-            #TODO: ensure resize is working, this goes away likely
-            #desired_height = self.video_playback_ui.video_label1.parent().height() - 200
-            #new_width = math.floor(_pixmap.width() * desired_height / _pixmap.height())
-            pixmap = _pixmap.scaled(400, 600, Qt.KeepAspectRatio)
 
             if(lr):
-                self.video_playback_ui.video_label2.clear()
-                self.video_playback_ui.video_label2.setPixmap(pixmap)
                 self.video_playback_ui.dtl_overlay.update_frame(self.current_frame_index)
             else:
-                self.video_playback_ui.video_label1.clear()
-                self.video_playback_ui.video_label1.setPixmap(pixmap)
                 self.video_playback_ui.face_overlay.update_frame(self.current_frame_index)
             self.video_playback_ui.slider.setValue(self.current_frame_index)
         else:
@@ -322,12 +311,6 @@ class VideoPlayBack:
         self.video_playback_ui.slider_label.setText(f"Frame: {self.current_frame_index}")
 
 
-    # Function to reverse the frame
-    def reverse_frame(self):
-        self.current_frame_index -= 1
-        self.update_frame(0)
-        self.update_frame(1)
-        self.current_frame_index -= 1
 
     def update_all_frames(self):
         self.current_frame_index += 1
@@ -406,28 +389,9 @@ class VideoPlayBackUi(QWidget):
         #self.vid_layout = QGridLayout()
         self.vid_layout = QHBoxLayout()
 
-        # Create video labels
-        self.video_label1 = QLabel()
-        self.video_label1.setScaledContents(True)
-        self.video_label1.setStyleSheet("border: 1px solid red;")
 
-        self.video_label2 = QLabel()
-        self.video_label2.setScaledContents(True)
-        self.video_label2.setStyleSheet("border: 1px solid black;")
-
-        # Add widgets to video layout
-        self.vid1_text = QLabel("No Vid1 Loaded")
-        #self.vid_layout.addWidget(self.vid1_text, 0, 0, alignment=Qt.AlignLeft)  # Placeholder for video file name
-        #self.vid_layout.addWidget(self.video_label1, 1, 0, alignment=Qt.AlignLeft)
-        self.vid_layout.addWidget(self.video_label1, alignment=Qt.AlignLeft)  # Placeholder for video file name
-
-        self.vid2_text = QLabel("No Vid2 Loaded")
-        #self.vid_layout.addWidget(self.vid2_text, 0, 1, alignment=Qt.AlignRight)  # Placeholder for video file name
-        #self.vid_layout.addWidget(self.video_label2, 1, 1, alignment=Qt.AlignRight)
-        self.vid_layout.addWidget(self.video_label2, alignment=Qt.AlignRight)  # Placeholder for video file name
-
-        self.screen_label2 = QLabel()
-        self.vid_layout.addWidget(self.screen_label2)
+        #self.screen_label2 = QLabel()
+        #self.vid_layout.addWidget(self.screen_label2)
 
         loading_pixmap = QPixmap("loading.gif")  # Replace with your loading image path
         self.dtl_overlay = ImageOverlay(loading_pixmap,pd.DataFrame(),[loading_pixmap])
@@ -460,18 +424,19 @@ class VideoPlayBackUi(QWidget):
 
         self.setLayout(self.main_layout)
 
-        self.main_layout.addLayout(self.vid_layout)
+        
         #self.main_layout.addLayout(ctrl_label_layout)
         self.main_layout.addWidget(ctrl_label)
         self.main_layout.addLayout(slider_layout)
-        
+        self.main_layout.addWidget(ctrl_label)
+        self.main_layout.addLayout(self.vid_layout) 
         
 
 
 
         # Set size policy on main widget
-        self.setSizePolicy(
-            QSizePolicy.MinimumExpanding,
-            QSizePolicy.MinimumExpanding
-        )
+        #self.setSizePolicy(
+        #    QSizePolicy.MinimumExpanding,
+        #    QSizePolicy.MinimumExpanding
+        #)
 

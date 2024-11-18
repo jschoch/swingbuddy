@@ -21,6 +21,9 @@ class ImageOverlay(QGraphicsView):
         if not self.pixmap.isNull():
             # Create a QGraphicsScene and add the base image to it
             self.scene = QGraphicsScene(self)
+            # Set the minimum height for the scene
+            min_height = 800  # Example minimum height in pixels
+            self.scene.setSceneRect(self.scene.sceneRect().adjusted(0, 0, 0, min_height))
             self.image_item = QGraphicsPixmapItem(self.pixmap)
             self.scene.addItem(self.image_item)
 
@@ -34,6 +37,12 @@ class ImageOverlay(QGraphicsView):
             self.overlay_item = QGraphicsPixmapItem(self.frames[self.index])
             self.scene.addItem(self.overlay_item)
 
+
+
+            scale_factor = 0.3
+            self.image_item.setScale(scale_factor)
+            self.overlay_item.setScale(scale_factor)
+            self.static_item.setScale(scale_factor)
             # Set the scene for the view
             self.setScene(self.scene)
             
@@ -54,6 +63,14 @@ class ImageOverlay(QGraphicsView):
     def make_frames(self):
         frame_count = len(self.raw_frames)
         print(f"makeing {frame_count} frames {len(self.data)} {self.raw_frames}")
+
+
+        if frame_count > 2:
+            aframe = self.raw_frames[0]
+            scene_rect = QRectF(0, 0, aframe.width(), aframe.height())
+            self.scene.setSceneRect(scene_rect)
+        
+        
         for i in range(frame_count):
                 self.make_frame(i)
     
@@ -99,8 +116,6 @@ class ImageOverlay(QGraphicsView):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         
-        print("Resize, TODO add back")
-        return
         new_size = event.size()
         scene_rect = QRectF(0, 0, new_size.width(), new_size.height())
         self.scene.setSceneRect(scene_rect)
@@ -113,4 +128,4 @@ class ImageOverlay(QGraphicsView):
         self.image_item.setScale(scale_factor)
         self.overlay_item.setScale(scale_factor)
         self.static_item.setScale(scale_factor)  # Scale the static item as well
-        print(f"scale factor was {scale_factor}")
+        #print(f"scale factor was {scale_factor}")
