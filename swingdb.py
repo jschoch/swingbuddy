@@ -3,9 +3,11 @@
 # if __name__ == "__main__":
 #     pass
 from peewee import *
+from playhouse.migrate import *
 import datetime
 
 db = SqliteDatabase('swingbuddy.db')
+migrator = SqliteMigrator(db)
 
 class BaseModel(Model):
     class Meta:
@@ -52,6 +54,7 @@ class Swing(BaseModel):
         )
 
 class Config(BaseModel):
+    
     vidDir = CharField(default=r"c:/files/test_swings")
     screenDir = CharField(default="c:/files/test_swings")
     ocrServer = CharField(default="not done yet")
@@ -61,8 +64,11 @@ class Config(BaseModel):
     enablePose = BooleanField(default=True)
     enableOcr = BooleanField(default=True)
     autoplay = BooleanField(default=True)
-    screen_timeout = IntegerField(default=15)
+    screen_timeout = IntegerField(default=12)
     screen_coords = CharField(default = "0,0,600,600") # will be split into (a,b,c,d)
+    #kinoveaDir = CharField(default=r"C:/files/kinovea_swings")
+    #migrate(
+        #migrator.add_column('config','kinoveaDir',kinoveaDir)
+    #)
 
     #enable
-    #how do you do defaults?

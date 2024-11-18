@@ -25,7 +25,7 @@
      <x>0</x>
      <y>0</y>
      <width>861</width>
-     <height>1101</height>
+     <height>1224</height>
     </rect>
    </property>
    <layout class="QFormLayout" name="formLayout">
@@ -50,6 +50,12 @@
     </item>
     <item row="1" column="1">
      <widget class="QTabWidget" name="tabWidget_2">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>600</height>
+       </size>
+      </property>
       <property name="currentIndex">
        <number>0</number>
       </property>
@@ -75,7 +81,7 @@
           <x>10</x>
           <y>10</y>
           <width>811</width>
-          <height>421</height>
+          <height>561</height>
          </rect>
         </property>
         <layout class="QHBoxLayout" name="horizontalLayout"/>
@@ -125,7 +131,14 @@
        </widget>
       </item>
       <item>
-       <widget class="QListView" name="LM_data_lv"/>
+       <widget class="QListView" name="LM_data_lv">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>50</height>
+         </size>
+        </property>
+       </widget>
       </item>
       <item>
        <widget class="QLabel" name="label">
@@ -208,7 +221,7 @@
         <property name="minimumSize">
          <size>
           <width>0</width>
-          <height>300</height>
+          <height>200</height>
          </size>
         </property>
         <widget class="QLabel" name="status_label">

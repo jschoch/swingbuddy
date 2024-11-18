@@ -13,14 +13,14 @@ from swingdb import Swing, Session,Config
 import requests
 from io import StringIO
 import pandas as pd
+from importlib.util import spec_from_file_location, module_from_spec
+from lib.swingpipe import BasePipe
+from shutil import move
+
+PIPE_DIR = 'pipes'
 
 testdb = SqliteDatabase('test.db')
 
-def get_files_with_extension_bad(directory, extension):
-    return [os.path.join(directory, f) for f in os.listdir(directory) if
-            (os.path.isfile(os.path.join(directory, f)) and
-             os.path.splitext(f)[1].lower() == f'.{extension.lower()}' and
-             os.path.getsize(os.path.join(directory, f)) > 0)]
             
 def get_files_with_extension(directory, extension):
     files = []
@@ -119,3 +119,104 @@ def fFUCKYOU():
     sio = StringIO(s)
     df = pd.read_csv(sio)
     print(f"df info: {df.info()}")
+
+PIPES_DIR = 'pipes'
+def load_pipes():
+    pipes = []
+    # List all files in the directory
+    for filename in os.listdir(PIPES_DIR):
+        if filename.endswith('.py') and not filename.startswith('__'):
+            # Construct the full path to the module file
+            module_path = os.path.join(PIPES_DIR, filename)
+            
+            # Create a spec from the file location
+            spec = spec_from_file_location(filename[:-3], module_path)
+            
+            # Create a module from the spec
+            module = module_from_spec(spec)
+            
+            # Load the module
+            spec.loader.exec_module(module)
+            
+            # Find subclasses of BaseProcessor and add them to the list
+            for name, obj in module.__dict__.items():
+                if isinstance(obj, type) and issubclass(obj, BasePipe) and obj != BasePipe:
+                    pipes.append(obj())
+    
+    return pipes
+
+def run_predf_pipes():
+    data = {
+         'RHip_x': [0.272623, 0.272168, 0.274765, 0.272704, 0.272990],
+         'RHip_y': [-0.684526, -0.684361, -0.683200, -0.687197, -0.685515],
+         'RHip_z': [0.0, 0.0, 0.0, 0.0, 0.0],
+         'LHip_y': [-0.272623, -0.272168, -0.274765, -0.272704, -0.272990],
+         'LHip_x': [0.684526, 0.684361, 0.683200, 0.687197, 0.685515],
+         'LHip_z': [0.0, 0.0, 0.0, 0.0, 0.0],
+         'LWrist_x': [0.272623, 0.272168, 0.274765, 0.272704, 0.272990],
+         'LWrist_y': [-0.684526, -0.684361, -0.683200, -0.687197, -0.685515],
+         'LWrist_z': [0.0, 0.0, 0.0, 0.0, 0.0]
+    }
+    df = pd.DataFrame(data)
+    
+    pipes = load_pipes()
+    for pipe in pipes:
+        pipe.preprocess_df(df)
+    return df
+
+import re
+
+def parse_filename(filename):
+  """Parses a filename in the format 'YYYYMMDD-HHMMSS-*.mp4' and returns a tuple of (year, month, day).
+
+  Args:
+    filename: The filename to parse.
+
+  Returns:
+    A tuple of (year, month, day) if the filename matches the format, otherwise None.
+  """
+
+  #match = re.match(r"(\d{4})(\d{2})(\d{2})-", filename)
+  match = re.search(r"(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})-\d{6}-\w+\.mp4$", filename)
+
+  if match:
+    #return int(match.group('year')), int(match.group('month')), int(match.group('day'))
+    return match.group('year'), match.group('month'), match.group('day')
+  else:
+    print(f"Invalid filename format: {filename} no match")
+    return None
+
+def create_folder_structure(base_path,year, month, day):
+    #root_dir = os.getcwd()  # Change this to your desired base directory
+    year_path = os.path.join(base_path, year)
+    month_path = os.path.join(year_path, month)
+    day_path = os.path.join(month_path, day)
+
+    print(f"year_path {year_path} month_path {month_path} day_path {day_path}")
+    for path in [year_path, month_path, day_path]:
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+    return day_path
+
+def move_file_to_folder(filepath, new_folder):
+    #source_path = os.path.abspath(filename)
+
+    fname = os.path.basename(filepath)
+    target_shit_path = os.path.join(new_folder, fname)
+    target_path =  target_shit_path.replace('\\', '/')
+    
+    # Check if the file already exists in the target directory
+    if os.path.exists(target_path):
+        print(f"File {fname} already exists in the target directory. {target_path} Skipping move.")
+        return
+    
+    move(filepath, target_path)
+    print(f"Moved {fname} to {target_path}")
+
+def move_files(files,base_path):
+    year, month, day = parse_filename(files[0])
+    new_folder = create_folder_structure(base_path,year, month, day)
+    for filename in files:
+        move_file_to_folder(filename, new_folder)
+    return new_folder
