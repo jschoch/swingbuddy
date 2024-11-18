@@ -5,7 +5,7 @@
 from PySide6.QtCore import QObject, QThread, Signal,  Qt,QPoint, Slot,QTimer,QThreadPool,QRunnable,QStringListModel
 from PySide6.QtGui import QAction,QIcon,QMovie,QPen, QStandardItemModel, QStandardItem,QImage, QPixmap,QPainter,QTransform
 from PySide6.QtWidgets import (QMainWindow, QListView, QPushButton, QTextEdit,QSlider,QFileDialog,
-    QHBoxLayout, QWidget, QVBoxLayout, QLabel,QDialog,QDialogButtonBox,
+    QHBoxLayout, QWidget, QVBoxLayout, QLabel,QDialog,QDialogButtonBox,QGraphicsView, QGraphicsScene,
     QSizePolicy, QMessageBox,QDialog, QGridLayout, QTextEdit)
 import threading
 import queue
@@ -390,6 +390,8 @@ class VideoPlayBackUi(QWidget):
 
         loading_pixmap = QPixmap("loading.gif")  # Replace with your loading image path
         self.dtl_overlay = ImageOverlay(loading_pixmap, pd.DataFrame(), [loading_pixmap])
+        self.dtl_overlay.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.dtl_overlay.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.vid_layout.addWidget(self.dtl_overlay)  # Add the overlay to the main layout
 
         self.face_overlay = ImageOverlay(loading_pixmap, pd.DataFrame(), [loading_pixmap])

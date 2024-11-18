@@ -2,7 +2,7 @@
 import sys
 from PySide6.QtWidgets import QApplication, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QWidget,QVBoxLayout,QHBoxLayout
 from PySide6.QtGui import QPixmap, QPainter, QPen, QColor
-from PySide6.QtCore import QTimer, QRectF
+from PySide6.QtCore import QTimer, QRectF,Qt
 import os
 import random
 import pandas as pd
@@ -67,8 +67,9 @@ class ImageOverlay(QGraphicsView):
 
         if frame_count > 2:
             aframe = self.raw_frames[0]
-            scene_rect = QRectF(0, 0, aframe.width(), aframe.height())
-            self.scene.setSceneRect(scene_rect)
+            #scene_rect = QRectF(0, 0, aframe.width(), aframe.height())
+            #self.scene.setSceneRect(scene_rect)
+            
         
         
         for i in range(frame_count):
@@ -110,8 +111,10 @@ class ImageOverlay(QGraphicsView):
         frame = self.frames[idx]
         raw_frame = self.raw_frames[idx]
         #print(f"updating frame {idx} {frame} {raw_frame}")
+        self.fitInView(self.image_item, Qt.KeepAspectRatio)
         self.image_item.setPixmap(raw_frame)
         self.overlay_item.setPixmap(frame)
+
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
