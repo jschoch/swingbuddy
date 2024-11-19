@@ -39,7 +39,7 @@ class WorkerThread(QThread):
         self.rawFrames = []
         self.startT = time.time()
 
-    def draw_hip_start(self,painter,height):
+    def draw_hip_start_TODO(self,painter,height):
         """
         This draws the starting hip position on every frame 
         """
@@ -49,7 +49,7 @@ class WorkerThread(QThread):
             x_pos = self.df['HipMiddle_x'].iloc[0]
             painter.drawLine(x_pos, 0, x_pos, height) 
 
-    def process_frame(self,index,frame):
+    def process_frame_TODO(self,index,frame):
         
         #img = frame.to_image()
         #q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
@@ -74,7 +74,7 @@ class WorkerThread(QThread):
         
         return (q_image,index)
 
-    def do_work(self):
+    def do_work_TODO(self):
         try:
             self.isRunning = True
             frames = self.rawFrames
@@ -102,7 +102,7 @@ class WorkerThread(QThread):
             print(f'Generated an exception: {e}')
             self.isRunning = False
      
-    def get_pose_data(self, frame_number):
+    def get_pose_data_TODO(self, frame_number):
         if  not self.df.empty and self.lr == 1: 
             row = self.df.iloc[frame_number]
             #print(f" trying to get fn {frame_number} \n{row.to_dict()}")
@@ -151,7 +151,8 @@ class WorkerThread(QThread):
     def process_raw_frame(self,i,frame):
         img = frame.to_image()
         raw_q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
-        (q_image, fooIdx) = self.process_frame(i,raw_q_image)
+        #(q_image, fooIdx) = self.process_frame(i,raw_q_image)
+        q_image = None
         return (raw_q_image,i,q_image)
 
     def run(self):
@@ -159,7 +160,8 @@ class WorkerThread(QThread):
         """
         if(self.reload):
             #print("starting worker do_work()")
-            self.do_work()
+            #self.do_work()
+            None
         else:
             #print("starting worker get_raw_frames()")
             self.get_raw_frames()
