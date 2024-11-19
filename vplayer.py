@@ -145,9 +145,11 @@ class VideoPlayBack:
             if(lr):
                 self.video_playback_ui.dtl_overlay.data = self.dtldf.copy()
                 self.video_playback_ui.dtl_overlay.make_frames()
+                self.is_playing = True
             else:
                 self.video_playback_ui.face_overlay.data = self.facedf.copy()
                 self.video_playback_ui.face_overlay.make_frames()
+                self.is_playing = True
 
 
         self.logger.debug("VideoPlayBack load_frames() done queueing framse")
@@ -174,7 +176,8 @@ class VideoPlayBack:
             self.video_playback_ui.dtl_overlay.raw_frames = pixmaps
             self.logger.debug(f"DTL raw frames were: {len(self.dtlRawFrames)} ")
             self.video_playback_ui.dtl_overlay.make_frames()
-            self.play()
+            self.is_playing = True
+            #self.play()
         else:
             self.faceRawFrames = frames
             self.video_playback_ui.slider.setRange(0,len(self.faceRawFrames)-1)
@@ -188,7 +191,8 @@ class VideoPlayBack:
             self.video_playback_ui.face_overlay.raw_frames = pixmaps
             self.logger.debug(f"Face raw frames were: {len(self.faceRawFrames)} ")
             self.video_playback_ui.face_overlay.make_frames()
-            self.play()
+            self.is_playing = True
+            #self.play()
             self.update_frame(lr)
 
     # Function to update the frame

@@ -69,6 +69,8 @@ class ImageOverlay(QGraphicsView):
                 item = QGraphicsPixmapItem(frame)
                 self.static_items.append(item)
                 self.scene.addItem(item)
+                self.fitInView(item, Qt.KeepAspectRatio)
+                
 
 
     def make_frames(self):
@@ -85,6 +87,9 @@ class ImageOverlay(QGraphicsView):
             #self.scene.setSceneRect(scene_rect)
 
         # first run there will be no frames
+
+        #try to force resize to get static overlays rendered correctly
+        self.resize(self.width()+1,self.height()+1)
         self.frames = {}
         for idx,frame in enumerate(self.raw_frames):
             self.frames[idx] = frame.copy()
