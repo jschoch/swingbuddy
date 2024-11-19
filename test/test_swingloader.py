@@ -1,0 +1,107 @@
+# test_video_playback.py
+
+import unittest
+from vplayer import  VideoPlayBackUi,VideoPlayBack
+from peewee import SqliteDatabase
+from swingdb import Swing, Session,Config,LMData
+from PySide6.QtWidgets import QApplication, QWidget, QHBoxLayout,QMainWindow,QLabel
+from PySide6.QtGui import QAction,QIcon,QMovie, QStandardItemModel, QStandardItem,QImage, QPixmap,QPainter,QTransform
+
+import sys
+import av
+import logging
+import time
+from io import StringIO
+import pandas as pd
+from util import load_pipes
+
+
+models = [Swing,Config,Session,LMData]
+
+class TestVideoPlayBack(unittest.TestCase):
+    def setupDb(self):
+        self.db = SqliteDatabase('swingbuddy_test.db')
+        self.db.connect()
+        self.db.create_tables(models)  # Replace YourModel with your actual model class
+        self.swing = Swing.get_by_id(2)
+        self.logger.debug(f"swn: {self.swing.name}")
+
+
+    def setupDF(self,maybe_trc):
+        df = []
+        try:
+            df = pd.read_csv(StringIO(maybe_trc))
+            pipes = load_pipes()
+            for pipe in pipes:
+                pipe.preprocess_df(df)
+            #self.logger.debug(f"df post pipes {df.head()}") 
+            return df
+        except Exception as e:  
+            self.logger.error(f"Error reading trc data: {e}")
+            return
+        
+    def setUp(self):
+        # setup logger
+        
+        self.logger = logging.getLogger()
+        self.logger.setLevel(logging.DEBUG)
+        streamHandler = logging.StreamHandler(sys.stdout)
+        stE = logging.StreamHandler(sys.stderr)
+        self.logger.addHandler(streamHandler)
+        self.logger.addHandler(stE)
+        self.logger.info('Hello World!')
+        
+        # Set up the database connection
+        self.setupDb() 
+        # setup qt app
+
+        self.facedf = self.setupDF(self.swing.faceTrc)
+        self.dtldf = self.setupDF(self.swing.dtlTrc)
+        self.app = QApplication(sys.argv)
+        self.ui = QMainWindow()
+        self.ui.setGeometry(100, 100, 800, 600)
+        self.face_video_clip = av.open(self.swing.faceVid)
+        self.dtl_video_clip = av.open(self.swing.dtlVid)
+        
+
+        # Initialize VideoPlayBack instance
+        self.video_playback_Ui = VideoPlayBackUi()
+        self.video_playback = VideoPlayBack(self.video_playback_Ui, None)
+        self.video_playback.facedf = self.facedf
+        self.video_playback.dtldf = self.dtldf
+        #print(f"head\n{self.dtldf.head().to_dict()}") 
+
+        self.video_playback.face_video_clip = self.face_video_clip
+        self.video_playback.dtl_video_clip = self.dtl_video_clip
+
+        central_widget = QWidget()
+        h = QHBoxLayout()
+        lbl = QLabel('Video Playback',self.ui)
+        lbl.setMinimumHeight(400)
+        h.addWidget(lbl)
+
+        central_widget.setLayout(h)
+        self.ui.setCentralWidget(self.video_playback_Ui)
+        self.video_playback.logger = self.logger
+        self.video_playback_Ui.play_button.setEnabled(True)
+        self.video_playback_Ui.slider.setEnabled(True)
+        self.video_playback_Ui.play_button.clicked.connect(self.play)
+        self.ui.show()
+        
+    def play(self):
+        self.video_playback.play()
+
+    def tearDown(self):
+        # Clean up the database and close the connection
+        #self.db.drop_tables(models)
+        self.db.close()
+        self.ui.close()
+        self.app.quit()
+
+    def test_reload_frame(self):
+        self.assertFalse("this isn't working but you shjould get some tests for swingloader so you don't have to fuddle with launching the full GUI")
+        #time.sleep(2)
+
+
+if __name__ == '__main__':
+    unittest.main()
