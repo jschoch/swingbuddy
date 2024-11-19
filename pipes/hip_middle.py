@@ -12,6 +12,7 @@ class HipMiddle(BasePipe):
             name = "Hip Middle",
             render_on_dtl=True,
             render_static=True,
+            render_tracking=True,
             render_trace=False
         )
     """
@@ -32,13 +33,16 @@ class HipMiddle(BasePipe):
 
         return frame
     def process_tracking_frame(self, frame,df,idx):
-        return frame
-    def process_trace_frame(self,frame,df,idx):
+        if  not 'HipMiddle_x' in df.columns:
+            return frame
+        print(".", end="")
         x_pos = df['HipMiddle_x'].iloc[idx]
         painter = QPainter(frame)
-        self.draw_hip_start(painter,frame.height())
         pen = QPen(Qt.red, 2)
         painter.setPen(pen)
         painter.drawLine(x_pos, 0, x_pos, frame.height())
         painter.end()
+        return frame
+    def process_trace_frame(self,frame,df,idx):
+        
         return frame

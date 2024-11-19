@@ -2,10 +2,24 @@ from lib.swingpipe import BasePipe
 from dataa import euclidean_distance, butter_lowpass_filter
 import pandas as pd
 
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QTransform, QPen,QPainter,QBrush
+
 class LWristPipe(BasePipe):
+
     """
     normalize Y and X values for display in original pixel sizes 
     """
+    def __init__(self):
+        super().__init__()
+        # Update the configuration for this subclass
+        self.update_config(
+            name = "Hip Middle",
+            render_on_dtl=True,
+            render_static=False,
+            render_tracking=True,
+            render_trace=False
+        )
     def preprocess_df(self, df):
         pixels_per_inch = 0.10422944004466449
         mps_const = 0.0026474277771344782
@@ -43,9 +57,26 @@ class LWristPipe(BasePipe):
             df['LWrist_Speed_filtered'] = butter_lowpass_filter(df['LWrist_Speed'], cutoff, fs)
                 
         return df
-    def process_static_frame(self, frame):
+    def process_static_frame(self, frame,df,idx):
         return frame
-    def process_tracking_frame(self, frame):
+    def process_tracking_frame(self, frame,df,idx):
+        if  not 'LWrist_Speed_filtered' in df.columns:
+            return frame
+        print(".", end="")
+        x_pos = df['LWrist_x'].iloc[idx]
+        y_pos = df['LWrist_y'].iloc[idx]
+
+        # Draw a vertical line at the wrist position
+        painter = QPainter(frame)
+        painter.setPen(QPen(Qt.yellow, 2))
+        painter.setBrush(QBrush(Qt.yellow, Qt.SolidPattern))
+        # normalize
+        speed_f =  df['LWrist_Speed_filtered'].iloc[idx]
+        speed_factor = 1 / 25
+        # set brightness based on speed
+        painter.setOpacity(speed_f * speed_factor)
+        painter.drawEllipse(x_pos, y_pos, 30, 30)
+        painter.end()
         return frame
-    def process_trace_frame(self,frame):
+    def process_trace_frame(self,frame,df,idx):
         return frame

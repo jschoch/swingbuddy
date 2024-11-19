@@ -31,14 +31,16 @@ class ImageOverlay(QGraphicsView):
             # TODO: do we need to make static frames on init?  Probly not
             #self.make_static_frame()
             # Pre-render all frames
-            self.frames = []
+            self.frames = {}
             self.make_frames()
             # Create a QGraphicsPixmapItem for the overlay and add it to the scene
-            self.overlay_item = QGraphicsPixmapItem(self.frames[self.index])
+            self.overlay_item = QGraphicsPixmapItem(self.raw_frames[self.index])
             self.scene.addItem(self.overlay_item)
             scale_factor = 0.3
             self.image_item.setScale(scale_factor)
             self.overlay_item.setScale(scale_factor)
+            for item in self.static_items:
+                item.setScale(scale_factor)
             #self.static_item.setScale(scale_factor)
             # Set the scene for the view
             self.setScene(self.scene)
@@ -67,36 +69,28 @@ class ImageOverlay(QGraphicsView):
         self.make_static_frames()
         frame_count = len(self.raw_frames)
         #print(f"makeing {frame_count} frames {len(self.data)} {self.raw_frames}")
-        if frame_count > 2:
-            aframe = self.raw_frames[0]
+        if frame_count < 2:
+            print(f"no frames, make_frames() skipping")
+            return
             #scene_rect = QRectF(0, 0, aframe.width(), aframe.height())
             #self.scene.setSceneRect(scene_rect)
 
-        for i in range(frame_count):
-                self.make_frame(i)
-        #self.trigger_resize()
+        # first run there will be no frames
+        for idx,frame in enumerate(self.raw_frames):
+            self.frames[idx] = frame.copy()
+        
+        for pipe in self.pipes:
+            print(f"checking pipe: {pipe.config['name']}")
+            if pipe.config['render_tracking']:
+                print(f"found trace image pipe {pipe.config['name']}")
+                for idx,key in enumerate( self.frames):
+                    frame = self.frames[key]
+                    new_frame = pipe.process_tracking_frame(frame,self.data,idx)
+                    #print(f" idx: {idx} frame {frame} new_frame {new_frame}")
+                    self.frames[idx] = new_frame
+
         self.resize(self.size())
     
-
-    def make_frame(self,i):
-        frame_pixmap = QPixmap(self.raw_frames[i].size())
-        frame_pixmap.fill(QColor('transparent'))
-        
-        painter = QPainter(frame_pixmap)
-        pen = QPen(QColor('red'), 2)  # Red color and 2 pixels thick line
-        painter.setPen(pen)
-        
-        if not self.data.empty:
-            x_pos = self.data['HipMiddle_x'].iloc[i].copy()
-            #ipainter.drawLine(0, random.randint(0, 600), point[0], point[1])
-            h = frame_pixmap.height() 
-            print(f" Xpos: {x_pos}, h: {h}")
-            painter.drawLine(x_pos, 0, x_pos, h)
-            #painter.drawLine(0,0,800,800)
-            painter.end()
-        else:
-            print("Data is empty")
-        self.frames.append(frame_pixmap)
 
     def next_frame(self):
         if self.index < len(self.frames):

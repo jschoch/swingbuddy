@@ -270,7 +270,7 @@ class VideoPlayBack:
             if len(frames) > 0:
                 self.qimage_frames = frames
             self.video_playback_ui.slider.setRange(0,len(self.faceRawFrames)-1)
-            self.video_playback_ui.dtl_overlay.data = self.dtldf.copy() 
+            self.video_playback_ui.face_overlay.data = self.facedf.copy() 
             pixmaps = []
             for frame in rawFrames:
                 opixmap = QPixmap.fromImage(frame)

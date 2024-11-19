@@ -85,8 +85,11 @@ class TestVideoPlayBack(unittest.TestCase):
         self.video_playback.logger = self.logger
         self.video_playback_Ui.play_button.setEnabled(True)
         self.video_playback_Ui.slider.setEnabled(True)
+        self.video_playback_Ui.play_button.clicked.connect(self.play)
         self.ui.show()
         
+    def play(self):
+        self.video_playback.play()
 
     def tearDown(self):
         # Clean up the database and close the connection
