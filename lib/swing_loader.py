@@ -4,7 +4,7 @@ from lib.enums import LoadHint, TrcT
 from peewee import *
 from playhouse.shortcuts import model_to_dict, dict_to_model
 
-from vplayer import OverlayWidget, VideoPlayBackUi,VideoPlayBack
+from vplayer import  VideoPlayBackUi,VideoPlayBack
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap,QStandardItemModel, QStandardItem
 import os

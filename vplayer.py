@@ -16,6 +16,7 @@ import traceback
 import math
 import time
 from lib.imageoverlay import ImageOverlay
+from lib.enums import LoadHint, TrcT
 
 class WorkerError(Exception):
     pass
@@ -316,12 +317,12 @@ class VideoPlayBackUi(QWidget):
         self.vid_layout = QHBoxLayout()
 
         loading_pixmap = QPixmap("loading.gif")  # Replace with your loading image path
-        self.dtl_overlay = ImageOverlay(loading_pixmap, pd.DataFrame(), [loading_pixmap])
+        self.dtl_overlay = ImageOverlay(loading_pixmap, pd.DataFrame(),TrcT.DTL, [loading_pixmap])
         self.dtl_overlay.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.dtl_overlay.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.vid_layout.addWidget(self.dtl_overlay)  # Add the overlay to the main layout
 
-        self.face_overlay = ImageOverlay(loading_pixmap, pd.DataFrame(), [loading_pixmap])
+        self.face_overlay = ImageOverlay(loading_pixmap, pd.DataFrame(),TrcT.FACE, [loading_pixmap])
         self.vid_layout.addWidget(self.face_overlay)  # Add the overlay to the main layout
 
         # Create layout and add widgets

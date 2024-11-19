@@ -7,9 +7,10 @@ import os
 import random
 import pandas as pd
 from util import load_pipes
+from lib.enums import LoadHint, TrcT
 
 class ImageOverlay(QGraphicsView):
-    def __init__(self, pixmap, data,raw_frames=[]):
+    def __init__(self, pixmap, data,trcT,raw_frames=[]):
         super().__init__()
 
         self.data = data
@@ -20,6 +21,7 @@ class ImageOverlay(QGraphicsView):
         self.raw_frames = raw_frames
         self.pipes = load_pipes() 
         self.static_items = []
+        self.trcT = trcT
         if not self.pixmap.isNull():
             # Create a QGraphicsScene and add the base image to it
             self.scene = QGraphicsScene(self)
@@ -103,6 +105,9 @@ class ImageOverlay(QGraphicsView):
     def update_frame(self,idx):
         if idx > len(self.raw_frames):
             return
+        if idx in self.frames:
+            print(f"{self.trcT}Frame {idx} was none {len(self.frames)}")
+            return 
         frame = self.frames[idx]
         raw_frame = self.raw_frames[idx]
         #print(f"updating frame {idx} {frame} {raw_frame}")
