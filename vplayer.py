@@ -24,20 +24,18 @@ class WorkerError(Exception):
 class WorkerThread(QThread):
     result = Signal(object)
 
-    def __init__(self, clip, parent_size, lr,df,reload=False):
+    def __init__(self, clip, parent_size, lr,df,doreload=False):
         super().__init__()
         self.clip = clip
         if clip is None and (parent_size == 0 and lr == 0 and df.empty):
             print("video player worker thread :(  worker init)")
         elif clip is None:
             raise WorkerError(f"Need the clip yo {lr}")
-        self.parent_size = parent_size
         self.lr = lr
         self.df = df
         #print(f"worker init: {clip} {parent_size} {lr} {df.head()}")
         self.isRunning = False
-        self.reload = reload
-        self.rawFrames = []
+        self.doreload = doreload
         self.startT = time.time()
 
     def get_raw_frames(self):
@@ -62,12 +60,9 @@ class WorkerThread(QThread):
                         print(f'Generated an exception: {e}')
                         tb = traceback.format_exc()
                         print(tb)
-            #rawFrames = [results[key] for key in sorted(results.keys())]
             sorted_data = dict(sorted(results.items()))
-            rawFrames = [value[0] for value in sorted_data.values()]
-            processedFrames = [value[1] for value in sorted_data.values()]
-            obj = (rawFrames,processedFrames,self.lr)
-            self.rawFrames = rawFrames
+            processedFrames = [value[0] for value in sorted_data.values()]
+            obj = (processedFrames,self.lr)
             self.result.emit(obj)
             vid_stream.close()
             self.isRunning = False 
@@ -85,14 +80,7 @@ class WorkerThread(QThread):
     def run(self):
         """Override run method
         """
-        if(self.reload):
-            #print("starting worker do_work()")
-            #self.do_work()
-            None
-        else:
-            #print("starting worker get_raw_frames()")
-            self.get_raw_frames()
-            #self.do_work()
+        self.get_raw_frames()
 
 
 # Video playback class responsible for managing the actual playback of the video.
@@ -102,10 +90,6 @@ class VideoPlayBack:
 
         self.face_video_clip = None
         self.dtl_video_clip = None
-        self.qimage_frames = []
-        self.qimage_frames2 = []
-        self.faceRawFrames = []
-        self.dtlRawFrames = []
         self.current_frame_index = 0
         self.is_playing = False
         self.dtldf = pd.DataFrame()
@@ -119,34 +103,28 @@ class VideoPlayBack:
         self.logger = logger
         self.start()
 
+    def reset(self):
+        self.current_frame_index = 0
+        self.is_playing = False
+        self.dtldf = pd.DataFrame()
+        self.facedf = pd.DataFrame() 
+
     def shutdown(self):
         if self.face_video_clip is not None:
             self.face_video_clip.close()
         if self.dtl_video_clip is not None:
             self.dtl_video_clip.close()
     # Function to load frames from the video clip
-    def do_load_frame(self,lr,reload,clip, worker):
+    def do_load_frame(self,lr,clip, worker):
         
         if clip is None:
             self.logger.error(f"clip {lr} was NONE!!!!!!!!!!!")
             return
-        #self.qimage_frames2 = []
         self.logger.debug(f"{lr} the clip: {clip}  ")
-        #self.logger.debug(f"the clip was closed? {video_clip.closed}")
-        #self.video_playback_ui.vid2_text.setText(f"Begin Loading!\n{self.video_clip2.format.name}")
         if worker.isRunning:
             self.logger.error("worker is already running")
             return
-        
-        
         worker.result.connect(self.frames_done)
-        if reload:
-            if lr:
-                worker.rawFrames = self.dtlRawFrames
-            else:
-                worker.rawFrames = self.faceRawFrames
-            worker.reload = True
-        worker.finished.connect(self.t1.deleteLater)
         worker.start()
 
     def load_frame(self,lr,reload=False):
@@ -155,34 +133,40 @@ class VideoPlayBack:
         """
         self.logger.debug(f"load_frame() starting to load {lr}")
         parent_size = self.video_playback_ui.parent().size() 
-        if(lr):
-            self.t1 = WorkerThread(self.dtl_video_clip, parent_size, lr,self.dtldf.copy())
-            self.do_load_frame(lr,reload,self.dtl_video_clip, self.t1)
+        if not reload:
+            if(lr):
+                self.t1 = WorkerThread(self.dtl_video_clip, parent_size, lr,self.dtldf.copy())
+                self.do_load_frame(lr,self.dtl_video_clip, self.t1)
+            else:
+                self.t0 = WorkerThread(self.face_video_clip, parent_size, lr,self.facedf.copy())
+                self.do_load_frame(lr,self.face_video_clip, self.t0)
         else:
-            self.t0 = WorkerThread(self.face_video_clip, parent_size, lr,self.facedf.copy())
-            self.do_load_frame(lr,reload,self.face_video_clip, self.t0)
+            self.logger.debug("running reload in load_frame")
+            if(lr):
+                self.video_playback_ui.dtl_overlay.data = self.dtldf.copy()
+                self.video_playback_ui.dtl_overlay.make_frames()
+            else:
+                self.video_playback_ui.face_overlay.data = self.facedf.copy()
+                self.video_playback_ui.face_overlay.make_frames()
 
 
         self.logger.debug("VideoPlayBack load_frames() done queueing framse")
 
 
     def frames_done(self,obj):
-        (rawFrames,frames, lr) = obj
+        (frames, lr) = obj
         #self.logger.debug(f"frames done count: {len(frames)} lr: {lr}") 
         #self.logger.debug(f"rf: \n{rawFrames}\nfr:{frames}")
-        
+        self.logger.debug(f"frames dones lr:{lr} {len(frames)}") 
 
         if lr: 
-            self.dtlRawFrames = rawFrames
-            if len(frames) > 0:
-                self.qimage_frames2 = frames
-                self.update_frame(lr)
+            self.dtlRawFrames = frames
             self.video_playback_ui.slider.setRange(0,len(self.dtlRawFrames)-1)
             self.update_frame(lr)
             self.logger.debug(f"done loading frames time was: {self.t1.startT - time.time()}")
             self.video_playback_ui.dtl_overlay.data = self.dtldf.copy() 
             pixmaps = []
-            for frame in rawFrames:
+            for frame in frames:
                 opixmap = QPixmap.fromImage(frame)
                 transform = QTransform()
                 pixmap = opixmap.transformed(transform.rotate(-90))
@@ -192,13 +176,11 @@ class VideoPlayBack:
             self.video_playback_ui.dtl_overlay.make_frames()
             self.play()
         else:
-            self.faceRawFrames = rawFrames
-            if len(frames) > 0:
-                self.qimage_frames = frames
+            self.faceRawFrames = frames
             self.video_playback_ui.slider.setRange(0,len(self.faceRawFrames)-1)
             self.video_playback_ui.face_overlay.data = self.facedf.copy() 
             pixmaps = []
-            for frame in rawFrames:
+            for frame in frames:
                 opixmap = QPixmap.fromImage(frame)
                 transform = QTransform()
                 pixmap = opixmap.transformed(transform.rotate(-90))
@@ -212,29 +194,18 @@ class VideoPlayBack:
     # Function to update the frame
     def update_frame(self,lr):
 
-        qimage_frames = None
-
-        if(lr):
-            qimage_frames = self.qimage_frames2
-            
-        else:
-            qimage_frames = self.qimage_frames
-
-        if qimage_frames is None or len(qimage_frames) == 0:
-            return
-
-
+        # reset index if overflowed
         if self.current_frame_index < 0:
             self.current_frame_index = 0
-        if self.current_frame_index < len(qimage_frames):
-
-            if(lr):
-                self.video_playback_ui.dtl_overlay.update_frame(self.current_frame_index)
-            else:
-                self.video_playback_ui.face_overlay.update_frame(self.current_frame_index)
-            self.video_playback_ui.slider.setValue(self.current_frame_index)
-        else:
+        if self.current_frame_index >= len(self.video_playback_ui.dtl_overlay.raw_frames):
             self.current_frame_index = 0
+
+
+        if(lr):
+            self.video_playback_ui.dtl_overlay.update_frame(self.current_frame_index)
+        else:
+            self.video_playback_ui.face_overlay.update_frame(self.current_frame_index)
+        self.video_playback_ui.slider.setValue(self.current_frame_index)
 
         self.video_playback_ui.slider_label.setText(f"Frame: {self.current_frame_index}")
 

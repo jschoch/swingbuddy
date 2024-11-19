@@ -10,25 +10,25 @@ from util import load_pipes
 from lib.enums import LoadHint, TrcT
 
 class ImageOverlay(QGraphicsView):
-    def __init__(self, pixmap, data,trcT,raw_frames=[]):
+    def __init__(self, loading_pixmap, data,trcT,raw_frames=[]):
         super().__init__()
 
         self.data = data
         self.index = 0
         
         # Load the base image
-        self.pixmap = pixmap
+        self.loading_pixmap = loading_pixmap
         self.raw_frames = raw_frames
         self.pipes = load_pipes() 
         self.static_items = []
         self.trcT = trcT
-        if not self.pixmap.isNull():
+        if not self.loading_pixmap.isNull():
             # Create a QGraphicsScene and add the base image to it
             self.scene = QGraphicsScene(self)
             # Set the minimum height for the scene
             min_height = 800  # Example minimum height in pixels
             self.scene.setSceneRect(self.scene.sceneRect().adjusted(0, 0, 0, min_height))
-            self.image_item = QGraphicsPixmapItem(self.pixmap)
+            self.image_item = QGraphicsPixmapItem(self.loading_pixmap)
             self.scene.addItem(self.image_item)
             # TODO: do we need to make static frames on init?  Probly not
             #self.make_static_frame()
@@ -54,6 +54,10 @@ class ImageOverlay(QGraphicsView):
         if self.data.empty:
             print("no data for static frames, skipping")
             return
+        if len(self.raw_frames) == 0:
+            print("no raw frames, init?")
+            return
+        print(f"Make static: {self.trcT}")
         self.static_items = []
         frame_pixmap = QPixmap(self.raw_frames[0].size())
         frame_pixmap.fill(QColor('transparent'))
@@ -68,6 +72,9 @@ class ImageOverlay(QGraphicsView):
 
 
     def make_frames(self):
+        for item in self.static_items:
+            self.scene.removeItem(item)
+        self.static_items= []
         self.make_static_frames()
         frame_count = len(self.raw_frames)
         #print(f"makeing {frame_count} frames {len(self.data)} {self.raw_frames}")
@@ -78,18 +85,23 @@ class ImageOverlay(QGraphicsView):
             #self.scene.setSceneRect(scene_rect)
 
         # first run there will be no frames
+        self.frames = {}
         for idx,frame in enumerate(self.raw_frames):
             self.frames[idx] = frame.copy()
         
         for pipe in self.pipes:
             print(f"checking pipe: {pipe.config['name']}")
             if pipe.config['render_tracking']:
-                print(f"found trace image pipe {pipe.config['name']}")
+                print(f"{self.trcT} found tracking image pipe {pipe.config['name']}")
                 for idx,key in enumerate( self.frames):
                     frame = self.frames[key]
-                    new_frame = pipe.process_tracking_frame(frame,self.data,idx)
-                    #print(f" idx: {idx} frame {frame} new_frame {new_frame}")
-                    self.frames[idx] = new_frame
+                    if frame is not None:
+                        new_frame = pipe.process_tracking_frame(frame,self.data,idx)
+                        #print(f" idx: {idx} frame {frame} new_frame {new_frame}")
+                        self.frames[idx] = new_frame
+                    else:
+                        print("can't find idx: {idx}")
+                        self.frames[idx] = frame
 
         self.resize(self.size())
     
@@ -106,7 +118,7 @@ class ImageOverlay(QGraphicsView):
         if idx > len(self.raw_frames):
             return
         if idx not in self.frames:
-            print(f"{self.trcT}Frame {idx} was none {len(self.frames)}")
+            #print(f"{self.trcT} Frame {idx} was none {len(self.frames)}")
             return 
         frame = self.frames[idx]
         raw_frame = self.raw_frames[idx]
@@ -128,8 +140,9 @@ class ImageOverlay(QGraphicsView):
         self.scene.setSceneRect(scene_rect)
 
         # Scale the items to fit the new size
-        scale_x = new_size.width() / self.pixmap.width()
-        scale_y = new_size.height() / self.pixmap.height()
+        frame = self.raw_frames[0]
+        scale_x = new_size.width() / frame.width()
+        scale_y = new_size.height() / frame.height()
         scale_factor = min(scale_x, scale_y)
         
         self.image_item.setScale(scale_factor)

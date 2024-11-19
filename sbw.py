@@ -683,14 +683,14 @@ class SBW(QMainWindow):
         swing = Swing.get_by_id(item_id)
         self.swingloader.load_swing(swing,LoadHint.LOAD)
 
-    def unload_swing_video(self):
+    def unload_swing_video_TODO(self):
         if self.video_playback != None and self.video_playback.is_playing:
             self.main_pause_signal.emit()
         self.logger.debug("resetting swing UI")
         self.video_playback_Ui.video_label2.setPixmap(QPixmap())
         self.video_playback_Ui.video_label1.setPixmap(QPixmap())
         self.plot.reset_data()
-        self.video_playback = VideoPlayBack(self.video_playback_Ui, None)
+        #self.video_playback = VideoPlayBack(self.video_playback_Ui, None)
         self.main_play_signal.connect(self.video_playback.play)
         self.main_pause_signal.connect(self.video_playback.pause)
         self.video_playback.logger = self.logger
@@ -700,7 +700,7 @@ class SBW(QMainWindow):
         self.video_playback_Ui.speed_slider.setValue(100)
         self.video_playback_Ui.speed_slider.setEnabled(True)
 
-    def load_swing_videos(self,swing):
+    def load_swing_videos_TODO(self,swing):
         self.logger.debug(f"loading videos for {swing}")
         self.unload_swing_video()
         
