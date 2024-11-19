@@ -22,6 +22,9 @@ class HipMiddle(BasePipe):
         rx = df['RHip_x']
         lx = df['LHip_x']
         df['HipMiddle_x'] = (rx + lx) / 2.0
+        ry = df['RHip_y']
+        ly = df['LHip_y']
+        df['HipMiddle_y'] = (ry + ly) / 2.0
         return df
     def process_static_frame(self, frame,df,idx):
         if  'HipMiddle_x'  not in df.columns:

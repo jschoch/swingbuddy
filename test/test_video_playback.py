@@ -70,7 +70,7 @@ class TestVideoPlayBack(unittest.TestCase):
         self.video_playback.facedf = self.facedf
         self.video_playback.dtldf = self.dtldf
         #print(f"head\n{self.dtldf.head().to_dict()}") 
-
+        self.video_playback
         self.video_playback.face_video_clip = self.face_video_clip
         self.video_playback.dtl_video_clip = self.dtl_video_clip
 
@@ -86,10 +86,19 @@ class TestVideoPlayBack(unittest.TestCase):
         self.video_playback_Ui.play_button.setEnabled(True)
         self.video_playback_Ui.slider.setEnabled(True)
         self.video_playback_Ui.play_button.clicked.connect(self.play)
+        self.video_playback_Ui.slider.sliderMoved.connect(self.slider_moved)
         self.ui.show()
         
     def play(self):
         self.video_playback.play()
+
+    def slider_moved(self, position):
+        #self.logger.debug(f"pos: {position}")
+        if self.video_playback.is_playing:
+            self.main_pause_signal.emit()
+        self.video_playback.current_frame_index = position
+        self.video_playback.update_frame(0)
+        self.video_playback.update_frame(1)
 
     def tearDown(self):
         # Clean up the database and close the connection
