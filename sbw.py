@@ -36,7 +36,7 @@ import traceback
 from playhouse.shortcuts import model_to_dict, dict_to_model
 import pyautogui
 from datetime import datetime
-from vplayer import OverlayWidget, VideoPlayBackUi,VideoPlayBack
+from vplayer import VideoPlayBackUi,VideoPlayBack
 from cfg import ConfigWindow
 from showswing import SwingWidget
 import os
