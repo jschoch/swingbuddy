@@ -39,80 +39,6 @@ class WorkerThread(QThread):
         self.rawFrames = []
         self.startT = time.time()
 
-    def draw_hip_start_TODO(self,painter,height):
-        """
-        This draws the starting hip position on every frame 
-        """
-        if not self.df.empty and self.lr == 1: 
-            pen = QPen(Qt.green, 4)
-            painter.setPen(pen)
-            x_pos = self.df['HipMiddle_x'].iloc[0]
-            painter.drawLine(x_pos, 0, x_pos, height) 
-
-    def process_frame_TODO(self,index,frame):
-        
-        #img = frame.to_image()
-        #q_image = QImage(img.tobytes(),img.width, img.height,  QImage.Format_RGB888)
-        q_image = frame
-        my_transform = QTransform()
-        my_transform.rotate(-90)
-        q_image = q_image.transformed(my_transform)
-        if self.lr:
-            x_pos, y_pos = self.get_pose_data(index)
-            painter = QPainter(q_image)
-            self.draw_hip_start(painter,q_image.height())
-            pen = QPen(Qt.red, 2)
-            painter.setPen(pen)
-            painter.drawLine(x_pos, 0, x_pos, q_image.height())
-            painter.end()
-        #height = 450
-        #height = self.parent_size.height() - 100
-        #scaled_image = q_image.scaledToHeight(height,Qt.SmoothTransformation)
-        # TODO:  map this to the TRC data via some sort of pipeline
-        #  you should be able the chain them based on some config and or boolieans
-        
-        
-        return (q_image,index)
-
-    def do_work_TODO(self):
-        try:
-            self.isRunning = True
-            frames = self.rawFrames
-            results = {}
-            #print(f"do_work {self.lr} {self.df.empty} frames:  {len(frames)}")
-            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
-                future_to_frame = {
-                    executor.submit(self.process_frame, i,frame): (i, frame) for i,frame in enumerate(frames)
-                }
-                for future in concurrent.futures.as_completed(future_to_frame):
-                    (frame,frame_index) = future_to_frame[future]
-                    try:
-                        (data,idx) = future.result()
-                        #print(f" {idx} ",end="")
-                        results[idx] = data
-                    except Exception as e:
-                        print(f'Generated an exception: {e}')
-                        tb = traceback.format_exc()
-                        print(tb)
-            qimage_frames = [results[key] for key in sorted(results.keys())]
-            obj = (self.rawFrames,qimage_frames,self.lr)
-            self.result.emit(obj)
-            self.isRunning = False 
-        except Exception as e:
-            print(f'Generated an exception: {e}')
-            self.isRunning = False
-     
-    def get_pose_data_TODO(self, frame_number):
-        if  not self.df.empty and self.lr == 1: 
-            row = self.df.iloc[frame_number]
-            #print(f" trying to get fn {frame_number} \n{row.to_dict()}")
-            x = row['HipMiddle_x']
-            y = 100
-            #print(f"*{frame_number} _ {x}*",end="")
-            return x,y
-        else:
-            return 0,0
-
     def get_raw_frames(self):
         try:
             self.isRunning = True
@@ -173,7 +99,6 @@ class VideoPlayBack:
     def __init__(self, video_playback_ui, logger):
         self.video_playback_ui = video_playback_ui
 
-        #TODO: rename clips to something more descriptive.
         self.face_video_clip = None
         self.dtl_video_clip = None
         self.qimage_frames = []
