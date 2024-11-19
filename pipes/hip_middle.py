@@ -24,6 +24,8 @@ class HipMiddle(BasePipe):
         df['HipMiddle_x'] = (rx + lx) / 2.0
         return df
     def process_static_frame(self, frame,df,idx):
+        if  'HipMiddle_x'  not in df.columns:
+            return frame
         x_pos = df['HipMiddle_x'].iloc[0]
         print(f"HMX: {x_pos}")
         pen = QPen(Qt.green, 4)
@@ -33,7 +35,7 @@ class HipMiddle(BasePipe):
 
         return frame
     def process_tracking_frame(self, frame,df,idx):
-        if  not 'HipMiddle_x' in df.columns:
+        if  'HipMiddle_x'  not in df.columns and idx not in df:
             return frame
         print(".", end="")
         x_pos = df['HipMiddle_x'].iloc[idx]

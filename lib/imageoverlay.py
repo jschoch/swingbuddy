@@ -105,7 +105,7 @@ class ImageOverlay(QGraphicsView):
     def update_frame(self,idx):
         if idx > len(self.raw_frames):
             return
-        if idx in self.frames:
+        if idx not in self.frames:
             print(f"{self.trcT}Frame {idx} was none {len(self.frames)}")
             return 
         frame = self.frames[idx]

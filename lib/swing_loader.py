@@ -77,10 +77,9 @@ class SwingLoader():
             if self.w.video_playback != None and self.w.video_playback.is_playing:
                 self.w.main_pause_signal.emit()
                 self.logger.debug("resetting swing UI")
-                self.w.video_playback_Ui.video_label2.setPixmap(QPixmap())
-                self.w.video_playback_Ui.video_label1.setPixmap(QPixmap())
                 self.w.plot.reset_data()
                 self.w.video_playback.shutdown()
+                # TODO: do i need to do this?
                 self.w.video_playback = VideoPlayBack(self.w.video_playback_Ui, self.logger)
                 self.w.video_playback.logger = self.logger
 
