@@ -2,7 +2,7 @@ from lib.swingpipe import BasePipe
 from dataa import euclidean_distance, butter_lowpass_filter
 import pandas as pd
 
-class NXY(BasePipe):
+class LWristPipe(BasePipe):
     """
     normalize Y and X values for display in original pixel sizes 
     """
@@ -43,7 +43,9 @@ class NXY(BasePipe):
             df['LWrist_Speed_filtered'] = butter_lowpass_filter(df['LWrist_Speed'], cutoff, fs)
                 
         return df
-    def process_frame(self, frame):
+    def process_static_frame(self, frame):
         return frame
-    def process_perf_frame(self, frame):
+    def process_tracking_frame(self, frame):
+        return frame
+    def process_trace_frame(self,frame):
         return frame

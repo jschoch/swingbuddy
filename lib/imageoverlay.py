@@ -2,10 +2,11 @@
 import sys
 from PySide6.QtWidgets import QApplication, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QWidget,QVBoxLayout,QHBoxLayout
 from PySide6.QtGui import QPixmap, QPainter, QPen, QColor
-from PySide6.QtCore import QTimer, QRectF,Qt
+from PySide6.QtCore import QTimer, QRectF,Qt,QEvent
 import os
 import random
 import pandas as pd
+from util import load_pipes
 
 class ImageOverlay(QGraphicsView):
     def __init__(self, pixmap, data,raw_frames=[]):
@@ -17,7 +18,8 @@ class ImageOverlay(QGraphicsView):
         # Load the base image
         self.pixmap = pixmap
         self.raw_frames = raw_frames
-        
+        self.pipes = load_pipes() 
+        self.static_items = []
         if not self.pixmap.isNull():
             # Create a QGraphicsScene and add the base image to it
             self.scene = QGraphicsScene(self)
@@ -26,58 +28,57 @@ class ImageOverlay(QGraphicsView):
             self.scene.setSceneRect(self.scene.sceneRect().adjusted(0, 0, 0, min_height))
             self.image_item = QGraphicsPixmapItem(self.pixmap)
             self.scene.addItem(self.image_item)
-
-            self.static_item = self.make_static_frame()
-
-            self.scene.addItem(self.static_item)
+            # TODO: do we need to make static frames on init?  Probly not
+            #self.make_static_frame()
             # Pre-render all frames
             self.frames = []
             self.make_frames()
             # Create a QGraphicsPixmapItem for the overlay and add it to the scene
             self.overlay_item = QGraphicsPixmapItem(self.frames[self.index])
             self.scene.addItem(self.overlay_item)
-
-
-
             scale_factor = 0.3
             self.image_item.setScale(scale_factor)
             self.overlay_item.setScale(scale_factor)
-            self.static_item.setScale(scale_factor)
+            #self.static_item.setScale(scale_factor)
             # Set the scene for the view
             self.setScene(self.scene)
             
         else:
             print(f"Failed to load image. {os.getcwd()}")
 
-    def make_static_frame(self):
-        frame_pixmap = QPixmap(self.pixmap.size())
+    def make_static_frames(self):
+        if self.data.empty:
+            print("no data for static frames, skipping")
+            return
+        self.static_items = []
+        frame_pixmap = QPixmap(self.raw_frames[0].size())
         frame_pixmap.fill(QColor('transparent'))
-        
-        painter = QPainter(frame_pixmap)
-        pen = QPen(QColor('green'), 5)  # Red color and 2 pixels thick line
-        painter.setPen(pen)
-        painter.drawLine(0,0, 800,600)
-        painter.end()
-        return QGraphicsPixmapItem(frame_pixmap)
+        for pipe in self.pipes:
+            print(f"checking pipe {pipe.config['name']}")
+            if pipe.config['render_static']:
+                print(f"found static image pipe {pipe.config['name']}")
+                frame = pipe.process_static_frame(frame_pixmap,self.data,0) 
+                item = QGraphicsPixmapItem(frame)
+                self.static_items.append(item)
+                self.scene.addItem(item)
+
 
     def make_frames(self):
+        self.make_static_frames()
         frame_count = len(self.raw_frames)
-        print(f"makeing {frame_count} frames {len(self.data)} {self.raw_frames}")
-
-
+        #print(f"makeing {frame_count} frames {len(self.data)} {self.raw_frames}")
         if frame_count > 2:
             aframe = self.raw_frames[0]
             #scene_rect = QRectF(0, 0, aframe.width(), aframe.height())
             #self.scene.setSceneRect(scene_rect)
-            
-        
-        
+
         for i in range(frame_count):
                 self.make_frame(i)
+        #self.trigger_resize()
+        self.resize(self.size())
     
 
     def make_frame(self,i):
-        
         frame_pixmap = QPixmap(self.raw_frames[i].size())
         frame_pixmap.fill(QColor('transparent'))
         
@@ -115,6 +116,10 @@ class ImageOverlay(QGraphicsView):
         self.image_item.setPixmap(raw_frame)
         self.overlay_item.setPixmap(frame)
 
+    #def trigger_resize(self):
+        # Manually create and pass a QResizeEvent
+        #resize_event = QEvent.QResizeEvent(self.size(), self.size())
+        #self.resizeEvent(resize_event)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -130,5 +135,6 @@ class ImageOverlay(QGraphicsView):
         
         self.image_item.setScale(scale_factor)
         self.overlay_item.setScale(scale_factor)
-        self.static_item.setScale(scale_factor)  # Scale the static item as well
+        for item in self.static_items:
+            item.setScale(scale_factor)  # Scale the static item as well
         #print(f"scale factor was {scale_factor}")
