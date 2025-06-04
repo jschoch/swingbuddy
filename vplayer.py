@@ -259,7 +259,7 @@ class VideoPlayBack:
     # Function to set playback speed
     def set_playback_speed(self, value):
         #TODO get thsi working again
-        self.speed_slider_label.setText(f"Speeed: {value}")
+        self.video_playback_ui.speed_slider_label.setText(f"Speeed: {value}")
         self.playback_speed = value
 
     # Function to set overlay position

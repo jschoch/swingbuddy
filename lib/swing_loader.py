@@ -109,7 +109,7 @@ class SwingLoader():
         self.logger.debug("Setting current swing")
         self.w.current_swing = swing
 
-        self.w.ui.sw.set_swing_data(self.w.current_swing)
+        self.w.ui.sdw.set_swing_data(self.w.current_swing)
 
     def load_clips(self,swing,hint):
         #  load clip 1

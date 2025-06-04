@@ -2,19 +2,21 @@
 
 # if __name__ == "__main__":
 #     pass
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout,QTextEdit
+from PySide6.QtCore import Qt
 from datetime import datetime
 from swingdb import Swing  # Adjust the path to your models module
 from trcc import QCollapsibleWidget
 
-class SwingWidget(QWidget):
+class SwingDataWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.hlayout = QHBoxLayout()
-        self.layout = QVBoxLayout()
-        self.vlayout2 = QVBoxLayout()
-        self.hlayout.addLayout(self.layout)
+        self.hlayout = QVBoxLayout()
+        self.metadata_layout = QVBoxLayout()
+        self.vlayout2 = QHBoxLayout()
+
+        self.hlayout.addLayout(self.metadata_layout)
         self.hlayout.addLayout(self.vlayout2)
         self.setLayout(self.hlayout)
 
@@ -39,8 +41,10 @@ class SwingWidget(QWidget):
         }
 
         for label_text, value in labels.items():
-            label = QLabel(f"{label_text}\t\t\t {value}", self)
-            self.layout.addWidget(label)
+            label = QTextEdit(f"{label_text}\t\t\t {value}", self)
+            label.setReadOnly(True)
+            label.setFixedHeight(15)
+            self.metadata_layout.addWidget(label)
 
         # Create a collapsible widget for the trc field
         face_trc_collapsible = QCollapsibleWidget("face TRC", self)
@@ -60,8 +64,8 @@ class SwingWidget(QWidget):
         
 
     def clear_layout(self):
-        while self.layout.count():
-            item = self.layout.takeAt(0)
+        while self.metadata_layout.count():
+            item = self.metadata_layout.takeAt(0)
             widget = item.widget()
             if widget:
                 widget.setParent(None)

@@ -38,7 +38,7 @@ import pyautogui
 from datetime import datetime
 from vplayer import VideoPlayBackUi,VideoPlayBack
 from cfg import ConfigWindow
-from showswing import SwingWidget
+from showswing import SwingDataWidget
 import os
 from qwid import QwStatusWidget
 from dataa import pre_speed, gen_speed
@@ -300,11 +300,11 @@ class SBW(QMainWindow):
 
         self.timer = QTimer(self, singleShot=True)
 
-        self.ui.sw = SwingWidget()
+        self.ui.sdw = SwingDataWidget()
         # TODO1
         #self.ui.verticalLayout_6.addWidget(self.ui.sw)
         #self.grid_layout.addWidget(self.ui.sw, 0, 0)
-        self.tab_main_swing_l.addWidget(self.ui.sw)
+        self.tab_main_swing_l.addWidget(self.ui.sdw)
         self.video_playback_Ui = VideoPlayBackUi()
         vpbusize_policy = self.video_playback_Ui.sizePolicy()
         vpbusize_policy.setHorizontalPolicy(QSizePolicy.Expanding)
@@ -482,7 +482,7 @@ class SBW(QMainWindow):
         else:
             self.logger.debug("do_got_trc_foor_swing DTL TRC, loading data")
             self.swingloader.load_swing(swing,LoadHint.NEW_TRC,TrcT.DTL)
-        self.ui.sw.set_swing_data(swing)
+        self.ui.sdw.set_swing_data(swing)
 
     
     @Slot()
