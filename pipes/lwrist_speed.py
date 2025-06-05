@@ -14,7 +14,7 @@ class LWristPipe(BasePipe):
         super().__init__()
         # Update the configuration for this subclass
         self.update_config(
-            name = "Hip Middle",
+            name = "Left Wrist Speed",
             render_on_dtl=True,
             render_static=False,
             render_tracking=True,

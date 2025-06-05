@@ -237,6 +237,12 @@ class SBW(QMainWindow):
         
         # UI hacking
 
+        # OPTIONS
+        self.option_process_dtl = True
+        self.option_show_dtl_overlay = True
+        self.option_process_face = True
+        self.option_show_face_overlay = True
+
         self.central_widget = QWidget()
         self.grid_layout = QGridLayout(self.central_widget)
         self.testl = QLabel("TEST123")
@@ -327,6 +333,9 @@ class SBW(QMainWindow):
         #TODO1
         #self.ui.horizontalLayout.addWidget(self.video_playback_Ui)
         self.tab_main_vid_l.addWidget(self.video_playback_Ui)
+
+        self.video_playback_Ui.dtl_swing_widget.options_changed.connect(self.handle_options_change)
+        self.video_playback_Ui.face_swing_widget.options_changed.connect(self.handle_options_change)
 
         # Adding MenuBar with File, Tool, and Help menus
         self.menu_bar = self.menuBar()
@@ -483,16 +492,20 @@ class SBW(QMainWindow):
         swing = Swing.get_by_id(swingid)
         self.logger.debug(f"do_got_trc_for_swing Loading TRC {vtype}")
         if vtype == 'face':
+
             self.logger.debug("do_got_trc_foor_swing Face TRC, loading data and requesting DTL trc")
             self.swingloader.load_swing(swing,LoadHint.NEW_TRC,TrcT.FACE)
-            self.logger.debug("getting dtl TRC")
-            request_data = {
-                'file_path' : swing.dtlVid,
-                'vtype': 'dtl',
-                'swingid' : swing.id
-            }
-            request_txt = json.dumps(request_data)
-            socketio.emit('do_vid',request_txt) 
+            if self.option_process_dtl:
+                self.logger.debug("getting dtl TRC")
+                request_data = {
+                    'file_path' : swing.dtlVid,
+                    'vtype': 'dtl',
+                    'swingid' : swing.id
+                }
+                request_txt = json.dumps(request_data)
+                socketio.emit('do_vid',request_txt) 
+            else:
+                print("got face trc, skipping dtl due to option checkbox")
         else:
             self.logger.debug("do_got_trc_foor_swing DTL TRC, loading data")
             self.swingloader.load_swing(swing,LoadHint.NEW_TRC,TrcT.DTL)
@@ -598,15 +611,28 @@ class SBW(QMainWindow):
         """
         sends to server, should see a signal called got_trc_for_swing, connected to do_got_trc_for_swing
         """
-        request_data = {
-            'file_path' : swing.faceVid,
-            'vtype': 'face',
-            'swingid' : swing.id
-        }
-        request_txt = json.dumps(request_data)
-        self.logger.debug(f"ws_request_face_trc: request {request_data}")
-        socketio.emit('do_vid',request_txt)
 
+        if (self.option_process_face):
+            request_data = {
+                'file_path' : swing.faceVid,
+                'vtype': 'face',
+                'swingid' : swing.id
+            }
+            request_txt = json.dumps(request_data)
+            self.logger.debug(f"ws_request_face_trc: request {request_data}")
+            socketio.emit('do_vid',request_txt)
+
+        elif (self.option_process_dtl):
+            request_data = {
+                'file_path' : swing.dtlVid,
+                'vtype': 'dtl',
+                'swingid' : swing.id
+            }
+            request_txt = json.dumps(request_data)
+            self.logger.debug(f"ws_request_face_trc: request {request_data}")
+            socketio.emit('do_vid',request_txt)
+        else:
+            print("no processing requested for face or DLT")
 
     def print_output(self,s):
         self.logger.debug(f"output: {s}")
@@ -685,57 +711,19 @@ class SBW(QMainWindow):
         # Set the model to the list view
 
         self.swings_lv.setModel(model)
-        self.swings_lv.clicked.connect(self.item_clicked)
+        self.swings_lv.clicked.connect(self.swing_listview_item_clicked)
 
-    def item_clicked(self, index):
+    def swing_listview_item_clicked(self, index):
 
         self.logger.debug(f" row: {index.row()}")
         item = self.fuckyoumodel.itemFromIndex(index)
 
         item_id = item.data(Qt.UserRole)
         self.logger.debug(f"item {item} id: {item_id}")
-        swing = Swing.get_by_id(item_id)
-        self.swingloader.load_swing(swing,LoadHint.LOAD)
+        if (self.current_swing.id != item_id):
+            swing = Swing.get_by_id(item_id)
+            self.swingloader.load_swing(swing,LoadHint.LOAD)
 
-    def unload_swing_video_TODO(self):
-        if self.video_playback != None and self.video_playback.is_playing:
-            self.main_pause_signal.emit()
-        self.logger.debug("resetting swing UI")
-        self.video_playback_Ui.video_label2.setPixmap(QPixmap())
-        self.video_playback_Ui.video_label1.setPixmap(QPixmap())
-        self.plot.reset_data()
-        #self.video_playback = VideoPlayBack(self.video_playback_Ui, None)
-        self.main_play_signal.connect(self.video_playback.play)
-        self.main_pause_signal.connect(self.video_playback.pause)
-        self.video_playback.logger = self.logger
-        self.video_playback_Ui.play_button.setEnabled(True)
-        self.video_playback_Ui.slider.setEnabled(True)
-        self.video_playback_Ui.speed_slider.setRange(50, 200)
-        self.video_playback_Ui.speed_slider.setValue(100)
-        self.video_playback_Ui.speed_slider.setEnabled(True)
-
-    def load_swing_videos_TODO(self,swing):
-        self.logger.debug(f"loading videos for {swing}")
-        self.unload_swing_video()
-        
-
-        if not hasattr(self, 'of1w') or not self.of1w.isRunning():
-            self.of1w = Worker(self.open_file,swing.faceVid)
-            self.of1w.signals.result.connect(self.of1wdone)
-            self.threadpool.start(self.of1w)
-            self.logger.debug("starting of1w")
-        else:
-            self.logger.debug("already loading file 1")
-
-        if not hasattr(self, 'of2w') or not self.of2w.isRunning():
-            self.of2w = Worker(self.open_file2,self.swing.dtlVid)
-            self.of2w.signals.result.connect(self.of1wdone)
-            self.logger.debug("starting of2w")
-            self.threadpool.start(self.of2w)
-            None
-        else:
-            self.logger.debug("already loading file 2") 
-        self.logger.debug("Done loading video load_swing_video()")
 
 
     def of1wdone(self,result):
@@ -763,6 +751,19 @@ class SBW(QMainWindow):
             self.config = Config.create()
             self.config.save()
 
+
+    def handle_options_change(self,instance_name, process_swing, graph_swing, show_overlays):
+        print(f"Options Changed for Instance: {instance_name}")
+        print(f"  Process Swing: {process_swing}")
+        print(f"  Graph Swing: {graph_swing}")
+        print(f"  Show Overlays: {show_overlays}")
+        print("-" * 30)
+        if(instance_name == "dtl"):
+            self.option_process_dtl = process_swing
+            self.option_show_dtl_overlay = show_overlays
+        if(instance_name == "face"):
+            self.option_process_face = process_swing
+            self.option_show_face_overlay = show_overlays
 
 
     Slot()

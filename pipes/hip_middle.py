@@ -39,6 +39,7 @@ class HipMiddle(BasePipe):
         return frame
     def process_tracking_frame(self, frame,df,idx):
         if  'HipMiddle_x'  not in df.columns and idx not in df:
+            print("no hipmiddle_x")
             return frame
         print(".", end="")
         x_pos = df['HipMiddle_x'].iloc[idx]

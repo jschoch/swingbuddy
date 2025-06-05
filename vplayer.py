@@ -7,6 +7,8 @@ from PySide6.QtGui import QAction,QIcon,QMovie,QPen, QStandardItemModel, QStanda
 from PySide6.QtWidgets import (QMainWindow, QListView, QPushButton, QTextEdit,QSlider,QFileDialog,
     QHBoxLayout, QWidget, QVBoxLayout, QLabel,QDialog,QDialogButtonBox,QGraphicsView, QGraphicsScene,
     QSizePolicy, QMessageBox,QDialog, QGridLayout, QTextEdit)
+import PySide6.QtWidgets as QtWidgets
+import PySide6.QtCore as QtCore
 import threading
 import queue
 import concurrent.futures
@@ -211,7 +213,7 @@ class VideoPlayBack:
             self.video_playback_ui.face_overlay.update_frame(self.current_frame_index)
         self.video_playback_ui.slider.setValue(self.current_frame_index)
 
-        self.video_playback_ui.slider_label.setText(f"Frame: {self.current_frame_index}")
+        self.video_playback_ui.slider_label.setText(f"{self.video_playback_ui.swingid} Frame: {self.current_frame_index}")
 
 
 
@@ -278,7 +280,8 @@ class VideoPlayBackUi(QWidget):
         self.play_button.setEnabled(False)
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setEnabled(False)
-        self.slider_label = QLabel("Frame Slider:")
+        self.swingid = 0
+        self.slider_label = QLabel("Frame Slider: ")
         self.slider.setSingleStep(1)
         self.slider.setMaximum(250)
         self.slider.setValue(0)
@@ -289,22 +292,42 @@ class VideoPlayBackUi(QWidget):
         self.speed_slider_label = QLabel("Playback Speed:")
         self.screen_label2 = QLabel("no clue")
 
-        # Create grid layout for video labels
+        #  holds the overlays and video frames
         self.vid_layout = QHBoxLayout()
 
         loading_pixmap = QPixmap("loading.gif")  # Replace with your loading image path
+        self.dtl_main_layout = QVBoxLayout()
+
         self.dtl_overlay = ImageOverlay(loading_pixmap, pd.DataFrame(),TrcT.DTL, [loading_pixmap])
         self.dtl_overlay.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.dtl_overlay.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.vid_layout.addWidget(self.dtl_overlay)  # Add the overlay to the main layout
+
+        #  the holder for the dtl video stuff
+        self.vid_layout.addLayout(self.dtl_main_layout)  # Add the overlay to the main layout
+
+        # test 
+        #self.test1 = QLabel("DTL")
+        self.dtl_swing_widget = SwingOptionsWidget("dtl",self)
+        self.dtl_main_layout.addWidget(self.dtl_swing_widget)
+
+        #  the actual frames and overlays
+        self.dtl_main_layout.addWidget(self.dtl_overlay)
+
+        
+        # holds frames and controls
+        self.face_main_layout = QVBoxLayout()
 
         self.face_overlay = ImageOverlay(loading_pixmap, pd.DataFrame(),TrcT.FACE, [loading_pixmap])
-        self.vid_layout.addWidget(self.face_overlay)  # Add the overlay to the main layout
+        self.vid_layout.addLayout(self.face_main_layout)
+        #self.test2 = QLabel("Face")
+        self.face_swing_widget = SwingOptionsWidget("face",self)
+        self.face_main_layout.addWidget(self.face_swing_widget)
+        self.face_main_layout.addWidget(self.face_overlay)  # Add the overlay to the main layout
 
-        # Create layout and add widgets
+        #  holds the play button and sliders
         video_button_layout = QHBoxLayout()
         slider_layout = QHBoxLayout()
-
+        
         video_button_layout.addWidget(self.play_button, 1)
         video_button_layout.addWidget(self.slider_label)
         slider_layout.addWidget(self.slider, 5)
@@ -326,3 +349,67 @@ class VideoPlayBackUi(QWidget):
         self.main_layout.addWidget(ctrl_widget)
         self.main_layout.addLayout(slider_layout)
         self.main_layout.addLayout(self.vid_layout)
+
+class SwingOptionsWidget(QtWidgets.QWidget):
+    # Modify the signal to include a string identifier as the first argument
+    options_changed = QtCore.Signal(str, bool, bool, bool) # instance_name, process_swing, graph_swing, show_overlays
+
+    def __init__(self, instance_name: str, parent=None):
+        super().__init__(parent)
+        self.instance_name = instance_name # Store the instance name
+        self.init_ui()
+
+        # Initialize boolean states
+        self._process_swing = True
+        self._graph_swing = True 
+        self._show_overlays =  True
+        self.parent = parent
+
+    def init_ui(self):
+        # Create a vertical layout for the checkboxes
+        self.layout = QtWidgets.QVBoxLayout()
+        self.setLayout(self.layout)
+
+        # Optional: Add a QLabel to display the instance name
+        self.instance_label = QtWidgets.QLabel(f"Options for: {self.instance_name}")
+        self.layout.addWidget(self.instance_label)
+
+        # Create the checkboxes
+        self.process_swing_cb = QtWidgets.QCheckBox("Process Swing")
+        self.process_swing_cb.setChecked(True)
+        self.graph_swing_cb = QtWidgets.QCheckBox("Graph Swing")
+        self.graph_swing_cb.setChecked(True)
+        self.show_overlays_cb = QtWidgets.QCheckBox("Show Overlays")
+        self.show_overlays_cb.setChecked(True)
+
+        # Add checkboxes to the layout
+        self.layout.addWidget(self.process_swing_cb)
+        self.layout.addWidget(self.graph_swing_cb)
+        self.layout.addWidget(self.show_overlays_cb)
+
+        # Connect the state changed signal of each checkbox to our handler method
+        self.process_swing_cb.stateChanged.connect(self._on_checkbox_state_changed)
+        self.graph_swing_cb.stateChanged.connect(self._on_checkbox_state_changed)
+        self.show_overlays_cb.stateChanged.connect(self._on_checkbox_state_changed)
+
+        # Optional: Set a smaller fixed size policy if you want it to take minimal space
+        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum)
+
+    def _on_checkbox_state_changed(self):
+        # Update the internal boolean states
+        self._process_swing = self.process_swing_cb.isChecked()
+        self._graph_swing = self.graph_swing_cb.isChecked()
+        self._show_overlays = self.show_overlays_cb.isChecked()
+
+        # Emit the signal with the instance name and current states
+        self.options_changed.emit(self.instance_name, self._process_swing, self._graph_swing, self._show_overlays)
+
+    # Public methods to get the current states (optional, as the signal also provides them)
+    def get_process_swing_state(self):
+        return self._process_swing
+
+    def get_graph_swing_state(self):
+        return self._graph_swing
+
+    def get_show_overlays_state(self):
+        return self._show_overlays

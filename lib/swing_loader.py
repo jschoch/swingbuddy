@@ -30,6 +30,7 @@ class SwingLoader():
                 self.move_new_swing(swing)
                 self.start_screen_timer(swing)
                 self.add_swing_to_view_model(swing,hint)
+                # this deals with both TRC and DTL option flags
                 self.w.ws_request_face_trc(swing)
                 self.set_current_swing(swing)
                 self.load_clips(swing,hint)
@@ -124,6 +125,7 @@ class SwingLoader():
         self.w.video_playback_Ui.speed_slider.setRange(50, 200)
         self.w.video_playback_Ui.speed_slider.setValue(100)
         self.w.video_playback_Ui.speed_slider.setEnabled(True)
+        self.w.video_playback_Ui.swingid = swing.id
     
         
     def load_frames(self,swing,trcT,hint):
