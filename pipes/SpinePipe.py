@@ -20,6 +20,8 @@ class SpinePipe(BasePipe):
     def preprocess_df(self, df):
         return df
     def process_static_frame(self, frame,df,idx):
+        if  not 'HipMiddle_x' in df.columns:
+            return frame
         x_pos1 = df['HipMiddle_x'].iloc[idx]
         y_pos1 = df['HipMiddle_y'].iloc[idx]
         x_pos2 = df['Neck_x'].iloc[idx]
@@ -31,6 +33,8 @@ class SpinePipe(BasePipe):
         painter.end()
         return frame
     def process_tracking_frame(self, frame,df,idx):
+        if  not 'HipMiddle_x' in df.columns:
+            return frame
         x_pos1 = df['HipMiddle_x'].iloc[idx]
         y_pos1 = df['HipMiddle_y'].iloc[idx]
         x_pos2 = df['Neck_x'].iloc[idx]

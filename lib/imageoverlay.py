@@ -23,29 +23,33 @@ class ImageOverlay(QGraphicsView):
         self.static_items = []
         self.trcT = trcT
         if not self.loading_pixmap.isNull():
-            # Create a QGraphicsScene and add the base image to it
-            self.scene = QGraphicsScene(self)
-            # Set the minimum height for the scene
-            min_height = 800  # Example minimum height in pixels
-            self.scene.setSceneRect(self.scene.sceneRect().adjusted(0, 0, 0, min_height))
-            self.image_item = QGraphicsPixmapItem(self.loading_pixmap)
-            self.scene.addItem(self.image_item)
-            # TODO: do we need to make static frames on init?  Probly not
-            #self.make_static_frame()
-            # Pre-render all frames
-            self.frames = {}
-            self.make_frames()
-            # Create a QGraphicsPixmapItem for the overlay and add it to the scene
-            self.overlay_item = QGraphicsPixmapItem(self.raw_frames[self.index])
-            self.scene.addItem(self.overlay_item)
-            scale_factor = 0.3
-            self.image_item.setScale(scale_factor)
-            self.overlay_item.setScale(scale_factor)
-            for item in self.static_items:
-                item.setScale(scale_factor)
-            #self.static_item.setScale(scale_factor)
-            # Set the scene for the view
-            self.setScene(self.scene)
+            try:
+                # Create a QGraphicsScene and add the base image to it
+                self.scene = QGraphicsScene(self)
+                # Set the minimum height for the scene
+                min_height = 800  # Example minimum height in pixels
+                self.scene.setSceneRect(self.scene.sceneRect().adjusted(0, 0, 0, min_height))
+                self.image_item = QGraphicsPixmapItem(self.loading_pixmap)
+                self.scene.addItem(self.image_item)
+                # TODO: do we need to make static frames on init?  Probly not
+                #self.make_static_frame()
+                # Pre-render all frames
+                self.frames = {}
+                self.make_frames()
+                # Create a QGraphicsPixmapItem for the overlay and add it to the scene
+                self.overlay_item = QGraphicsPixmapItem(self.raw_frames[self.index])
+                self.scene.addItem(self.overlay_item)
+                scale_factor = 0.4
+                self.image_item.setScale(scale_factor)
+                self.overlay_item.setScale(scale_factor)
+                for item in self.static_items:
+                    print(item)
+                    item.setScale(scale_factor)
+                #self.static_item.setScale(scale_factor)
+                # Set the scene for the view
+                self.setScene(self.scene)
+            except Exception as e:
+                print(f"this blew up {e}")
             
         else:
             print(f"Failed to load image. {os.getcwd()}")
@@ -76,10 +80,12 @@ class ImageOverlay(QGraphicsView):
     def make_frames(self):
         for item in self.static_items:
             self.scene.removeItem(item)
-        self.static_items= []
-        self.make_static_frames()
         frame_count = len(self.raw_frames)
         #print(f"makeing {frame_count} frames {len(self.data)} {self.raw_frames}")
+        print(f"makeing {frame_count} frames {len(self.data)}")
+        self.static_items= []
+        self.make_static_frames()
+        
         if frame_count < 2:
             print(f"no frames, make_frames() skipping")
             return

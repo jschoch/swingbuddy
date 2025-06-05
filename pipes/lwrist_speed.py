@@ -63,8 +63,10 @@ class LWristPipe(BasePipe):
         if  not 'LWrist_Speed_filtered' in df.columns:
             return frame
         print(".", end="")
-        x_pos = df['LWrist_x'].iloc[idx]
-        y_pos = df['LWrist_y'].iloc[idx]
+        y_pos = df['LWrist_x'].iloc[idx]
+        x_pos = df['LWrist_y'].iloc[idx]
+        z_pos = df['LWrist_z'].iloc[idx]
+        print(f"x:{x_pos} y:{y_pos} z:{z_pos}")
 
         # Draw a vertical line at the wrist position
         painter = QPainter(frame)

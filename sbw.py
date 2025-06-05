@@ -40,13 +40,14 @@ from vplayer import VideoPlayBackUi,VideoPlayBack
 from cfg import ConfigWindow
 from showswing import SwingDataWidget
 import os
-from qwid import QwStatusWidget
-from dataa import pre_speed, gen_speed
 import threading
 import signal
 from lib.enums import LoadHint, TrcT
 from lib.swing_loader import SwingLoader
 from lib.wait_connection_dialog import ConnectionDialog
+
+import faulthandler
+faulthandler.enable()
 
 app2 = Flask(__name__)
 socketio = SocketIO(app2, cors_allowed_origins="*")
@@ -91,11 +92,14 @@ class FlaskThread(QThread):
 
     def run(self):
         global shared_object
-        socketio.run(app2, host='0.0.0.0', port=5004)
-        shared_object.message_signal.messageReceived.emit("i started ok?")
-        shared_object.message_signal.msg_to_send.connect(self.on_msg_to_send)
-        shared_object.message_signal.doany.connect(self.on_do_any)
-        log.debug("Flask Run finished")
+        try:
+            socketio.run(app2, host='0.0.0.0', port=5004)
+            shared_object.message_signal.messageReceived.emit("i started ok?")
+            shared_object.message_signal.msg_to_send.connect(self.on_msg_to_send)
+            shared_object.message_signal.doany.connect(self.on_do_any)
+            #log.debug("Flask Run finished")
+        except Exception as e:
+            print(f"fuck {e}")
     
     def do_stop(self):
         log.debug("wow, no apparent way to shut this off")
@@ -122,20 +126,22 @@ class FlaskThread(QThread):
     
     @socketio.on('connect', namespace='/')
     def handle_connect(sid):
-        log.debug(f"Client connected to '/' {sid}")
+        #log.debug(f"Client connected to '/' {sid}")
         #join_room(sid,'remote')
         shared_object.message_signal.serverConnect.emit()
     
     @socketio.on('disconnect')
     def handle_disconnect():
-        log.debug(f"Client disconnected {1}")
+        #log.debug(f"Client disconnected {1}")
+        print("disconnect")
         shared_object.message_signal.serverDisconnect.emit()
 
     # WebSocket event handler
     @socketio.on('message')
     def handle_client_message(data):
         # Emit the received message back to all clients
-        log.debug("Handle Client triggered")
+        #log.debug("Handle Client triggered")
+        print("msg")
         #shared_object.message_signal.wsSignal.emit(data)
 
     @socketio.on('ocr_data')
@@ -155,21 +161,24 @@ class FlaskThread(QThread):
             return 
         new_maybe_json = '\n'.join(lines)
         unescaped_json_str = new_maybe_json.encode('utf-8').decode('unicode_escape')
-        log.info(f"data looks like \n{unescaped_json_str}")
+        #log.info(f"data looks like \n{unescaped_json_str}")
         try:
             maybedata = json.loads(unescaped_json_str)
-            log.debug(f"parsed ocr json: {maybedata}")
+            #log.debug(f"parsed ocr json: {maybedata}")
         except Exception as e:
-            log.error(f"Error parsing OCR data: {e} json: \n{unescaped_json_str}")
+            #log.error(f"Error parsing OCR data: {e} json: \n{unescaped_json_str}")
+            print("error 170")
             return
 
         try:
             lmdata = LMData.get_by_id(swing.lmdata.id)
             lmdata.raw_txt = unescaped_json_str
-            log.info(f"lmdata model: {model_to_dict(lmdata)}")
+            #log.info(f"lmdata model: {model_to_dict(lmdata)}")
+            print("lmdata model")
             lmdata.save()
         except Exception as e:
-            log.error(f"Error saving OCR data to LMData: {e}")
+            #log.error(f"Error saving OCR data to LMData: {e}")
+            print("error ocr")
 
 
     @socketio.on('video_data')
@@ -177,30 +186,34 @@ class FlaskThread(QThread):
         #log.debug(f"Got the video data fool: {data_txt}")
         data = None
         if(data_txt == "ERROR"):
-            log.error("Received error message from TRC processing")
+            #log.error("Received error message from TRC processing")
+            print("TRC datat error")
             return
         try:
             data = json.loads(data_txt)
-            log.debug(f"Got trc data for swing id: {data['swingid']} type: {data['vtype']}")
+            #log.debug(f"Got trc data for swing id: {data['swingid']} type: {data['vtype']}")
+            print("got trc")
         except Exception as e:
-            log.error(f"Error parsing json: {e}\n{data_txt[:200]}")
+            #log.error(f"Error parsing json: {e}\n{data_txt[:200]}")
+            print("bad json")
             return
 
         try: 
             swing = Swing.get_by_id(data['swingid'])
             if(data['vtype'] == "face"):
-                log.debug("got vtype face")
+                #log.debug("got vtype face")
                 swing.faceTrc = data['trc_txt']
             if(data['vtype'] == "dtl"):
                 swing.dtlTrc = data['trc_txt']
-                log.debug("got vtype dtl")
+                #log.debug("got vtype dtl")
             #log.debug(f"got some crap {swing.faceTrc[:100]}")
             swing.save()
             obj = (swing, data['vtype'])
             shared_object.message_signal.got_trc_for_swing.emit(obj)
             
         except Exception as e:
-            log.error(f"Error getting swing by id: {e}")
+            #log.error(f"Error getting swing by id: {e}")
+            print(f"shit blewed up {e}")
 
         
     
@@ -409,8 +422,8 @@ class SBW(QMainWindow):
         #TODO1
         #self.ui.gridLayout.addWidget(self.plot)
 
-        #self.slider.valueChanged.connect(self.update_vline)
         self.video_playback_Ui.slider.valueChanged.connect(self.plot.update_vline)
+
 
         self.screenlabel = QLabel()
         #TODO1
@@ -710,7 +723,6 @@ class SBW(QMainWindow):
             self.of1w.signals.result.connect(self.of1wdone)
             self.threadpool.start(self.of1w)
             self.logger.debug("starting of1w")
-            #QThreadPool.globalInstance().start(self.of1w)
         else:
             self.logger.debug("already loading file 1")
 
@@ -718,7 +730,6 @@ class SBW(QMainWindow):
             self.of2w = Worker(self.open_file2,self.swing.dtlVid)
             self.of2w.signals.result.connect(self.of1wdone)
             self.logger.debug("starting of2w")
-            #QThreadPool.globalInstance().start(self.of2w)
             self.threadpool.start(self.of2w)
             None
         else:
@@ -781,8 +792,10 @@ class SBW(QMainWindow):
             self.logger.debug("http_process_swing() s was not a string")
             
     def add_and_load_swing(self,files, maybeScreen=False,autoTrc=False, autoScreen=False):
-        dtlVid = [file for file in files if 'left.mp4' in file]
-        faceVid = [file for file in files if 'right.mp4' in file]
+        #dtlVid = [file for file in files if 'left.mp4' in file]
+        #faceVid = [file for file in files if 'right.mp4' in file]
+        dtlVid = [file for file in files if 'right.mp4' in file]
+        faceVid = [file for file in files if 'left.mp4' in file]
         screen = [file for file in files if 'screen.png' in file]
         swing = None
 
@@ -1041,8 +1054,9 @@ class SineWavePlot(QWidget):
         super().__init__()
 
         # Create a sine wave data
-        self.ox = np.arange(241)  # x-axis values from 0 to 240
-        self.oy = np.sin(self.ox * 2 * np.pi / 240)  # Adjust frequency for 241 points
+        range = 10
+        self.ox = np.arange(range)  
+        self.oy = np.sin(self.ox * 2 * np.pi / range)  
 
         self.y = self.oy
         self.x = self.ox
@@ -1051,43 +1065,55 @@ class SineWavePlot(QWidget):
         self.logger = logger
         self.parent = parent
 
+        # Create a slider
+        self.plot_slider = QSlider(Qt.Horizontal)
+        self.plot_slider.setRange(0, range)
+        self.plot_slider.setSingleStep(1)
+        self.plot_slider.setValue(0)  # Initial position
+
+
+        # Connect the slider's valueChanged signal to a slot
+        self.vline = pg.InfiniteLine(angle=90, movable=False)
+        self.plot_slider.valueChanged.connect(self.update_vline)
+
 
         # Create a plot widget
         self.plot_widget = pg.PlotWidget()
+        self.plot_widget.setYRange(0,range,padding=0)
         self.plot_widget.setMaximumHeight(300)
+        self.plot_widget.addItem(self.vline)
         self.plot_item = self.plot_widget.plot(self.x, self.y, pen={'color': 'r', 'width': 4})
         self.plot_item2 = self.plot_widget.plot(self.x, self.y, pen={'color': 'g', 'width': 1})
-        #self.hip_plot_item = self.plot_widget.plot(self.x, self.y, pen={'color': 'g', 'width': 1})
-        # Create a vertical line item
-        self.vline = pg.InfiniteLine(angle=90, movable=False)
-        self.plot_widget.addItem(self.vline)
+        #self.plot_item.disableAutoRange()
 
-        # Create a slider
-        self.slider = QSlider(Qt.Horizontal)
-        self.slider.setRange(0, 240)
-        self.slider.setSingleStep(1)
-        self.slider.setValue(120)  # Initial position
+        #self.plot_item2.disableAutoRange()
 
-        # Connect the slider's valueChanged signal to a slot
-        self.slider.valueChanged.connect(self.update_vline)
+
+
+        
+
+
+
         self.slabel = QLabel("V:")
         # Create the layout
         layout = QVBoxLayout()
         layout.addWidget(self.plot_widget)
         layout.addWidget(self.slabel)
-        layout.addWidget(self.slider)
+        layout.addWidget(self.plot_slider)
         self.y_value_label = QLabel()
         layout.addWidget(self.y_value_label)
-
         self.setLayout(layout)
+        
+        #self.hip_plot_item = self.plot_widget.plot(self.x, self.y, pen={'color': 'g', 'width': 1})
         #self.plot_item.scene().sigMouseMoved.connect(self.mouse_moved)
 
     def update_vline(self, value):
-        # Update the position of the vertical line based on the slider value
-        self.slabel.setText(f"v:{value}")
-        self.vline.setPos(value)
+        if isinstance(value, int):
+            self.slabel.setText(f"v:{value}")
+            self.vline.setPos(value)
     def mouse_moved(self, pos):
         #pos = evt[0]  # Get the mouse position
+        print("mouse moved")
 
         if self.plot_item.sceneBoundingRect().contains(pos):
             mouse_point = self.plot_item.vb.mapSceneToView(pos)
@@ -1102,10 +1128,11 @@ class SineWavePlot(QWidget):
             self.y_value_label.setText("")
     @Slot()
     def reset_data(self):
+        print("reset data called")
         self.y = self.oy
         slen = len(self.oy)
         self.x = list(range(slen))
-        self.slider.setRange(0, slen)
+        self.plot_slider.setRange(0, slen)
 
         #self.plot_item.setXRange(0, slen, padding=0)
         #self.plot_item2.setXRange(0, slen, padding=0)
@@ -1115,6 +1142,7 @@ class SineWavePlot(QWidget):
     @Slot()
     #def update_data(self, new_y_data):
     def update_data(self,df, df2 = None, df3 = None):
+        print("update data called")
         if 'LWrist_Speed_filtered' in df.columns:
             self.y = df['LWrist_Speed_filtered'].to_list()
             slen = len(self.y)
@@ -1122,7 +1150,7 @@ class SineWavePlot(QWidget):
             
             self.y2 = df['LWrist_Speed'].to_list()
             pen = {'color': 'r', 'width': 1}
-            self.slider.setRange(0, slen)
+            self.plot_slider.setRange(0, slen)
             
             
 
@@ -1134,7 +1162,8 @@ class SineWavePlot(QWidget):
             self.plot_item.getViewBox().setXRange(0, slen)
             self.plot_item2.getViewBox().setXRange(0,slen)
         else:
-            self.logger.error("update_data df not found for swing {swing.id}")
+            #self.logger.error("update_data df not found for swing {swing.id}")
+            print("update_data df not found for swing {swing.id}")
 
         # TODO: implement as a pipe
         #if df2 is not None and not df2.empty:

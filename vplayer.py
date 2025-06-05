@@ -287,6 +287,7 @@ class VideoPlayBackUi(QWidget):
         self.speed_slider.setMaximum(200)
         self.speed_slider.setValue(100)
         self.speed_slider_label = QLabel("Playback Speed:")
+        self.screen_label2 = QLabel("no clue")
 
         # Create grid layout for video labels
         self.vid_layout = QHBoxLayout()

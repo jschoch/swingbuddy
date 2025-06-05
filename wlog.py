@@ -28,7 +28,6 @@ class QtWindowHandler(logging.Handler):
         
         # Save the current window geometry to a setting
         settings = QSettings("schoch", "swingbuddy_debug")
-        #settings.setValue("windowPosition", self.window().geometry())
         settings.setValue("windowPosition", self.window.geometry())
 
         print("Closing handler")
@@ -83,12 +82,6 @@ class Window(QWidget):
         self.textEdit.clear()
 
     def closeEvent(self, event):
-        # Optionally you can add some confirmation logic here
-        # For example:
-        # reply = QMessageBox.question(self, 'Message', "Are you sure to quit?",
-        #                              QMessageBox.Yes | QMessageBox.No,
-        #                              QMessageBox.No)
-        # if reply == QMessageBox.Yes:
         self.quit_application()
         event.accept()
 
