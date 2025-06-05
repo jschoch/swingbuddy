@@ -208,7 +208,7 @@ class FlaskThread(QThread):
                 #log.debug("got vtype dtl")
             #log.debug(f"got some crap {swing.faceTrc[:100]}")
             swing.save()
-            obj = (swing, data['vtype'])
+            obj = (swing.id, data['vtype'])
             shared_object.message_signal.got_trc_for_swing.emit(obj)
             
         except Exception as e:
@@ -479,7 +479,8 @@ class SBW(QMainWindow):
 
     @Slot()
     def do_got_trc_for_swing(self,obj):
-        (swing,vtype) = obj
+        (swingid,vtype) = obj
+        swing = Swing.get_by_id(swingid)
         self.logger.debug(f"do_got_trc_for_swing Loading TRC {vtype}")
         if vtype == 'face':
             self.logger.debug("do_got_trc_foor_swing Face TRC, loading data and requesting DTL trc")
