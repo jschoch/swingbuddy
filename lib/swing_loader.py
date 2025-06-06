@@ -8,7 +8,7 @@ from vplayer import  VideoPlayBackUi,VideoPlayBack
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap,QStandardItemModel, QStandardItem
 import os
-from util import find_swing, fetch_trc,get_pairs,load_pipes
+from util import find_swing, fetch_trc,get_pairs,load_pipes,copy_files
 import pandas as pd
 from swingdb import Swing, Session,Config,LMData
 import traceback

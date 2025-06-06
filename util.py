@@ -15,7 +15,7 @@ from io import StringIO
 import pandas as pd
 from importlib.util import spec_from_file_location, module_from_spec
 from lib.swingpipe import BasePipe
-from shutil import move
+from shutil import move,copy
 
 PIPE_DIR = 'pipes'
 
@@ -217,9 +217,23 @@ def move_file_to_folder(filepath, new_folder):
 def move_files(files,base_path):
     if not files:
         print("no files")
-        return
+        return []
     year, month, day = parse_filename(files[0])
     new_folder = create_folder_structure(base_path,year, month, day)
     for filename in files:
         move_file_to_folder(filename, new_folder)
     return new_folder
+
+def copy_files(files, new_folder):
+    if not files:
+        print("copy files: no files")
+        return []
+    for filename in files:
+        copy_file_to_folder(filename, new_folder)
+        
+def copy_file_to_folder(filepath, new_folder):
+    if os.path.exists(filepath):
+        if os.path.exists(new_folder):
+            fname = os.path.basename(filepath)
+            destination_file_path = os.path.join(new_folder, fname) 
+            copy(filepath,destination_file_path)

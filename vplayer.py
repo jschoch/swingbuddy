@@ -67,6 +67,7 @@ class WorkerThread(QThread):
             obj = (processedFrames,self.lr)
             self.result.emit(obj)
             vid_stream.close()
+            self.clip.close()
             self.isRunning = False 
         except Exception as e:
             print(f'Generated an exception: {e}')

@@ -56,6 +56,7 @@ class Config(BaseModel):
     vidDir = CharField(default=r"c:/files/test_swings")
     screenDir = CharField(default="c:/files/test_swings")
     kinoveaDir = CharField(default=r"C:/Files/kinovea_swings")
+    stageDir = CharField(default=r"c:/Files/swing_stage")
     ocrServer = CharField(default="not done yet")
     poseServer = CharField(default="http://localhost:5000/gettrc")
     enableScreen = BooleanField(default=True)
@@ -71,6 +72,8 @@ if __name__ == '__main__':
     print("running migration")
     migrator = SqliteMigrator(db)
     migrate(
-        migrator.add_column('config', 'kinoveaDir', CharField(default=r"C:/Files/kinovea_swings"))
+        migrator.add_column('config', 'kinoveaDir', CharField(default=r"C:/Files/kinovea_swings")),
+        migrator.add_column('config', 'stageDir', CharField(default=r"C:/Files/swing_stage"))
+
     )
     

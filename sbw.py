@@ -23,7 +23,7 @@ from swingdb import Swing, Session,Config,LMData
 from peewee import *
 from wlog import QtWindowHandler
 import av
-from util import find_swing, fetch_trc,get_pairs,load_pipes, move_files
+from util import find_swing, fetch_trc,get_pairs,load_pipes, move_files,copy_files
 import pyqtgraph as pg
 import numpy as np
 import json
@@ -338,28 +338,11 @@ class SBW(QMainWindow):
         self.video_playback_Ui.face_swing_widget.options_changed.connect(self.handle_options_change)
 
         # Adding MenuBar with File, Tool, and Help menus
-        self.menu_bar = self.menuBar()
-        self.file_menu = self.menu_bar.addMenu("&File")
-        self.tool_menu = self.menu_bar.addMenu("&Tool")
-        self.help_menu = self.menu_bar.addMenu("&Help")
 
-        # Add actions to the File menu
-        self.open_action = QAction("&Open", self)
-        self.open_action.setShortcut("Ctrl+O")
-        self.open_action.triggered.connect(self.open_file)
-        self.file_menu.addAction(self.open_action)
 
+        # connect
         self.clip_loaded.connect(self.post_load_video_clip)
-
-        self.open_action2 = QAction("&Open2", self)
-        self.open_action2.setShortcut("Ctrl+O")
-        self.open_action2.triggered.connect(self.open_file2)
-        self.file_menu.addAction(self.open_action2)
-
-        self.quit_action = QAction("&Quit", self)
-        self.quit_action.setShortcut("Ctrl+Q")
-        self.quit_action.triggered.connect(self.quit_application)
-        self.file_menu.addAction(self.quit_action)
+        
 
         # Setup share obj for flask messages
         self.shared_object = shared_object
@@ -370,10 +353,6 @@ class SBW(QMainWindow):
         self.shared_object.message_signal.got_trc_for_swing.connect(self.do_got_trc_for_swing)
         
 
-        # Add action to the Help menu
-        self.shortcut_help_action = QAction("&Shortcut Help", self)
-        self.shortcut_help_action.triggered.connect(self.show_shortcut_help)
-        self.help_menu.addAction(self.shortcut_help_action)
 
 
         # Connect signals to slots
@@ -497,8 +476,10 @@ class SBW(QMainWindow):
             self.swingloader.load_swing(swing,LoadHint.NEW_TRC,TrcT.FACE)
             if self.option_process_dtl:
                 self.logger.debug("getting dtl TRC")
+                fname = os.path.basename(swing.dtlVid)
+                stage = os.path.join(self.config.stageDir,fname)
                 request_data = {
-                    'file_path' : swing.dtlVid,
+                    'file_path' : stage,
                     'vtype': 'dtl',
                     'swingid' : swing.id
                 }
@@ -612,9 +593,12 @@ class SBW(QMainWindow):
         sends to server, should see a signal called got_trc_for_swing, connected to do_got_trc_for_swing
         """
 
+        #TODO: gross, you have this 3 times DRY it
         if (self.option_process_face):
+            fname = os.path.basename(swing.faceVid)
+            stage = os.path.join(self.config.stageDir,fname)
             request_data = {
-                'file_path' : swing.faceVid,
+                'file_path' : stage,
                 'vtype': 'face',
                 'swingid' : swing.id
             }
@@ -623,8 +607,10 @@ class SBW(QMainWindow):
             socketio.emit('do_vid',request_txt)
 
         elif (self.option_process_dtl):
+            fname = os.path.basename(swing.dtlVid)
+            stage = os.path.join(self.config.stageDir,fname)
             request_data = {
-                'file_path' : swing.dtlVid,
+                'file_path' : stage,
                 'vtype': 'dtl',
                 'swingid' : swing.id
             }
@@ -788,6 +774,7 @@ class SBW(QMainWindow):
             self.logger.debug(f"new folder: {new_folder}")
             swings = find_swing(new_folder,"mp4")
             print(f"sings: {swings}")
+            copy_files(swings,self.config.stageDir)
             self.add_and_load_swing(swings)
         else:
             self.logger.debug("http_process_swing() s was not a string")
@@ -833,44 +820,6 @@ class SBW(QMainWindow):
         self.swingloader.load_swing(swing,LoadHint.NEW)
 
 
-
-    # Function to open a video file
-    def open_file(self,file_path):
-        if file_path is None or file_path == False:
-            file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
-
-        if not os.path.exists(file_path):
-            return "OF1 no file "
-
-        #self.logger.debug(f" file path: {file_path}")
-        self.logger.debug(f"Starting AV load 1 of {file_path}")
-        
-        start = time.time()
-        clip = av.open(file_path,mode='r',options=self.av_options)
-        end = time.time()
-        self.logger.debug(f"AV load 1 took {end-start} seconds")
-        obj = (clip,1)
-        self.clip_loaded.emit(obj)
-        #self.of1w.signals.result.emit("done of1")
-        
-
-
-    def open_file2(self,file_path):
-        if file_path is None or file_path == False:
-             file_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")
-            
-        if not os.path.exists(file_path):
-            return "OF1 no file "
-
-        #self.logger.debug(f"file path2: {file_path}")
-        self.logger.debug(f"Starting AV load 2 of {file_path}")
-        start = time.time()
-        clip = av.open(file_path,mode='r',options=self.av_options)
-        end = time.time()
-        self.logger.debug(f"AV load 2 took {end-start} seconds")
-        obj = (clip,2)
-        self.clip_loaded.emit(obj)
-        #self.of1w.signals.result.emit("done of2")
 
     def do_open_file(self,swing,fpath,trcT,hint):
         if not os.path.exists(fpath):
@@ -973,81 +922,6 @@ class SBW(QMainWindow):
 
 
 
-class WorkerSignals(QObject):
-    '''
-    Defines the signals available from a running worker thread.
-
-    Supported signals are:
-
-    finished
-        No data
-
-    error
-        tuple (exctype, value, traceback.format_exc() )
-
-    result
-        object data returned from processing, anything
-
-    progress
-        int indicating % progress
-
-    '''
-    finished = Signal()
-    error = Signal(tuple)
-    result = Signal(object)
-    progress = Signal(int)
-
-class Worker(QRunnable):
-    '''
-    Worker thread
-
-    Inherits from QRunnable to handler worker thread setup, signals and wrap-up.
-
-    :param callback: The function callback to run on this worker thread. Supplied args and
-                     kwargs will be passed through to the runner.
-    :type callback: function
-    :param args: Arguments to pass to the callback function
-    :param kwargs: Keywords to pass to the callback function
-
-    '''
-
-    def __init__(self, fn, *args, **kwargs):
-        super(Worker, self).__init__()
-
-        # Store constructor arguments (re-used for processing)
-        self.fn = fn
-        self.args = args
-        self.kwargs = kwargs
-        self.signals = WorkerSignals()
-        self.running = False
-
-        # Add the callback to our kwargs
-        #self.kwargs['progress_callback'] = self.signals.progress
-
-    @Slot()  # QtCore.Slot
-    def run(self):
-        '''
-        Initialise the runner function with passed args, kwargs.
-        '''
-
-        # Retrieve args/kwargs here; and fire processing using them
-        try:
-            self.running = True
-            result = self.fn(*self.args, **self.kwargs)
-        except:
-            traceback.print_exc()
-            exctype, value = sys.exc_info()[:2]
-            self.signals.error.emit((exctype, value, traceback.format_exc()))
-        #else:
-            #self.signals.result.emit(result)  # Return the result of the processing
-        finally:
-            self.running = False
-            self.signals.finished.emit()  # Done
-            #self.quit()
-            #self.wait()
-    @Slot()
-    def isRunning(self):
-        return self.running
 
 
 class SineWavePlot(QWidget):
