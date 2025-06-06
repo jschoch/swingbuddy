@@ -79,15 +79,9 @@ class SwingLoader():
                 self.w.main_pause_signal.emit()
                 self.logger.debug("resetting swing UI")
                 self.w.plot.reset_data()
-
-                #self.w.video_playback.shutdown()
-                # TODO: do i need to do this?
-                #self.w.video_playback = VideoPlayBack(self.w.video_playback_Ui, self.logger)
                 self.w.video_playback.reset()
-                self.w.main_play_signal.connect(self.w.video_playback.play)
-                self.w.main_pause_signal.connect(self.w.video_playback.pause)
-                #self.w.video_playback.dtldf = pd.DataFrame()
-                #self.w.video_playback.facedf = pd.DataFrame()
+                #self.w.main_play_signal.connect(self.w.video_playback.play)
+                #self.w.main_pause_signal.connect(self.w.video_playback.pause)
             else:
                 self.logger.debug("No swing to unload")
 

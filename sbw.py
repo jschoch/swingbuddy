@@ -242,6 +242,7 @@ class SBW(QMainWindow):
         self.option_show_dtl_overlay = True
         self.option_process_face = True
         self.option_show_face_overlay = True
+        self.http_flag = False
 
         self.central_widget = QWidget()
         self.grid_layout = QGridLayout(self.central_widget)
@@ -356,7 +357,7 @@ class SBW(QMainWindow):
 
 
         # Connect signals to slots
-        self.video_playback_Ui.play_button.clicked.connect(self.play)
+        #self.video_playback_Ui.play_button.clicked.connect(self.play)
         self.video_playback_Ui.slider.sliderMoved.connect(self.slider_moved)
         #self.video_playback_Ui.video_label.mousePressEvent = self.overlay_mouse_press
         #self.video_playback_Ui.video_label.mouseMoveEvent = self.overlay_mouse_move
@@ -764,7 +765,11 @@ class SBW(QMainWindow):
         you must ignor the errors from the 2nd attempt.
             
         """
-        
+        if(self.http_flag == False):
+            self.http_flag = True
+            print("waiting for 2nd request")
+            return 
+        self.http_flag = False
         self.logger.debug(f"http_process_swing() s was: {s}")
         if isinstance(s,str):
             swings = find_swing(self.config.kinoveaDir,"mp4")
@@ -868,10 +873,6 @@ class SBW(QMainWindow):
             self.swingloader.load_swing(swing,LoadHint.NEW_CLIP,trcT)
         return
        
-    # Function to play the video
-    @Slot()
-    def play(self):
-        self.main_play_signal.emit()
 
 
     # Function to handle slider movement

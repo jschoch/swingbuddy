@@ -236,4 +236,7 @@ def copy_file_to_folder(filepath, new_folder):
         if os.path.exists(new_folder):
             fname = os.path.basename(filepath)
             destination_file_path = os.path.join(new_folder, fname) 
-            copy(filepath,destination_file_path)
+            if os.access(destination_file_path, os.W_OK):
+                copy(filepath,destination_file_path)
+            else:
+                print("Access problem with copy_file_to_folder")

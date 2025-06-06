@@ -104,6 +104,7 @@ class VideoPlayBack:
         self.t0 = WorkerThread(None, 0, 0,pd.DataFrame())
         self.timer = QTimer()
         self.logger = logger
+        self.video_playback_ui.play_button.clicked.connect(self.play)
         self.start()
 
     def reset(self):
@@ -195,7 +196,6 @@ class VideoPlayBack:
             self.logger.debug(f"Face raw frames were: {len(self.faceRawFrames)} ")
             self.video_playback_ui.face_overlay.make_frames()
             self.is_playing = True
-            #self.play()
             self.update_frame(lr)
 
     # Function to update the frame
@@ -225,15 +225,6 @@ class VideoPlayBack:
         self.update_frame(0)
         self.update_frame(1)
 
-    # Function to toggle play/pause
-    def toggle_play_pause(self):
-        self.logger.debug(f"MORE WTF {self.is_playing}")
-        
-
-        if self.is_playing:
-            self.is_playing = False
-        else:
-            self.is_playing = True
 
     @Slot()
     def play(self):
@@ -279,6 +270,7 @@ class VideoPlayBackUi(QWidget):
         # Create play, pause, slider, speed slider, overlay, and save frame button
         self.play_button = QPushButton("Play")
         self.play_button.setEnabled(False)
+        
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setEnabled(False)
         self.swingid = 0

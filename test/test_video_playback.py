@@ -4,6 +4,7 @@ import unittest
 from vplayer import  VideoPlayBackUi,VideoPlayBack
 from peewee import SqliteDatabase
 from swingdb import Swing, Session,Config,LMData
+from playhouse.shortcuts import model_to_dict, dict_to_model
 from PySide6.QtWidgets import QApplication, QWidget, QHBoxLayout,QMainWindow,QLabel
 from PySide6.QtGui import QAction,QIcon,QMovie, QStandardItemModel, QStandardItem,QImage, QPixmap,QPainter,QTransform
 
@@ -22,8 +23,9 @@ class TestVideoPlayBack(unittest.TestCase):
     def setupDb(self):
         self.db = SqliteDatabase('swingbuddy_test.db')
         self.db.connect()
-        self.db.create_tables(models)  # Replace YourModel with your actual model class
+        #self.db.create_tables(models)  # Replace YourModel with your actual model class
         self.swing = Swing.get_by_id(2)
+        print(f"swing was: {model_to_dict(self.swing)}")
         self.logger.debug(f"swn: {self.swing.name}")
 
 
