@@ -781,14 +781,13 @@ class SBW(QMainWindow):
         
         self.logger.debug(f"http_process_swing() s was: {s}")
         if isinstance(s,str):
-            #swings = find_swing(self.config.kinoveaDir,"mp4")
-            swings = find_swing(self.config.vidDir,"mp4")
-            #TODO get swing move working
-            #kva = find_swing(self.config.kinoveaDir,"kva")  
-            #swings_kva = swings + kva
-            #self.logger.debug(f"found {swings_kva} swings")
-            #new_folder = move_files(swings_kva)
-            #self.logger.debug(f"new folder: {new_folder}")
+            swings = find_swing(self.config.kinoveaDir,"mp4")
+            kva = find_swing(self.config.kinoveaDir,"kva")  
+            move_files(kva,self.config.kinoveaDir)
+            new_folder = move_files(swings,self.config.kinoveaDir)
+            self.logger.debug(f"new folder: {new_folder}")
+            swings = find_swing(new_folder,"mp4")
+            print(f"sings: {swings}")
             self.add_and_load_swing(swings)
         else:
             self.logger.debug("http_process_swing() s was not a string")

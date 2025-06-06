@@ -1,7 +1,5 @@
 # This Python file uses the following encoding: utf-8
 
-# if __name__ == "__main__":
-#     pass
 from peewee import *
 from playhouse.migrate import *
 import datetime
@@ -57,6 +55,7 @@ class Config(BaseModel):
     
     vidDir = CharField(default=r"c:/files/test_swings")
     screenDir = CharField(default="c:/files/test_swings")
+    kinoveaDir = CharField(default=r"C:/Files/kinovea_swings")
     ocrServer = CharField(default="not done yet")
     poseServer = CharField(default="http://localhost:5000/gettrc")
     enableScreen = BooleanField(default=True)
@@ -66,9 +65,12 @@ class Config(BaseModel):
     autoplay = BooleanField(default=True)
     screen_timeout = IntegerField(default=12)
     screen_coords = CharField(default = "0,0,600,600") # will be split into (a,b,c,d)
-    #kinoveaDir = CharField(default=r"C:/files/kinovea_swings")
-    #migrate(
-        #migrator.add_column('config','kinoveaDir',kinoveaDir)
-    #)
 
-    #enable
+
+if __name__ == '__main__':
+    print("running migration")
+    migrator = SqliteMigrator(db)
+    migrate(
+        migrator.add_column('config', 'kinoveaDir', CharField(default=r"C:/Files/kinovea_swings"))
+    )
+    

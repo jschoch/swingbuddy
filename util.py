@@ -177,7 +177,7 @@ def parse_filename(filename):
   """
 
   #match = re.match(r"(\d{4})(\d{2})(\d{2})-", filename)
-  match = re.search(r"(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})-\d{6}-\w+\.mp4$", filename)
+  match = re.search(r"(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})-\d{6}-\w+\....$", filename)
 
   if match:
     #return int(match.group('year')), int(match.group('month')), int(match.group('day'))
@@ -215,6 +215,9 @@ def move_file_to_folder(filepath, new_folder):
     print(f"Moved {fname} to {target_path}")
 
 def move_files(files,base_path):
+    if not files:
+        print("no files")
+        return
     year, month, day = parse_filename(files[0])
     new_folder = create_folder_structure(base_path,year, month, day)
     for filename in files:
